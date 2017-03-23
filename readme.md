@@ -1,6 +1,14 @@
-# snapshot-image-reboot-aws #
+# Schedule Snapshots, Images and Reboot with Tags #
 
-AWS EC2, EBS, RDS - Create snapshots and images, and reboot, using simple, tag-based schedules
+Create snapshots and images, and reboot, using simple, tag-based schedules
+
+|AWS Resource|Supported Action|
+|---|---|
+|EC2 (compute) instance|Create image|
+|EC2 (compute) instance|Reboot|
+|EBS (disk) volume|Create snapshot|
+|RDS (database) instance|Create snapshot|
+|RDS (database) instance|Reboot|
 
 # Licenses #
 
