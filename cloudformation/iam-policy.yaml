@@ -1,0 +1,392 @@
+---
+
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: "IAM managed policies for tag-based snapshot, image and reboot"
+
+# Marked EC2 actions do not support resource-level permissions, as of 2017-03
+# http://docs.aws.amazon.com/AWSEC2/latest/APIReference/ec2-api-permissions.html#ec2-api-unsupported-resource-permissions
+# http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-supported-iam-actions-resources.html
+
+Resources:
+
+  Ec2TagAdminIamPol:
+    Type: "AWS::IAM::ManagedPolicy"
+    DeletionPolicy: Delete
+    Properties:
+      Description: "Add, change and remove EC2 resource tags (caution: removing a no-reboot tag allows instances to be rebooted, and removing base-image or base-snapshot tags prevents backups!)"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - 
+            Effect: "Allow"
+            Action:
+              - "ec2:CreateTags"
+            Resource:
+              - "*"  # Resource-level permissions not supported
+          - 
+            Effect: "Allow"
+            Action:
+              - "ec2:DeleteTags"
+            Resource:
+              - "*"  # Resource-level permissions not supported
+
+  Ec2TagAddChangeIamPol:
+    Type: "AWS::IAM::ManagedPolicy"
+    DeletionPolicy: Delete
+    Properties: 
+      Description: "Add and change EC2 resource tags"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - # Add tags to any EC2 resource
+            Effect: "Allow"
+            Action:
+              - "ec2:CreateTags"
+            Resource:
+              - "*"  # Resource-level permissions not supported
+          - # Do not remove tags from any EC2 resource, including a managed one
+            # (management tags need not be removed; dummy values are supported)
+            Effect: "Deny"
+            Action:
+              - "ec2:DeleteTags"
+            Resource:
+              - "*"  # Resource-level permissions not supported
+
+  RdsInstTagAdminIamPol:
+    Type: "AWS::IAM::ManagedPolicy"
+    DeletionPolicy: Delete
+    Properties: 
+      Description: "Add, change and remove RDS instance tags (caution: removing a no-reboot tag allows instances to be rebooted, and removing base-snapshot tags disables backups!)"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - 
+            Effect: "Allow"
+            Action:
+              - "rds:AddTagsToResource"
+            Resource:
+              - !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+          - 
+            Effect: "Allow"
+            Action:
+              - "rds:RemoveTagsFromResource"
+            Resource:
+              - !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+
+  RdsInstManagedTagAddChangeIamPol:
+    Type: "AWS::IAM::ManagedPolicy"
+    DeletionPolicy: Delete
+    Properties: 
+      Description: "Add and change RDS instance tags, for instances with managed snapshot and/or reboot"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - # Add tags to RDS instances with managed snapshot
+            Effect: "Allow"
+            Action:
+              - "rds:AddTagsToResource"
+            Resource:
+              - !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Condition: 
+              StringLike: 
+                "rds:db-tag/ManagedSnapshot": "*"
+          - # Add tags to RDS instances with managed reboot
+            Effect: "Allow"
+            Action:
+              - "rds:AddTagsToResource"
+            Resource:
+              - !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Condition: 
+              StringLike: 
+                "rds:db-tag/ManagedReboot": "*"
+          - # Do not add tags to unmanaged RDS instances
+            Effect: "Deny"
+            Action:
+              - "rds:AddTagsToResource"
+            Resource:
+              - !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Condition:
+              StringNotLike:
+                "rds:db-tag/ManagedSnapshot": "*"
+                "rds:db-tag/ManagedReboot": "*"
+          - # Do not remove tags from any RDS instance, including a managed one
+            # (management tags need not be removed; dummy values are supported)
+            Effect: "Deny"
+            Action:
+              - "rds:RemoveTagsFromResource"
+            Resource:
+              - !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+
+  RdsSnapManagedTagAdminIamPol:
+    Type: "AWS::IAM::ManagedPolicy"
+    DeletionPolicy: Delete
+    Properties:
+      Description: "Add, change and remove RDS snapshots (caution, deleting a preserve tag allows for a snapshot to be deleted!)"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - 
+            Effect: "Allow"
+            Action:
+              - "rds:AddTagsToResource"
+            Resource:
+              - !Sub "arn:aws:rds:*:${AWS::AccountId}:snapshot:*"
+          - 
+            Effect: "Allow"
+            Action:
+              - "rds:RemoveTagsFromResource"
+            Resource:
+              - !Sub "arn:aws:rds:*:${AWS::AccountId}:snapshot:*"
+
+  RdsSnapManagedTagAddChangeIamPol:
+    Type: "AWS::IAM::ManagedPolicy"
+    DeletionPolicy: Delete
+    Properties: 
+      Description: "Add or change RDS snapshot tags, for managed snapshots only"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - # Add tags to managed RDS instance snapshots
+            Effect: "Allow"
+            Action:
+              - "rds:AddTagsToResource"
+            Resource:
+              - !Sub "arn:aws:rds:*:${AWS::AccountId}:snapshot:*"
+            Condition: 
+              StringLike: 
+                "rds:snapshot-tag/ManagedSnapshot": "*"
+          - # Do not add tags to unmanaged RDS snapshots
+            Effect: "Deny"
+            Action:
+              - "rds:AddTagsToResource"
+            Resource:
+              - !Sub "arn:aws:rds:*:${AWS::AccountId}:snapshot:*"
+            Condition:
+              StringNotLike:
+                "rds:snapshot-tag/ManagedSnapshot": "*"
+          - # Do not remove tags from RDS snapshots (including managed ones)
+            Effect: "Deny"
+            Action:
+              - "rds:RemoveTagsFromResource"
+            Resource:
+              - !Sub "arn:aws:rds:*:${AWS::AccountId}:snapshot:*"
+
+  Ec2InstImageCreateIamPol:
+    Type: "AWS::IAM::ManagedPolicy"
+    DeletionPolicy: Delete
+    Properties: 
+      Description: "Create and tag EC2 instance images (caution: allows reboot!), and EBS volume snapshots"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - 
+            Effect: "Allow"
+            Action:
+              - "ec2:CreateImage"
+            Resource:
+              # 2017-03 tests confirm that NoReboot false can be used to
+              # reboot an EC2 instance even if RebootInstances is denied.
+              - "*"  # Resource-level permissions not supported
+          - 
+            Effect: "Allow"
+            Action:
+              - "ec2:RegisterImage"
+            Resource:
+              - "*"  # Resource-level permissions not supported
+          -
+            Effect: "Allow"
+            Action:
+              - "ec2:CreateSnapshot"
+            Resource:
+              - "*"  # Resource-level permissions not supported
+          - 
+            Effect: "Allow"
+            Action:
+              - "ec2:CreateTags"
+            Resource:
+              - "*"  # Resource-level permissions not supported
+          - # Do not remove tags from EC2 resources (including managed ones)
+            Effect: "Deny"
+            Action:
+              - "ec2:DeleteTags"
+            Resource:
+              - "*"  # Resource-level permissions not supported
+
+  Ec2EbsVolSnapCreateIamPol:
+    Type: "AWS::IAM::ManagedPolicy"
+    DeletionPolicy: Delete
+    Properties: 
+      Description: "Create and tag EBS volume snapshots"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Action:
+              - "ec2:CreateSnapshot"
+            Resource:
+              - "*"  # Resource-level permissions not supported
+          - 
+            Effect: "Allow"
+            Action:
+              - "ec2:CreateTags"
+            Resource:
+              - "*"  # Resource-level permissions not supported
+          - # Do not remove tags from EC2 resources (including managed ones)
+            Effect: "Deny"
+            Action:
+              - "ec2:DeleteTags"
+            Resource:
+              - "*"  # Resource-level permissions not supported
+
+  Ec2InstManagedRebootIamPol:
+    Type: "AWS::IAM::ManagedPolicy"
+    DeletionPolicy: Delete
+    Properties: 
+      Description: "Reboot managed EC2 instances"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - # Reboot managed EC2 instances
+            Effect: "Allow"
+            Action:
+              - "ec2:RebootInstances"
+            Resource:
+              - !Sub "arn:aws:ec2::${AWS::AccountId}:instance/*"
+            Condition: 
+              StringLike: 
+                "ec2:ResourceTag/ManagedReboot": "*"
+          - # Do not reboot EC2 instances marked no-reboot
+            Effect: "Deny"
+            Action:
+              - "ec2:RebootInstances"
+            Resource:
+              - !Sub "arn:aws:ec2::${AWS::AccountId}:instance/*"
+            Condition:
+              StringNotLike:
+                "ec2:ResourceTag/ManagedRebootNo": "*"
+          - # Do not reboot unmanaged EC2 instances
+            Effect: "Deny"
+            Action:
+              - "ec2:RebootInstances"
+            Resource:
+              - !Sub "arn:aws:ec2::${AWS::AccountId}:instance/*"
+            Condition:
+              StringNotLike:
+                "ec2:ResourceTag/ManagedReboot": "*"
+
+  RdsInstSnapCreateIamPol:
+    Type: "AWS::IAM::ManagedPolicy"
+    DeletionPolicy: Delete
+    Properties: 
+      Description: "Create and tag RDS instance snapshots"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - # Create snapshots of managed RDS instances
+            Effect: "Allow"
+            Action:
+              - "rds:CreateSnapshot"
+            Resource:
+              - !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Condition: 
+              StringLike: 
+                "rds:db-tag/ManagedSnapshot": "*"
+          - # Do not create snapshots of unmanaged RDS instances
+            Effect: "Deny"
+            Action:
+              - "rds:CreateSnapshot"
+            Resource:
+              - !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Condition: 
+              StringNotLike: 
+                "rds:db-tag/ManagedSnapshot": "*"
+          - # Tag snapshots (any condition would hamper initial tagging)
+            Effect: "Allow"
+            Action:
+              - "rds:AddTagsToResource"
+            Resource:
+              - !Sub "arn:aws:rds:*:${AWS::AccountId}:snapshot:*"
+
+  RdsInstManagedRebootIamPol:
+    Type: "AWS::IAM::ManagedPolicy"
+    DeletionPolicy: Delete
+    Properties: 
+      Description: "Reboot managed RDS instances"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - # Reboot managed RDS instances
+            Effect: "Allow"
+            Action:
+              - "rds:RebootDBInstance"
+            Resource:
+              - !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Condition: 
+              StringLike: 
+                "rds:db-tag/ManagedReboot": "*"
+          - # Do not reboot RDS instances marked no-reboot
+            Effect: "Deny"
+            Action:
+              - "rds:RebootDBInstance"
+            Resource:
+              - !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Condition:
+              StringLike:
+                "rds:db-tag/ManagedRebootNo": "*"
+          - # Do not reboot unmanaged RDS instances
+            Effect: "Deny"
+            Action:
+              - "rds:RebootDBInstance"
+            Resource:
+              - !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Condition:
+              StringNotLike:
+                "rds:db-tag/ManagedReboot": "*"
+
+Outputs:
+  Ec2TagAdminIamPol:
+    Value: !Ref Ec2TagAdminIamPol
+    Export:
+      Name: IamPolEc2TagAdmin
+  Ec2TagAddChangeIamPol:
+    Value: !Ref Ec2TagAddChangeIamPol
+    Export:
+      Name: IamPolEc2TagAddChange
+  RdsInstTagAdminIamPol:
+    Value: !Ref RdsInstTagAdminIamPol
+    Export:
+      Name: IamPolRdsInstTagAdmin
+  RdsInstManagedTagAddChangeIamPol:
+    Value: !Ref RdsInstManagedTagAddChangeIamPol
+    Export:
+      Name: IamPolRdsInstManagedTagAddChange
+  RdsSnapManagedTagAdminIamPol:
+    Value: !Ref RdsSnapManagedTagAdminIamPol
+    Export:
+      Name: IamPolRdsSnapManagedTagAdmin
+  RdsSnapManagedTagAddChangeIamPol:
+    Value: !Ref RdsSnapManagedTagAddChangeIamPol
+    Export:
+      Name: IamPolRdsSnapManagedTagAddChange
+  Ec2InstImageCreateIamPol:
+    Value: !Ref Ec2InstImageCreateIamPol
+    Export:
+      Name: IamPolEc2InstImageCreate
+  Ec2EbsVolSnapCreateIamPol:
+    Value: !Ref Ec2EbsVolSnapCreateIamPol
+    Export:
+      Name: IamPolEc2EbsVolSnapCreate
+  Ec2InstManagedRebootIamPol:
+    Value: !Ref Ec2InstManagedRebootIamPol
+    Export:
+      Name: IamPolEc2InstManagedReboot
+  RdsInstSnapCreateIamPol:
+    Value: !Ref RdsInstSnapCreateIamPol
+    Export:
+      Name: IamPolRdsInstSnapCreate
+  RdsInstManagedRebootIamPol:
+    Value: !Ref RdsInstManagedRebootIamPol
+    Export:
+      Name: IamPolRdsInstManagedReboot
