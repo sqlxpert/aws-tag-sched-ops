@@ -10,11 +10,11 @@ Description: "IAM managed policies for tag-based snapshot, image and reboot"
 
 Resources:
 
-  Ec2TagAdminIamPol:
+  Ec2InstTagAdminIamPol:
     Type: "AWS::IAM::ManagedPolicy"
     DeletionPolicy: Delete
     Properties:
-      Description: "Add, change and remove EC2 resource tags (caution: removing a no-reboot tag allows instances to be rebooted, and removing base-image or base-snapshot tags prevents backups!)"
+      Description: "Add, change and remove EC2 instance tags (caution: removing no-reboot tags allows instances to be rebooted, and removing base-image tags prevents backups!)"
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -23,41 +23,211 @@ Resources:
             Action:
               - "ec2:CreateTags"
             Resource:
-              - "*"  # Resource-level permissions not supported
+              - !Sub "arn:aws:ec2:*:${AWS::AccountId}:instance/*"
           - 
             Effect: "Allow"
             Action:
               - "ec2:DeleteTags"
             Resource:
-              - "*"  # Resource-level permissions not supported
+              - !Sub "arn:aws:ec2:*:${AWS::AccountId}:instance/*"
 
-  Ec2TagAddChangeIamPol:
+  Ec2VolTagAdminIamPol:
     Type: "AWS::IAM::ManagedPolicy"
     DeletionPolicy: Delete
-    Properties: 
-      Description: "Add and change EC2 resource tags"
+    Properties:
+      Description: "Add, change and remove EC2 EBS volume tags (caution: removing base-snapshot tags prevents backups!)"
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
-          - # Add tags to any EC2 resource
+          -
             Effect: "Allow"
             Action:
               - "ec2:CreateTags"
             Resource:
-              - "*"  # Resource-level permissions not supported
-          - # Do not remove tags from any EC2 resource, including a managed one
+              - !Sub "arn:aws:ec2:*:${AWS::AccountId}:volume/*"
+          -
+            Effect: "Allow"
+            Action:
+              - "ec2:DeleteTags"
+            Resource:
+              - !Sub "arn:aws:ec2:*:${AWS::AccountId}:volume/*"
+
+  Ec2ImgSnapTagAdminIamPol:
+    Type: "AWS::IAM::ManagedPolicy"
+    DeletionPolicy: Delete
+    Properties:
+      Description: "Add, change and remove EC2 instance image and EBS volume snapshot tags (caution: removing base-image or base-snapshot tags prevents backups!)"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Action:
+              - "ec2:CreateTags"
+            Resource:
+              - !Sub "arn:aws:ec2:*:${AWS::AccountId}:image/*"
+              - !Sub "arn:aws:ec2:*:${AWS::AccountId}:snapshot/*"
+          -
+            Effect: "Allow"
+            Action:
+              - "ec2:DeleteTags"
+            Resource:
+              - !Sub "arn:aws:ec2:*:${AWS::AccountId}:image/*"
+              - !Sub "arn:aws:ec2:*:${AWS::AccountId}:snapshot/*"
+
+  Ec2InstTagAddChangeIamPol:
+    Type: "AWS::IAM::ManagedPolicy"
+    DeletionPolicy: Delete
+    Properties: 
+      Description: "Add and change EC2 instance tags"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - # Add safe tags to instances with image management
+            Effect: "Allow"
+            Action:
+              - "ec2:CreateTags"
+            Resource:
+              - !Sub "arn:aws:ec2:*:${AWS::AccountId}:instance/*"
+            Condition:
+              StringLike:
+                "ec2:ResourceTag/ManagedImage": "*"
+              StringNotLike:
+                "aws:RequestTag/ManagedRebootNo": "*"
+                "aws:RequestTag/ManagedReboot": "*"
+          - # Add safe tags to instances with reboot management
+            Effect: "Allow"
+            Action:
+              - "ec2:CreateTags"
+            Resource:
+              - !Sub "arn:aws:ec2:*:${AWS::AccountId}:instance/*"
+            Condition:
+              StringLike:
+                "ec2:ResourceTag/ManagedReboot": "*"
+              StringNotLike:
+                "aws:RequestTag/ManagedRebootNo": "*"
+                "aws:RequestTag/ManagedImage": "*"
+          - # Do not add tags to instances with neither image nor reboot management
+            Effect: "Deny"
+            Action:
+              - "ec2:CreateTags"
+            Resource:
+              - !Sub "arn:aws:ec2:*:${AWS::AccountId}:instance/*"
+            Condition:
+              StringNotLike:
+                "ec2:ResourceTag/ManagedImage": "*"
+                "ec2:ResourceTag/ManagedReboot": "*"
+          - # Do not remove tags from managed resource
             # (management tags need not be removed; dummy values are supported)
             Effect: "Deny"
             Action:
               - "ec2:DeleteTags"
             Resource:
-              - "*"  # Resource-level permissions not supported
+              - !Sub "arn:aws:ec2:*:${AWS::AccountId}:instance/*"
+            Condition:
+              StringLike:
+                "ec2:ResourceTag/ManagedImage": "*"
+                "ec2:ResourceTag/ManagedReboot": "*"
+
+  Ec2VolTagAddChangeIamPol:
+    Type: "AWS::IAM::ManagedPolicy"
+    DeletionPolicy: Delete
+    Properties: 
+      Description: "Add and change EC2 EBS volume tags"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - # Add safe tags to managed resource
+            Effect: "Allow"
+            Action:
+              - "ec2:CreateTags"
+            Resource:
+              - !Sub "arn:aws:ec2:*:${AWS::AccountId}:snapshot/*"
+            Condition:
+              StringLike:
+                "ec2:ResourceTag/ManagedSnapshot": "*"
+          - # Do not add tags to unmanaged resource
+            Effect: "Deny"
+            Action:
+              - "ec2:CreateTags"
+            Resource:
+              - !Sub "arn:aws:ec2:*:${AWS::AccountId}:snapshot/*"
+            Condition:
+              StringNotLike:
+                "ec2:ResourceTag/ManagedSnapshot": "*"
+          - # Do not remove tags from managed resource
+            # (management tags need not be removed; dummy values are supported)
+            Effect: "Deny"
+            Action:
+              - "ec2:DeleteTags"
+            Resource:
+              - !Sub "arn:aws:ec2:*:${AWS::AccountId}:snapshot/*"
+            Condition:
+              StringLike:
+                "ec2:ResourceTag/ManagedSnapshot": "*"
+
+  Ec2ImgSnapTagAddChangeIamPol:
+    Type: "AWS::IAM::ManagedPolicy"
+    DeletionPolicy: Delete
+    Properties: 
+      Description: "Add and change EC2 instance images and EC2 EBS volume snapshot tags"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - # Add safe tags to snapshot stemming from image management
+            Effect: "Allow"
+            Action:
+              - "ec2:CreateTags"
+            Resource:
+              - !Sub "arn:aws:ec2:*:${AWS::AccountId}:image/*"
+              - !Sub "arn:aws:ec2:*:${AWS::AccountId}:snapshot/*"
+            Condition:
+              StringLike:
+                "ec2:ResourceTag/ManagedImage": "*"
+              StringNotLike:
+                "aws:RequestTag/ManagedSnapshot": "*"
+          - # Add safe tags to snapshot from snapshot management
+            Effect: "Allow"
+            Action:
+              - "ec2:CreateTags"
+            Resource:
+              - !Sub "arn:aws:ec2:*:${AWS::AccountId}:image/*"
+              - !Sub "arn:aws:ec2:*:${AWS::AccountId}:snapshot/*"
+            Condition:
+              StringLike:
+                "ec2:ResourceTag/ManagedSnapshot": "*"
+              StringNotLike:
+                "aws:RequestTag/ManagedImage": "*"
+          - # Do not add tags to snapshot stemming
+            # neither from image management nor snapshot management
+            Effect: "Deny"
+            Action:
+              - "ec2:CreateTags"
+            Resource:
+              - !Sub "arn:aws:ec2:*:${AWS::AccountId}:image/*"
+              - !Sub "arn:aws:ec2:*:${AWS::AccountId}:snapshot/*"
+            Condition:
+              StringNotLike:
+                "ec2:ResourceTag/ManagedImage": "*"
+                "ec2:ResourceTag/ManagedSnapshot": "*"
+          - # Do not remove tags from managed resource
+            # (management tags need not be removed; dummy values are supported)
+            Effect: "Deny"
+            Action:
+              - "ec2:DeleteTags"
+            Resource:
+              - !Sub "arn:aws:ec2:*:${AWS::AccountId}:image/*"
+              - !Sub "arn:aws:ec2:*:${AWS::AccountId}:snapshot/*"
+            Condition:
+              StringLike:
+                "ec2:ResourceTag/ManagedImage": "*"
+                "ec2:ResourceTag/ManagedSnapshot": "*"
 
   RdsInstTagAdminIamPol:
     Type: "AWS::IAM::ManagedPolicy"
     DeletionPolicy: Delete
     Properties: 
-      Description: "Add, change and remove RDS instance tags (caution: removing a no-reboot tag allows instances to be rebooted, and removing base-snapshot tags disables backups!)"
+      Description: "Add, change and remove RDS instance tags (caution: removing no-reboot tags allows instances to be rebooted, and removing base-snapshot tags disables backups!)"
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -205,7 +375,8 @@ Resources:
             Action:
               - "ec2:CreateTags"
             Resource:
-              - "*"  # Resource-level permissions not supported
+              - !Sub "arn:aws:ec2:*:${AWS::AccountId}:image/*"
+              - !Sub "arn:aws:ec2:*:${AWS::AccountId}:snapshot/*"
           - # Do not remove tags from EC2 resources (including managed ones)
             Effect: "Deny"
             Action:
@@ -232,7 +403,7 @@ Resources:
             Action:
               - "ec2:CreateTags"
             Resource:
-              - "*"  # Resource-level permissions not supported
+              - !Sub "arn:aws:ec2:*:${AWS::AccountId}:snapshot/*"
           - # Do not remove tags from EC2 resources (including managed ones)
             Effect: "Deny"
             Action:
@@ -346,14 +517,30 @@ Resources:
                 "rds:db-tag/ManagedReboot": "*"
 
 Outputs:
-  Ec2TagAdminIamPol:
-    Value: !Ref Ec2TagAdminIamPol
+  Ec2InstTagAdminIamPol:
+    Value: !Ref Ec2InstTagAdminIamPol
     Export:
-      Name: IamPolEc2TagAdmin
-  Ec2TagAddChangeIamPol:
-    Value: !Ref Ec2TagAddChangeIamPol
+      Name: IamPolEc2InstTagAdmin
+  Ec2VolTagAdminIamPol:
+    Value: !Ref Ec2VolTagAdminIamPol
     Export:
-      Name: IamPolEc2TagAddChange
+      Name: IamPolEc2VolTagAdmin
+  Ec2ImgSnapTagAdminIamPol:
+    Value: !Ref Ec2ImgSnapTagAdminIamPol
+    Export:
+      Name: IamPolEc2ImgSnapTagAdmin
+  Ec2InstTagAddChangeIamPol:
+    Value: !Ref Ec2InstTagAddChangeIamPol
+    Export:
+      Name: IamPolEc2InstTagAddChange
+  Ec2VolTagAddChangeIamPol:
+    Value: !Ref Ec2VolTagAddChangeIamPol
+    Export:
+      Name: IamPolEc2VolTagAddChange
+  Ec2ImgSnapTagAddChangeIamPol:
+    Value: !Ref Ec2ImgSnapTagAddChangeIamPol
+    Export:
+      Name: IamPolEc2ImgSnapTagAddChange
   RdsInstTagAdminIamPol:
     Value: !Ref RdsInstTagAdminIamPol
     Export:
