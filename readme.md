@@ -49,7 +49,7 @@
  
  * All times are UTC, on a 24-hour clock.
  * The function runs once every 10 minutes. The last digit of the minute is always ignored. For example, an operation scheduled for `M=47` is expected to begin between 40 and 50 minutes after the hour, depending on startup overhead.
- * Month and minute values must always have two digits. Use a leading zero (for example, `03`) if the value is less than 10.
+ * Month and minute values must have two digits. Use a leading zero (for example, `03`) if a month or minute value is less than or equal to 9. (Because there are only 7 days in a week, weekday numbers have only one digit.)
  * Use a comma (`,`) _without any spaces_ to separate components. The order of components within a tag value does not matter.
  * `T` separates day information from time; it is not a variable.
  * Different tags are used for repeating (`-periodic`) and one-time (`-once`) schedules.
