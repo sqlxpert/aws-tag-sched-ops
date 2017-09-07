@@ -52,7 +52,7 @@
  * Month and minute values must have two digits. Use a leading zero (for example, `03`) if a month or minute value is less than or equal to 9. (Because there are only 7 days in a week, weekday numbers have only one digit.)
  * Use a comma (`,`) _without any spaces_ to separate components. The order of components within a tag value does not matter.
  * `T` separates day information from time; it is not a variable.
- * Different tags are used for repeating (`-periodic`) and one-time (`-once`) schedules.
+ * Different tags are used for [repetitive (`-periodic`)](#repetitive-schedules) and [one-time (`-once`)](#one-time-schedules) schedules.
 
 ### Repetitive Schedules
 
