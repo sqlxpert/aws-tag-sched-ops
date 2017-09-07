@@ -24,7 +24,8 @@
      * IAM
      * Lambda
      * EC2
-
+     * RDS
+ 
    (For routine usage, see [Security Model](#security-model))
 
 2. Navigate to the [CloudFormation Console](https://console.aws.amazon.com/cloudformation/home)
