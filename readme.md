@@ -1,20 +1,23 @@
-# Schedule Snapshots, Images and Reboot with Tags #
+# Start, Reboot, Stop and Back Up AWS Resources Using Tags
 
-## Purpose ##
+## Benefits
 
-Create snapshots and images, and reboot, using simple, tag-based schedules
+* This Python-based AWS Lambda function can **save money** by stopping resources during off-hours.
+* It can also **improve operational reliability** by taking frequent backups.
+* It uses simple, **tag-based schedules**.
+* It defines a set of Identity and Access Management (IAM) policies for **security**.
 
-|AWS Resource|Supported Action|
-|---|---|
-|EC2 (compute) instance|Create image|
-|EC2 (compute) instance|Reboot|
-|EBS (disk) volume|Create snapshot|
-|RDS (database) instance|Create snapshot|
-|RDS (database) instance|Reboot|
+## Resources and Operations
 
-## Security Model ##
+|AWS Resource|Start|Create Image|Reboot, Create Image|Reboot|Create Snapshot|Create Snapshot, Stop|Stop|
+|--|--|--|--|--|--|--|--|
+|EC2 compute instance|&#x2713;|&#x2713;|&#x2713;|&#x2713;| | | |
+|EC2 EBS disk volume| | | | |&#x2713;| | |
+|RDS database instance|&#x2713;| | |&#x2713;|&#x2713;|&#x2713;|&#x2713;|
 
-### IAM, EC2 and RDS Constraints ###
+## Security Model
+
+### IAM, EC2 and RDS Constraints
 
  * Restricting **instance, volume, image and snapshot tagging privileges** is crucial, because tags determine what gets backed up and/or rebooted, and when, as well as which backups are protected from deletion.
  * The right to _add_ tags to EC2 or RDS resources includes the right to _change_ the values of existing tags.
@@ -26,7 +29,7 @@ Create snapshots and images, and reboot, using simple, tag-based schedules
 
  * Restricting RDS **database snapshot** privileges is crucial. An RDS snapshot might degrade database performance and block RDS instance modifications for a long period of time.
 
-### Consequences ###
+### Consequences
 
  * Support for positive tags (e.g., "yes, reboot") as well as negative ones (e.g., "no, do not reboot") is a necessary compromise.
  * Where a positive and a negative tag conflict, the safer interpretation prevails.
@@ -38,7 +41,7 @@ Create snapshots and images, and reboot, using simple, tag-based schedules
  
  * Administrative tagging rights must never be combined with the right to modify the source code of the AWS Lambda function that creates images and snapshots and initiates reboots. The code serves as a security barrier. It is designed to respect tags that forbid reboot and to apply tags that forbid deletion.
 
-## Licenses ##
+## Licensing
 
 |Scope|License|
 |---|---|
