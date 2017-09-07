@@ -44,6 +44,57 @@
 7. Navigate to [AMIs](https://console.aws.amazon.com/ec2/v2/home#Images) in the EC2 Console
 8. After approximately 20 minutes, check for a newly-created image
 
+
+## Scheduling
+ 
+ * All times are UTC, on a 24-hour clock.
+ * The function runs once every 10 minutes. The last digit of the minute is always ignored. For example, an operation scheduled for `M=47` is expected to begin between 40 and 50 minutes after the hour, depending on startup overhead.
+ * Month and minute values must always have two digits. Use a leading zero (for example, `03`) if the value is less than 10.
+ * Use a comma (`,`) _without any spaces_ to separate components. The order of components within a tag value does not matter.
+ * `T` separates day information from time; it is not a variable.
+ * Different tags are used for repeating (`-periodic`) and one-time (`-once`) schedules.
+
+### Repetitive Schedules
+
+  * Tag suffix: `-periodic`
+
+  * Values: one or more of the following components:
+
+    |Name|Minimum|Maximum|Wildcard|Combines With|
+    |--|--|--|--|--|
+    |Day of month (`d`)|`d=01`|`d=31`|`d=*`|`H` and `M`, or `H:M`|
+    |Weekday (`u`)|`u=1` (Monday)|`u=7` (Sunday)||`H` and `M`, or `H:M`|
+    |Hour (`H`)|`H=00`|`H=23`|`H=*`|`d` or `u`, and `M`|
+    |Minute (`M`)|`M=00`|`M=59`||`d` or `u`, and `H`|
+    |Hour and minute (`H:M`)|`H:M=00:00`|`H:M=23:59`||`d` or `u`|
+    |Day of month, hour and minute (`dTH:M`)|`dTH:M=01T00:00`|`dTH:M=31T23:59`|||
+    |Weekday, hour and minute (`uTH:M`)|`uTH:M=1T00:00`|`uTH:M=7T23:59`|||
+    
+      * To be valid, a component or combination of components must specify a day, hour and minute.
+      * Repeat a whole component to specify multiple values. For example, `d=01,d=11,d=21` means the 1st, 11th and 21st days of the month.
+      * The `*` wildcard is allowed for day (every day of the month) and hour (every hour of the day).
+      * For consistent one-day-a-month scheduling, avoid `d=29` through `d=31`.
+      * Labels are from `strftime` and weekday numbering follows the [ISO 8601 standard](https://en.wikipedia.org/wiki/ISO_8601#Week_dates) (different from `cron`).
+
+  * Examples:
+  
+    |Value of `-periodic` Schedule Tag|Demonstrates|Operation Expected to Begin|
+    |--|--|--|
+    |`d=28,H=14,M=25` _or_ `dTH:M=28T14:25`|Monthly event|Between 14:20 and 14:30 on the 28th day of every month.|
+    |`d=1,d=8,d=15,d=22,H=03,H=19,M=01`|`cron`-style schedule|Between 03:00 and 03:10 and again between 19:00 and 19:10, on the 1st, 8th, 15th, and 22nd days of every month.|
+    |`d=*,H=*,M=15,M=45,H:M=08:50`|Extra event in the day|Between 10 and 20 minutes after the hour and 40 to 50 minutes after the hour, every hour of every day, _and also_ every day between 08:50 and 09:00.|
+    |`d=*,H=11,M=00,uTH:M=2T03:30,uTH:M=5T07:20`|Extra weekly events|Between 11:00 and 11:10 every day, _and also_ every Tuesday between 03:30 and 03:40 and every Friday between 07:20 and 7:30.|
+    |`u=3,H=22,M=15,dTH:M=01T05:20`|Extra monthly event(s)|Between 22:10 and 22:20 every Wednesday, _and also_ on the first day of every month between 05:20 and 05:30.|
+    
+### One-Time Schedules
+ 
+  * Tag suffix: `-once`
+
+  * Values: one or more [ISO 8601 combined date and time strings](https://en.wikipedia.org/wiki/ISO_8601#Combined_date_and_time_representations), of the form `2017-03-21T22:40`
+      * Remember, the code runs once every 10 minutes and the _last digit of the minute is ignored_
+      * Omit seconds and fractions of seconds
+      * Omit time zone
+
 ## Security Model
 
 ### IAM, EC2 and RDS Constraints
