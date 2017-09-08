@@ -3,11 +3,11 @@
 ## Benefits
 
 * This Python-based AWS Lambda function **saves money** by stopping resources during off-hours.
-* It also **increases reliability** by taking frequent backups.
+* It also **enhances reliability** by taking frequent backups.
 * It uses simple but powerful **tag-based schedules**.
 * It defines a set of Identity and Access Management (IAM) policies for **security**.
 
-## Quick Start ##
+## Quick Start
 
 1. Log in to the [AWS Console](https://signin.aws.amazon.com/console)
 
@@ -51,7 +51,7 @@
 * To temporarily suspend an operation, delete its enabling tag. You may leave its schedule tag(s) in place.
 * Examples (for an EC2 or RDS instance):
 
-  |Tag(s) and Value(s)|Works|Explanation|
+  |Tag(s) and Value(s)|Success|Comment|
   |--|--|--|
   |`managed-start`, `managed-start-periodic`=`u=1,H=09,M=05`|Yes|Enabled and scheduled|
   |`managed-start`=`No`, `managed-start-periodic`=`u=1,H=09,M=05`|Yes|Value of enabling tag is ignored|
@@ -109,7 +109,7 @@
  
   * Tag suffix: `-once`
 
-  * Values: one or more [ISO 8601 combined date and time strings](https://en.wikipedia.org/wiki/ISO_8601#Combined_date_and_time_representations), of the form `2017-03-21T22:40`
+  * Values: one or more [ISO 8601 combined date and time strings](https://en.wikipedia.org/wiki/ISO_8601#Combined_date_and_time_representations), of the form `2017-03-21T22:40` (this example means March 21, 2017 at 22:40)
       * Remember, the code runs once every 10 minutes and the _last digit of the minute is ignored_
       * Omit seconds and fractions of seconds
       * Omit time zone
@@ -135,16 +135,49 @@
   |`managed-reboot`||
   |`managed-reboot-periodic`|`d=*,H=23,M=59`|
   
-  (23:59, which for the purposes of this function represents the last 10-minute interval of the day, is the safe and clear way to select _the end of some designated day_, in any date/time library implementation on any system. Also remember that all times are UTC; adjust for night-time in your time zone!)
+  (23:59, which for the purposes of this function represents the last 10-minute interval of the day, is the unambiguous way to express _almost the end of some designated day_, on any system. 00:00 and 24:00 could refer to the start or the end of the designated day, and not all systems accept 24:00, in any case. Remember that all times are UTC; adjust for night-time in your time zone!)
 
 * Non-combinable operations result in no operation. Affected resources are logged only when the function is executed in [Debug Mode](#debug-mode).
 
   |Bad Combination|Reason|Example|
   |--|--|--|
   |Mutually exclusive operations|These conflict with each other.|Start + Stop|
-  |Choice of operation depends on current state of instance|The state could change between the query and the operation request.|Start + Reboot|
-  |Sequential or dependent operations|Even when the logical order can be inferred, operations are asynchronous; the first one might not complete in time for the second one to begin. Note that Reboot then Create Image (EC2) and Create Snapshot then Stop (RDS) are _single_ AWS operations.|Start + Create Image|
+  |Choice of operation depends on current state of instance|The state could change between the status query and the operation request.|Start + Reboot|
+  |Sequential or dependent operations|The logical order cannot always be inferred. Also, operations proceed asynchronously; one might not complete in time for another to begin. Note that Reboot then Create Image (EC2 instance) and Create Snapshot then Stop (RDS instance) are _single_ AWS operations.|Start + Create Image|
   
+## "Child" Resources
+
+Some operations create a child resource (image or snapshot) from a parent resource (instance or volume).
+ 
+### Naming Convention
+
+* This function names all child resources.
+* For convenience, no uppercase letters are used.
+* The name consists of these parts, in order, and separated by hyphens (`-`):
+
+  |#|Part|Example|Purpose|
+  |--|--|--|--|
+  |1|Prefix|`zm`|Identifies and groups children created by this function, in sections of the AWS Web Console that do not expose tags. `z` will sort after most manually-created images and snapshots. `m` stands for "managed".|
+  |2|Parent name or identifier|`webserver`|Conveniently indicates the parent. Derived from the `Name` tag (if not blank), the logical name (if supported), or the physical identifier (as a last resort; note that the internal hyphen is preserved).
+  |3|Date/time|`20171231T1400`|Indicates when the child was created. The last digit of the minute is normalized to 0. The `-` and `:` separators are removed for brevity, and because AWS does not allow `:` in names, for some resource types. The `managed-date-time` tag stores the original string, with all separators.|
+  |4|Random string|`g3a8a`|Guarantees unique names. Five characters are chosen from a small set of letters and numbers that are unambiguous.|
+
+  For some resource types, the description is also set to the name, in case some tools only expose one or the other.
+
+### Special Tags
+
+* All tags other than operation-enabling tags, schedule tags, and the `Name` tag, are copied from parent to child.
+
+* Special tags are added to the child resource:
+
+  |Tag(s)|Purpose|
+  |--|--|
+  |`Name`|Supplements EC2 resource identifiers. Key is renamed `managed-parent-name` when its value is passed from parent to child, because the child has a `Name` tag of its own; see [Naming Conventions](#naming-conventions). This function handles `Name` specially for both EC2 and RDS, in case EC2-style tag semantics are eventually extended to RDS.|
+  |`managed-parent-name`|`Name` tag from the parent. Not added if blank.|
+  |`managed-parent-id`|The identifier of the parent EC2 instance, EC2 EBS volume, or RDS instance. AWS metadata captures this (for example, as `VolumeId`, for EC2 EBS volume snapshots), but field names and usage capabilities differ for every AWS service and resource type.|
+  |`managed-origin`|The operation (for example, `snapshot`) that created the child. Identifies resources created by this function. Also distinguishes special cases, such as whether an EC2 instance was or was not rebooted before an image was created. If operation-enabling tags were copied from parent to child, they might conflict with future tags for automated operations on the child (such as scheduled deletion of old images and snapshots).|
+  |`managed-date-time`|Groups resources created during the same 10-minute interval. AWS metadata captures the _exact_ time, and field names and usage capabilities differ for every AWS service and resource type.|
+
 ## Security Model
 
 ### IAM, EC2 and RDS Constraints
