@@ -139,7 +139,7 @@
 
 * Non-combinable operations result in no operation. Affected resources are logged only when the function is executed in [Debug Mode](#debug-mode).
 
-  |Combination Case|Reason|Example|
+  |Bad Combination|Reason|Example|
   |--|--|--|
   |Mutually exclusive operations|These conflict with each other.|Start + Stop|
   |Choice of operation depends on current state of instance|The state could change between the query and the operation request.|Start + Reboot|
