@@ -38,7 +38,7 @@
 
 ## Operation-Enabling Tags
 
-* To enable an operation, tag the resource with a tag from this table. The tag value does not matter; leave it blank.
+* To enable an operation, tag the resource with a tag from the table. The value of this tag does not matter; leave it blank.
 
   |AWS Resource|Start|Create Image|Reboot then Create Image|Reboot|Create Snapshot|Create Snapshot then Stop|Stop|
   |--|--|--|--|--|--|--|--|
@@ -49,7 +49,7 @@
 * Also tag the resource with valid [repetitive (`-periodic`)](#repetitive-schedules) and/or [one-time (`-once`)](#one-time-schedules) schedule tag(s). Prefix with the operation.
 * If there are no corresponding schedule tags, an enabling tag will be ignored, and the operation will never occur.
 * To temporarily suspend an operation, delete its enabling tag. You may leave its schedule tag(s) in place.
-* Examples:
+* Examples (for an EC2 or RDS instance):
 
   |Tag(s) and Value(s)|Works|Explanation|
   |--|--|--|
@@ -134,7 +134,7 @@
   |--|--|--|
   |Mutually exclusive operations|These conflict with each other.|Start + Stop|
   |Combinations for which the choice of operation depends on the state of the instance|The state could change between the query and the operation request.|Start + Reboot|
-  |Sequential or dependent operations|Even if a logical order can be inferred, AWS operations are asynchronous; the first one might not complete in time for the second one to begin. Note that Reboot then Create Image (EC2) and Create Snapshot then Stop (RDS) are single operations.|Start + Create Image|
+  |Sequential or dependent operations|Even when the logical order can be inferred, AWS operations are asynchronous; the first one might not complete in time for the second one to begin. Note that Reboot then Create Image (EC2) and Create Snapshot then Stop (RDS) are _single_ AWS operations.|Start + Create Image|
   
 ## Security Model
 
