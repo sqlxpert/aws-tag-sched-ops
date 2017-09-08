@@ -149,7 +149,7 @@
 
 Some operations create a child resource (image or snapshot) from a parent resource (instance or volume).
  
-### Naming Convention
+### Naming Conventions
 
 * This function names all child resources.
 * For convenience, no uppercase letters are used.
@@ -162,7 +162,7 @@ Some operations create a child resource (image or snapshot) from a parent resour
   |3|Date/time|`20171231T1400`|Indicates when the child was created. The last digit of the minute is normalized to 0. The `-` and `:` separators are removed for brevity, and because AWS does not allow `:` in names, for some resource types. The `managed-date-time` tag stores the original string, with all separators.|
   |4|Random string|`g3a8a`|Guarantees unique names. Five characters are chosen from a small set of letters and numbers that are unambiguous.|
 
-  For some resource types, the description is also set to the name, in case some tools only expose one or the other.
+  For some resource types, the description is also set to the name, in case some interfaces only expose one or the other.
 
 ### Special Tags
 
