@@ -7,14 +7,6 @@
 * It uses simple, **tag-based schedules**.
 * It defines a set of Identity and Access Management (IAM) policies for **security**.
 
-## Resources and Operations
-
-|AWS Resource|Start|Create Image|Reboot, Create Image|Reboot|Create Snapshot|Create Snapshot, Stop|Stop|
-|--|--|--|--|--|--|--|--|
-|EC2 compute instance|&#x2713;|&#x2713;|&#x2713;|&#x2713;| | | |
-|EC2 EBS disk volume| | | | |&#x2713;| | |
-|RDS database instance|&#x2713;| | |&#x2713;|&#x2713;|&#x2713;|&#x2713;|
-
 ## Quick Start ##
 
 1. Log in to the [AWS Console](https://signin.aws.amazon.com/console)
@@ -44,6 +36,32 @@
 7. Navigate to [AMIs](https://console.aws.amazon.com/ec2/v2/home#Images) in the EC2 Console
 8. After approximately 20 minutes, check for a newly-created image
 
+## Operation-Enabling Tags
+
+* To enable an operation, tag the resource with an enabling tag from this table. The value does not matter; leave it blank.
+
+  |AWS Resource|Start|Create Image|Reboot then Create Image|Reboot|Create Snapshot|Create Snapshot then Stop|Stop|
+  |--|--|--|--|--|--|--|--|
+  |EC2 compute instance|`managed-start`|`managed-image`|`managed-reboot-image`|`managed-reboot`| | |`managed-stop`|
+  |EC2 EBS disk volume| | | | |`managed-snapshot`| | |
+  |RDS database instance|`managed-start`| | |`managed-reboot`|`managed-snapshot`|`managed-snapshot-stop`|`managed-stop`|
+
+* Also tag the resource with valid [repetitive (`-periodic`)](#repetitive-schedules) and/or [one-time (`-once`)](#one-time-schedules) schedule tag(s). Prefix with the operation.
+* If there are no corresponding schedule tags, an operation-enabling tag will be ignored, and the operation will never occur.
+* To temporarily suspend an operation, delete its enabling tag. You may leave its schedule tag(s) in place.
+* Examples:
+
+  |Tag(s) and Value(s)|Works|Explanation|
+  |--|--|--|
+  |`managed-start`, `managed-start-periodic`=`u=1,H=09,M=05`|Yes|Enabled and scheduled|
+  |`managed-start`=`No`, `managed-start-periodic`=`u=1,H=09,M=05`|Yes|Value of enabling tag is ignored|
+  |`managed-start`, `managed-start-once`=`2017-12-31T09:05`|Yes|Enabled and scheduled|
+  |`managed-start`, `managed-start-periodic`=`u=1,H=09,M=05`,`managed-start-once`=`2017-12-31T09:05`|Yes|Repetitive and one-time schedules can be combined|
+  |`managed-start`|No|No schedule tag|
+  |`managed-start-once`=`2017-12-31`|No|No enabling tag (suspend)|
+  |`managed-start`, `managed-start-once`|No|Blank schedule|
+  |`managed-start`, `managed-start-periodic`=`Monday`|No|Invalid schedule|
+  |`managed-start`, `managed-stop-periodic`=`u=1,H=09,M=05`|No|Different operations|
 
 ## Scheduling
  
@@ -52,7 +70,8 @@
  * Month and minute values must have two digits. Use a leading zero (for example, `03`) if a month or minute value is less than or equal to 9. (Because there are only 7 days in a week, weekday numbers have only one digit.)
  * Use a comma (`,`) _without any spaces_ to separate components. The order of components within a tag value does not matter.
  * `T` separates day information from time; it is not a variable.
- * Different tags are used for [repetitive (`-periodic`)](#repetitive-schedules) and [one-time (`-once`)](#one-time-schedules) schedules.
+ * Each operation supports a pair of tags for [repetitive (`-periodic`)](#repetitive-schedules) and [one-time (`-once`)](#one-time-schedules) schedules. Prefix with the operation.
+ * If the corresponding [operation-enabling tag](#operation-enabling-tags) is missing, schedule tags will be ignored, and the operation will never occur.
 
 ### Repetitive Schedules
 
@@ -95,6 +114,25 @@
       * Omit seconds and fractions of seconds
       * Omit time zone
 
+## Operation Combinations
+
+* Multiple _non-simultaneous_ operations on the same resource are allowed.
+* If two or more operations on the same resource fall on the same day, during the same 10-minute time interval, the function combines them if possible:
+
+  |Resource|Simultaneous Operations|Effect|
+  |--|--|--|
+  |EC2 instance|Stop + Reboot|Stop|
+  |EC2 instance|Create Image + Reboot|Create Image with Reboot|
+  |RDS instance|Stop + Reboot|Stop|
+  |RDS instance|Stop + Create Snapshot|Create Snapshot then Stop|
+
+* The EC2 instance Create Image + Reboot combination is the most useful. For example, you can use it to take hourly backups but reboot only before the midnight backup. Only the midnight backup is guaranteed to be coherent, but static files can still be retrieved from the hourly backups.
+
+* Some operations cannot be combined. Examples include:
+    * Start + Stop: These are mutually exclusive.
+    * Start + Reboot: Choosing one or the other depends on the instance state, which could change between query and operation.
+    * Start + Create Image: Operations are asynchronous, and the first might not complete in time for the second to begin.
+  
 ## Security Model
 
 ### IAM, EC2 and RDS Constraints
