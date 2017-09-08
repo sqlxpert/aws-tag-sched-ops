@@ -122,7 +122,7 @@
   |Resource|Simultaneous Operations|Effect|
   |--|--|--|
   |EC2 instance|Stop + Reboot|Stop|
-  |EC2 instance|Create Image + Reboot|Create Image with Reboot|
+  |EC2 instance|Create Image + Reboot|Reboot then Create Image|
   |RDS instance|Stop + Reboot|Stop|
   |RDS instance|Stop + Create Snapshot|Create Snapshot then Stop|
 
