@@ -151,18 +151,20 @@ Some operations create a child resource (image or snapshot) from a parent resour
  
 ### Naming Conventions
 
-* This function names all child resources.
-* For convenience, no uppercase letters are used.
+* This function names _all_ child resources.
+* For simplicity, no uppercase letters are used.
+* AWS imposes different character set restrictions for different resource types. This function replaces known forbidden characters with with `X`.
 * The name consists of these parts, in order, and separated by hyphens (`-`):
 
   |#|Part|Example|Purpose|
   |--|--|--|--|
-  |1|Prefix|`zm`|Identifies and groups children created by this function, in sections of the AWS Web Console that do not expose tags. `z` will sort after most manually-created images and snapshots. `m` stands for "managed".|
-  |2|Parent name or identifier|`webserver`|Conveniently indicates the parent. Derived from the `Name` tag (if not blank), the logical name (if supported), or the physical identifier (as a last resort; note that the internal hyphen is preserved).
-  |3|Date/time|`20171231T1400`|Indicates when the child was created. The last digit of the minute is normalized to 0. The `-` and `:` separators are removed for brevity, and because AWS does not allow `:` in names, for some resource types. The `managed-date-time` tag stores the original string, with all separators.|
+  |1|Prefix|`zm`|Identifies and groups children created by this function, for interfaces that do not expose tags. `z` will sort after most manually-created images and snapshots. `m` stands for "managed".|
+  |2|Parent name or identifier|`webserver`|Conveniently indicates the parent. Derived from the `Name` tag (if not blank), the logical name (if supported), or the physical identifier (as a last resort). Multiple children of the same parent will sort together, by creation date (see next row).|
+  |3|Date/time|`20171231T1400`|Indicates when the child was created. The last digit of the minute is normalized to 0. The `-` and `:` separators are removed for brevity, and because AWS does not allow `:` in names, for some resource types. (The `managed-date-time` tag stores the original string, with separators intact.)|
   |4|Random string|`g3a8a`|Guarantees unique names. Five characters are chosen from a small set of letters and numbers that are unambiguous.|
 
-  For some resource types, the description is also set to the name, in case some interfaces only expose one or the other.
+* If it is ever necessary to parse these names, keep in mind that the second part may contain internal hyphens.
+* For some resource types, the description is also set to the name, in case interfaces only expose one or the other.
 
 ### Special Tags
 
