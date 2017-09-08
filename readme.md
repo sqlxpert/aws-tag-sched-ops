@@ -38,7 +38,7 @@
 
 ## Operation-Enabling Tags
 
-* To enable an operation, tag the resource with an enabling tag from this table. The value does not matter; leave it blank.
+* To enable an operation, tag the resource with a tag from this table. The tag value does not matter; leave it blank.
 
   |AWS Resource|Start|Create Image|Reboot then Create Image|Reboot|Create Snapshot|Create Snapshot then Stop|Stop|
   |--|--|--|--|--|--|--|--|
@@ -47,7 +47,7 @@
   |RDS database instance|`managed-start`| | |`managed-reboot`|`managed-snapshot`|`managed-snapshot-stop`|`managed-stop`|
 
 * Also tag the resource with valid [repetitive (`-periodic`)](#repetitive-schedules) and/or [one-time (`-once`)](#one-time-schedules) schedule tag(s). Prefix with the operation.
-* If there are no corresponding schedule tags, an operation-enabling tag will be ignored, and the operation will never occur.
+* If there are no corresponding schedule tags, an enabling tag will be ignored, and the operation will never occur.
 * To temporarily suspend an operation, delete its enabling tag. You may leave its schedule tag(s) in place.
 * Examples:
 
@@ -71,7 +71,7 @@
  * Use a comma (`,`) _without any spaces_ to separate components. The order of components within a tag value does not matter.
  * `T` separates day information from time; it is not a variable.
  * Each operation supports a pair of tags for [repetitive (`-periodic`)](#repetitive-schedules) and [one-time (`-once`)](#one-time-schedules) schedules. Prefix with the operation.
- * If the corresponding [operation-enabling tag](#operation-enabling-tags) is missing, schedule tags will be ignored, and the operation will never occur.
+ * If the corresponding [enabling tag](#operation-enabling-tags) is missing, schedule tags will be ignored, and the operation will never occur.
 
 ### Repetitive Schedules
 
