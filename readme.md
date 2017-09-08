@@ -126,7 +126,16 @@
   |RDS instance|Stop + Reboot|Stop|
   |RDS instance|Stop + Create Snapshot|Create Snapshot then Stop|
 
-* The EC2 instance Create Image + Reboot combination is the most useful. For example, you can use it to take hourly backups but reboot only before the midnight backup. Only the midnight backup is guaranteed to be coherent, but static files can still be retrieved from the hourly backups.
+* The EC2 instance Create Image + Reboot combination is the most useful. For example, you could use it to take hourly backups but reboot only before the midnight backup. The midnight backup would be guaranteed to be coherent, but you could retrieve fast-changing static files from the hourly backups. To set up this example:
+
+  |Tag|Value|
+  |--|--|
+  |`managed-image`||
+  |`managed-image-periodic`|`d=*,H=*,M=59`|
+  |`managed-reboot`||
+  |`managed-reboot-periodic`|`d=*,H=23,M=59`|
+  
+  (23:59, which for the purposes of this function represents the last 10-minute interval of the day, is the safe and clear way to select the _end of the designated day_, in any date/time library implementation on any system.)
 
 * Non-combinable operations result in no operation. Affected resources are logged only when the function is executed in [Debug Mode](#debug-mode).
 
