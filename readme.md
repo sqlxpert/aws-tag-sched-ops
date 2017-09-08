@@ -3,8 +3,8 @@
 ## Benefits
 
 * This Python-based AWS Lambda function **saves money** by stopping resources during off-hours.
-* It also **improves operational reliability** by taking frequent backups.
-* It uses simple, **tag-based schedules**.
+* It also **increases reliability** by taking frequent backups.
+* It uses simple but powerful **tag-based schedules**.
 * It defines a set of Identity and Access Management (IAM) policies for **security**.
 
 ## Quick Start ##
@@ -128,10 +128,13 @@
 
 * The EC2 instance Create Image + Reboot combination is the most useful. For example, you can use it to take hourly backups but reboot only before the midnight backup. Only the midnight backup is guaranteed to be coherent, but static files can still be retrieved from the hourly backups.
 
-* Some operations cannot be combined. Examples include:
-    * Start + Stop: These are mutually exclusive.
-    * Start + Reboot: Choosing one or the other depends on the instance state, which could change between query and operation.
-    * Start + Create Image: Operations are asynchronous, and the first might not complete in time for the second to begin.
+* Non-combinable operations result in no operation. Affected resources are logged only when the function is executed in [Debug Mode](#debug-mode).
+
+  |Case|Reason|Example|
+  |--|--|--|
+  |Mutually exclusive operations|These conflict with each other.|Start + Stop|
+  |Combinations for which the choice of operation depends on the state of the instance|The state could change between the query and the operation request.|Start + Reboot|
+  |Sequential or dependent operations|Even if a logical order can be inferred, AWS operations are asynchronous; the first one might not complete in time for the second one to begin. Note that Reboot then Create Image (EC2) and Create Snapshot then Stop (RDS) are single operations.|Start + Create Image|
   
 ## Security Model
 
