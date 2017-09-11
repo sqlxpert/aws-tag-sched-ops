@@ -2,39 +2,63 @@
 
 ## Benefits
 
-* This Python-based AWS Lambda function **saves money** by stopping resources during off-hours.
-* It also **enhances reliability** by taking frequent backups.
-* It uses simple but powerful **tag-based schedules**.
-* It defines a set of Identity and Access Management (IAM) policies for **security**.
+* **Save money** by stopping resources during off-hours
+* **Enhance reliability** by taking frequent backups
+* **Use tags** to schedule operations
+* Secure tagging rights, and backup deletion, with Identity and Access Management (IAM) policies
+* Install easily, from a CloudFormation template
 
 ## Quick Start
 
-1. Log in to the [AWS Console](https://signin.aws.amazon.com/console)
+1. Log in to the [AWS Web Console](https://signin.aws.amazon.com/console) as a privileged user.
 
-   For demonstration purposes _only_, it is easiest to log in as an IAM user with full privileges for:
-     * CloudFormation
-     * IAM
-     * Lambda
-     * EC2
-     * RDS
- 
-   (For routine usage, see [Security Model](#security-model))
+   To see which services and resources you will be using, search for `Type:` lines in the [`aws_tag_sched_ops.yaml`](aws_tag_sched_ops.yaml) CloudFormation template.
 
-2. Navigate to the [CloudFormation Console](https://console.aws.amazon.com/cloudformation/home)
-3. Create stacks from these templates, in the order listed:
-     1. [`placeholder.yaml`](placeholder.yaml)
-     2. [`placeholder.yaml`](placeholder.yaml)
-4. Navigate to [Instances](https://console.aws.amazon.com/ec2/v2/home#Instances) in the EC2 Console
-5. Select an instance, open the Tags tab, and click Add/Edit Tags
-6. Add the following tags:
+2. Make sure that the desired region is selected in the black bar, near the top right corner.
+
+3. Navigate to the [S3 Console](https://console.aws.amazon.com/s3/home).
+
+4. Click the name of the bucket where you keep CloudFormation templates, or create such a bucket, if necessary. There should be no public read or write access. Write access should be limited to public users.
+
+5. Upload the compressed source code for the AWS Lambda function, [`aws_tag_sched_ops_perform.py.zip`](aws_tag_sched_ops_perform.py.zip)
+
+   Checking the `md5sum` is a good security practice; the current value is `22026de6ba32c87d8cc41dd69bf474fc`.
+
+6. Navigate to the [CloudFormation Console](https://console.aws.amazon.com/cloudformation/home).
+
+7. Create a stack from [`aws_tag_sched_ops.yaml`](aws_tag_sched_ops.yaml)
+
+   Name the stack `TagSchedOps`, set LambdaCodeS3Bucket to the name of the S3 bucket, and leave the other parameters unchanged.
+   
+8. Navigate to [Volumes](https://console.aws.amazon.com/ec2/v2/home#Volumes) in the EC2 Console.
+
+9. Right-click the name of a volume and select Add/Edit Tags.
+
+   Add the following tags:
 
    |Key|Value|Note|
    |--|--|--|
-   |`managed-image`||Leave value blank|
-   |`managed-image-periodic`|`d=*,H:M=11:30`|Replace `11:30` with [current UTC time](https://www.timeanddate.com/worldclock/timezone/utc) + 15 minutes|
+   |`managed-snapshot`||Leave value blank|
+   |`managed-snapshot-periodic`|`d=*,H:M=11:30`|Replace `11:30` with [current UTC time](https://www.timeanddate.com/worldclock/timezone/utc) + 15 minutes|
 
-7. Navigate to [AMIs](https://console.aws.amazon.com/ec2/v2/home#Images) in the EC2 Console
-8. After approximately 20 minutes, check for a newly-created image
+10. Navigate to [Snapshots](https://console.aws.amazon.com/ec2/v2/home#Snapshots) in the EC2 Console
+
+11. After approximately 20 minutes, check for a newly-created snapshot
+
+12. Untag the volume
+
+13. Navigate to [https://console.aws.amazon.com/iam/home#/users](Users) in the IAM Console.
+
+14. Click on your regular (uprivileged) username.
+
+15. Click Add Permissions, then click "Attach existing polices directly", and then add:
+
+      * `Ec2TagSchedOpsAdminister`
+      * `Rds2TagSchedOpsAdminister`
+    
+    You will now be able to manage schedule tags as a regular user.
+
+16. Log out of the AWS Console.
 
 ## Operation-Enabling Tags
 
