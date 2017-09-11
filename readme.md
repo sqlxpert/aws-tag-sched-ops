@@ -42,7 +42,7 @@
 
 8. Delete the sample snapshot and untag the volume.
 
-9. Navigate to [https://console.aws.amazon.com/iam/home#/users](Users) in the IAM Console. Click on your regular (uprivileged) username. Click Add Permissions, then click "Attach existing policies directly". Add:
+9. Navigate to [Users](https://console.aws.amazon.com/iam/home#/users) in the IAM Console. Click on your regular (uprivileged) username. Click Add Permissions, then click "Attach existing policies directly". Add:
 
       * `Ec2TagSchedOpsAdminister`
       * `Rds2TagSchedOpsAdminister`
