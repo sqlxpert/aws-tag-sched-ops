@@ -18,7 +18,7 @@
 
 3. Navigate to the [S3 Console](https://console.aws.amazon.com/s3/home). Click the name of the bucket where you keep CloudFormation templates, or create the bucket, if necessary.
 
-   _Security Tip:_ There should be no public read or write access. Write access should be limited.
+   _Security Tip:_ Remove public read and write access. Carefully limit write access.
 
 4. Upload the compressed source code of the AWS Lambda function, [`aws_tag_sched_ops_perform.py.zip`](aws_tag_sched_ops_perform.py.zip)
 
@@ -26,8 +26,8 @@
 
 5. Navigate to the [CloudFormation Console](https://console.aws.amazon.com/cloudformation/home). Click Create Stack. Under "Choose a template", click "Upload a template to Amazon S3". Click Choose File and navigate to your local copy of [`aws_tag_sched_ops.yaml`](aws_tag_sched_ops.yaml). On the next page, set these values (only):
 
-   |Item|Value|Note|
-   |--|--|--|
+   |Item|Value|
+   |--|--|
    |Stack name|`TagSchedOps`|
    |LambdaCodeS3Bucket|_Name of your S3 bucket_|
    
@@ -40,12 +40,14 @@
 
 7. After 20 minutes, check [Snapshots](https://console.aws.amazon.com/ec2/v2/home#Snapshots) in the EC2 Console, for a new snapshot.
 
-8. Untag the volume
+8. Delete the sample snapshot and untag the volume.
 
-9. Navigate to [https://console.aws.amazon.com/iam/home#/users](Users) in the IAM Console. Click on your regular (uprivileged) username. Click Add Permissions, then click "Attach existing polices directly". Add:
+9. Navigate to [https://console.aws.amazon.com/iam/home#/users](Users) in the IAM Console. Click on your regular (uprivileged) username. Click Add Permissions, then click "Attach existing policies directly". Add:
 
       * `Ec2TagSchedOpsAdminister`
       * `Rds2TagSchedOpsAdminister`
+      
+   _Security Tip_: Carefully limit all EC2 and RDS tagging privileges.
 
 10. Log out of the AWS Console. You can now manage schedule tags without logging in as a privileged user.
 
