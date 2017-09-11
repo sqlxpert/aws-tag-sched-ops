@@ -12,53 +12,42 @@
 
 1. Log in to the [AWS Web Console](https://signin.aws.amazon.com/console) as a privileged user.
 
-   To see which services and resources you will be using, search for `Type:` lines in the [`aws_tag_sched_ops.yaml`](aws_tag_sched_ops.yaml) CloudFormation template.
+   _Security Tip:_ To see which services and resource types you'll need access to, [search for `Type: ` in CloudFormation templates](https://github.com/sqlxpert/aws-tag-sched-ops/search?q=Type%20path%3A%2F%20extension%3Ayaml).
 
-2. Make sure that the desired region is selected in the black bar, near the top right corner.
+2. Make sure that the desired **region** is selected in the black bar, near the top right corner.
 
-3. Navigate to the [S3 Console](https://console.aws.amazon.com/s3/home).
+3. Navigate to the [S3 Console](https://console.aws.amazon.com/s3/home). Click the name of the bucket where you keep CloudFormation templates, or create the bucket, if necessary.
 
-4. Click the name of the bucket where you keep CloudFormation templates, or create such a bucket, if necessary. There should be no public read or write access. Write access should be limited to public users.
+   _Security Tip:_ There should be no public read or write access. Write access should be limited.
 
-5. Upload the compressed source code for the AWS Lambda function, [`aws_tag_sched_ops_perform.py.zip`](aws_tag_sched_ops_perform.py.zip)
+4. Upload the compressed source code of the AWS Lambda function, [`aws_tag_sched_ops_perform.py.zip`](aws_tag_sched_ops_perform.py.zip)
 
-   Checking the `md5sum` is a good security practice; the current value is `22026de6ba32c87d8cc41dd69bf474fc`.
+   _Security Tip:_ The file's current `md5sum` is `22026de6ba32c87d8cc41dd69bf474fc`
 
-6. Navigate to the [CloudFormation Console](https://console.aws.amazon.com/cloudformation/home).
+5. Navigate to the [CloudFormation Console](https://console.aws.amazon.com/cloudformation/home). Click Create Stack. Under "Choose a template", click "Upload a template to Amazon S3". Click Choose File and navigate to your local copy of [`aws_tag_sched_ops.yaml`](aws_tag_sched_ops.yaml). On the next page, set these values (only):
 
-7. Create a stack from [`aws_tag_sched_ops.yaml`](aws_tag_sched_ops.yaml)
-
-   Name the stack `TagSchedOps`, set LambdaCodeS3Bucket to the name of the S3 bucket, and leave the other parameters unchanged.
+   |Item|Value|Note|
+   |--|--|--|
+   |Stack name|`TagSchedOps`|
+   |LambdaCodeS3Bucket|_Name of your S3 bucket_|
    
-8. Navigate to [Volumes](https://console.aws.amazon.com/ec2/v2/home#Volumes) in the EC2 Console.
-
-9. Right-click the name of a volume and select Add/Edit Tags.
-
-   Add the following tags:
+6. Navigate to [Volumes](https://console.aws.amazon.com/ec2/v2/home#Volumes) in the EC2 Console. Right-click the name of a volume and select Add/Edit Tags. Add:
 
    |Key|Value|Note|
    |--|--|--|
    |`managed-snapshot`||Leave value blank|
    |`managed-snapshot-periodic`|`d=*,H:M=11:30`|Replace `11:30` with [current UTC time](https://www.timeanddate.com/worldclock/timezone/utc) + 15 minutes|
 
-10. Navigate to [Snapshots](https://console.aws.amazon.com/ec2/v2/home#Snapshots) in the EC2 Console
+7. After 20 minutes, check [Snapshots](https://console.aws.amazon.com/ec2/v2/home#Snapshots) in the EC2 Console, for a new snapshot.
 
-11. After approximately 20 minutes, check for a newly-created snapshot
+8. Untag the volume
 
-12. Untag the volume
-
-13. Navigate to [https://console.aws.amazon.com/iam/home#/users](Users) in the IAM Console.
-
-14. Click on your regular (uprivileged) username.
-
-15. Click Add Permissions, then click "Attach existing polices directly", and then add:
+9. Navigate to [https://console.aws.amazon.com/iam/home#/users](Users) in the IAM Console. Click on your regular (uprivileged) username. Click Add Permissions, then click "Attach existing polices directly". Add:
 
       * `Ec2TagSchedOpsAdminister`
       * `Rds2TagSchedOpsAdminister`
-    
-    You will now be able to manage schedule tags as a regular user.
 
-16. Log out of the AWS Console.
+10. Log out of the AWS Console. You can now manage schedule tags without logging in as a privileged user.
 
 ## Operation-Enabling Tags
 
