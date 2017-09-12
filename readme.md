@@ -18,7 +18,7 @@
 
    _Security Tip:_ Remove public read and write access from the S3 bucket. Carefully limit write access.
 
-   _Security Tip:_ Download the file from S3 and verify it with `md5sum`. The current checksum is 06bac3e8f79b3205dab1a99ea5cc1091.
+   _Security Tip:_ Download the file from S3 and verify it with `md5sum`. The current checksum is `3f061dc1025a224e1eb04bd74e993bda`.
 
 3. Navigate to the [CloudFormation Console](https://console.aws.amazon.com/cloudformation/home). Click Create Stack. Under "Choose a template", click "Upload a template to Amazon S3". Click Choose File and navigate to your local copy of [`aws_tag_sched_ops.yaml`](aws_tag_sched_ops.yaml). On the next page, set these items (only):
 
