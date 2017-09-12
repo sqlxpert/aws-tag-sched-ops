@@ -143,7 +143,7 @@
   |`managed-reboot`||
   |`managed-reboot-periodic`|`d=*,H=23,M=59`|
   
-  (23:59, which for the purposes of this function represents the last 10-minute interval of the day, is the unambiguous way to express _almost the end of some designated day_, on any system. 00:00 and 24:00 could refer to the start or the end of the designated day, and not all systems accept 24:00, in any case. Remember that all times are UTC; adjust for night-time in your time zone!)
+  (23:59, which for the purposes of this project represents the last 10-minute interval of the day, is the unambiguous way to express _almost the end of some designated day_, on any system. 00:00 and 24:00 could refer to the start or the end of the designated day, and not all systems accept 24:00, in any case. Remember that all times are UTC; adjust for night-time in your time zone!)
 
 * Non-combinable operations result in no operation. Affected resources are logged only when the function is executed in [Debug Mode](#debug-mode).
 
@@ -159,14 +159,12 @@ Some operations create a child resource (image or snapshot) from a parent resour
  
 ### Naming Conventions
 
-* This function names _all_ child resources.
-* For simplicity, no uppercase letters are used.
-* AWS imposes different character set restrictions for different resource types. This function replaces known forbidden characters with with `X`.
+* AWS imposes different character set restrictions for different resource types. This project replaces known forbidden characters with with `X`.
 * The name consists of these parts, in order, and separated by hyphens (`-`):
 
   |#|Part|Example|Purpose|
   |--|--|--|--|
-  |1|Prefix|`zm`|Identifies and groups children created by this function, for interfaces that do not expose tags. `z` will sort after most manually-created images and snapshots. `m` stands for "managed".|
+  |1|Prefix|`zm`|Identifies and groups children created by this project, in interfaces that do not expose tags. `z` will sort after most manually-created images and snapshots. `m` stands for "managed".|
   |2|Parent name or identifier|`webserver`|Conveniently indicates the parent. Derived from the `Name` tag (if not blank), the logical name (if supported), or the physical identifier (as a last resort). Multiple children of the same parent will sort together, by creation date (see next row).|
   |3|Date/time|`20171231T1400`|Indicates when the child was created. The last digit of the minute is normalized to 0. The `-` and `:` separators are removed for brevity, and because AWS does not allow `:` in names, for some resource types. (The `managed-date-time` tag stores the original string, with separators intact.)|
   |4|Random string|`g3a8a`|Guarantees unique names. Five characters are chosen from a small set of letters and numbers that are unambiguous.|
@@ -176,17 +174,17 @@ Some operations create a child resource (image or snapshot) from a parent resour
 
 ### Special Tags
 
-* All tags other than operation-enabling tags, schedule tags, and the `Name` tag, are copied from parent to child.
+* Tags other than operation-enabling tags, schedule tags, and the `Name` tag, are copied from parent to child. (The deletion tag, `managed-delete`, would not make sense on instances and volumes, but if it is present, it is not copied to images and snapshots.)
 
 * Special tags are added to the child resource:
 
   |Tag(s)|Purpose|
   |--|--|
-  |`Name`|Supplements EC2 resource identifiers. Key is renamed `managed-parent-name` when its value is passed from parent to child, because the child has a `Name` tag of its own; see [Naming Conventions](#naming-conventions). This function handles `Name` specially for both EC2 and RDS, in case EC2-style tag semantics are eventually extended to RDS.|
-  |`managed-parent-name`|`Name` tag from the parent. Not added if blank.|
-  |`managed-parent-id`|The identifier of the parent EC2 instance, EC2 EBS volume, or RDS instance. AWS metadata captures this (for example, as `VolumeId`, for EC2 EBS volume snapshots), but field names and usage capabilities differ for every AWS service and resource type.|
-  |`managed-origin`|The operation (for example, `snapshot`) that created the child. Identifies resources created by this function. Also distinguishes special cases, such as whether an EC2 instance was or was not rebooted before an image was created. If operation-enabling tags were copied from parent to child, they might conflict with future tags for automated operations on the child (such as scheduled deletion of old images and snapshots).|
-  |`managed-date-time`|Groups resources created during the same 10-minute interval. AWS metadata captures the _exact_ time, and field names and usage capabilities differ for every AWS service and resource type.|
+  |`Name`|Supplements EC2 resource identifiers. The key is renamed `managed-parent-name` when the value is passed from parent to child, because the child has a `Name` tag of its own. This project handles `Name` specially for both EC2 and RDS, in case EC2-style tag semantics are eventually extended to RDS.|
+  |`managed-parent-name`|The `Name` tag value from the parent. Not added if blank.|
+  |`managed-parent-id`|The identifier of the parent EC2 instance, EC2 EBS volume, or RDS instance. AWS metadata captures this (for example, as `VolumeId`, for EC2 EBS volume snapshots), but the interface differs for each resource type.|
+  |`managed-origin`|The operation (for example, `snapshot`) that created the child. Identifies resources created by this project. Also distinguishes special cases, such as whether an EC2 instance was or was not rebooted before an image was created.|
+  |`managed-date-time`|Groups resources created during the same 10-minute interval. AWS metadata captures the _exact_ time, and the interface differs for each resource type.|
 
 ## Security Model
 
