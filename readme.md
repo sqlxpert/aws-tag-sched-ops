@@ -211,12 +211,14 @@ Some operations create a child resource (image or snapshot) from a parent resour
    |TagSchedOpsTagForDeletion|Deny|Deny|Deny|Deny|Allow|Deny|
    |TagSchedOpsDelete|Deny|Deny|Deny|Deny|Deny|Allow|
    |TagSchedOpsNoTag|Deny|Deny|Deny|No effect|Deny|Deny|
-
-   Because `Deny` always takes precendence in IAM, some policy combinations conflict.
    
    <a name="policy-footnote-1">1</a>. This is an exception, and it makes the policy suitable only for administrative users. Never use this policy in any kind of automation.
    
    <a name="policy-footnote-2">2</a>. Operation-enabling tag required. For example, a user could only add `managed-image-once` if an EC2 instance were already tagged with `managed-image`.
+   
+   Because `Deny` always takes precendence in IAM, some policy combinations conflict.
+   
+   A shortcoming of these policies is that, in some cases, you cannot add, change or delete more than one tag in the same operation.
    
  * Note AWS technical limitations/oversights:
  
