@@ -197,30 +197,35 @@ Some operations create a child resource (image or snapshot) from a parent resour
 
 ## Security Model
 
+ * Only a few trusted users should be allowed to tag EC2 and RDS resources, because tags determine which resources are started, backed up, rebooted, and stopped, and which backups are protected from deletion.
+
  * It is a good practice to tag images and snapshots for deletion, but to let a privileged user actually delete them. This is the purpose of the `managed-delete` tag.
  
- * Entities that can create backups should not be able to delete backups (or even to tag them for deletion). Mutually exclusive IAM policies are provided:
+ * Entities that can create backups should not be able to delete backups (or even to tag them for deletion).
  
-   |Policy Name|Create Images/Snapshots|Tag for Deletion|Delete|Any Other Effects?|
+ * Various pairs of mutually exclusive IAM policies are provided (\* represents Ec2 or Rds):
+ 
+   |Policy Name|Create Images/Snapshots|Tag for Deletion|Delete|Other Effects?|
    |--|--|--|--|--|
-   |\*TagSchedOpsPerform|Yes|No|No|Yes|
-   |\*TagSchedOpsAdminister|No|Yes|No|Yes|
-   |\*TagSchedOpsTagForDeletion|No|Yes|No|No|
-   |\*TagSchedOpsDelete|No|No|Yes|No|
-   
- * There is not yet an automatic mechanism to tag images and snapshots for deletion. A correct archival policy would not be strictly age-based. For example, it might preserve the last 30 days' worth of daily backups, and beyond 30 days, the first backup of every month. Work on a syntax for specifying archival policies remains to be done. Consider the snapshot retention property of RDS databases instances: the daily backups created when that property is set cannot be kept longer than 35 days.
+   |\*TagSchedOpsPerform|Allow|Deny|Deny|Yes|
+   |\*TagSchedOpsAdminister|No effect|Allow|Deny|Yes|
+   |\*TagSchedOpsTagScheduleOnce|No effect|Deny|Deny|Yes|
+   |\*TagSchedOpsTagSchedulePeriodic|No Effect|Deny|Deny|Yes|
+   |\*TagSchedOpsTagForDeletion|No effect|Allow|Deny|No|
+   |\*TagSchedOpsDelete|Deny|Deny|Allow|No|
+   |\*TagSchedOpsNoTag|No effect|Deny|Deny|Yes|
 
- * Only a few trusted users should be allowed to tag EC2 and RDS resources, because tags determine which resources are started, backed up, rebooted, and stopped, and which backups are protected from deletion. IAM policies for users with no other tagging privileges:
+ * In IAM policies, the `Deny` Effect always takes precedence over `Allow`. Extending broad privileges and then denying tagging privileges (\*TagSchedOpsNoTag) works for entities not meant to have any tagging rights, but not for entities meant to have some tagging rights. For the latter, you must create policies that explicitly allow all desired EC2 and RDS actions _other than tagging_.
  
- * In IAM policies, the `Deny` Effect always takes precedence over `Allow`. Extending broad privileges and then denying tagging privileges works for entities not meant to have any tagging rights, but not for entities meant to have some tagging rights. For the latter, you must create policies that explicitly allow all desired EC2 and RDS actions _other than tagging_.
- 
- * Due to an oversight in IAM for EC2, an entity that can create an instance image can always force a reboot by omitting the `NoReboot` option. Denying reboot privileges does not help. Ths combination of a safe privilege, taking a backup, with a dangerous one, rebooting, is particularly unfortunate.
+ * Due to an oversight in IAM for EC2, an entity that can create an instance image can always force a reboot by omitting the `NoReboot` option. Explicitly denying reboot privileges does not help. This combination of a safe privilege, taking a backup, with a dangerous one, rebooting, is unfortunate.
  
  * Due to a limitation in IAM for EC2, tags are ignored when deleting images and snapshots. Limit EC2 image and snapshot deletion privileges -- even `Ec2TagSchedOpsDelete` -- to highly-trusted entities.
  
- * Due to a limitation in IAM for RDS, an entity that can add specific tags can add _any_ other tags in the same request. Limit RDS tagging privileges -- even `Rds2TagSchedOpsAdminister` -- to highly-trusted users.
+ * Due to a limitation in IAM for RDS, an entity that can add specific tags can add _any_ other tags in the same request. Limit RDS tagging privileges -- even the provided policies -- to highly-trusted users.
  
  * Privileges to change the AWS Lambda function, the CloudWatch Event rule that triggers it, or the IAM policies on which it depends, must be strictly controlled.
+
+ * There is not yet an automatic mechanism to tag images and snapshots for deletion. A correct archival policy would not be strictly age-based. For example, it might preserve the last 30 days' worth of daily backups, and beyond 30 days, the first backup of every month. Work on a syntax for specifying archival policies remains to be done. Consider the snapshot retention property of RDS databases instances: the daily backups created when that property is set cannot be kept longer than 35 days.
 
 ## Licensing
 
