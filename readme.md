@@ -12,44 +12,37 @@
 
 1. Log in to the [AWS Web Console](https://signin.aws.amazon.com/console) as a privileged user.
 
-   _Security Tip:_ To see which services and resource types you'll need access to, [search for `Type: ` in CloudFormation templates](https://github.com/sqlxpert/aws-tag-sched-ops/search?q=Type%20path%3A%2F%20extension%3Ayaml).
+   _Security Tip:_ To see which kinds of resources you'll be installing, [search for `Type: ` in CloudFormation templates](https://github.com/sqlxpert/aws-tag-sched-ops/search?q=Type%20path%3A%2F%20extension%3Ayaml).
 
-2. Make sure that the desired **region** is selected in the black bar, near the top right corner.
+2. Navigate to the [S3 Console](https://console.aws.amazon.com/s3/home). Click the name of the bucket where you keep CloudFormation templates, or create the bucket, if necessary. Upload the compressed source code of the AWS Lambda function, [`aws_tag_sched_ops_perform.py.zip`](aws_tag_sched_ops_perform.py.zip)
 
-3. Navigate to the [S3 Console](https://console.aws.amazon.com/s3/home). Click the name of the bucket where you keep CloudFormation templates, or create the bucket, if necessary.
+   _Security Tip:_ Remove public read and write access from the S3 bucket. Carefully limit write access.
 
-   _Security Tip:_ Remove public read and write access. Carefully limit write access.
+   _Security Tip:_ Download the file from S3 and verify it with `md5sum`. The current checksum is `22026de6ba32c87d8cc41dd69bf474fc`.
 
-4. Upload the compressed source code of the AWS Lambda function, [`aws_tag_sched_ops_perform.py.zip`](aws_tag_sched_ops_perform.py.zip)
-
-   _Security Tip:_ The file's current `md5sum` is `22026de6ba32c87d8cc41dd69bf474fc`
-
-5. Navigate to the [CloudFormation Console](https://console.aws.amazon.com/cloudformation/home). Click Create Stack. Under "Choose a template", click "Upload a template to Amazon S3". Click Choose File and navigate to your local copy of [`aws_tag_sched_ops.yaml`](aws_tag_sched_ops.yaml). On the next page, set these items (only):
+3. Navigate to the [CloudFormation Console](https://console.aws.amazon.com/cloudformation/home). Click Create Stack. Under "Choose a template", click "Upload a template to Amazon S3". Click Choose File and navigate to your local copy of [`aws_tag_sched_ops.yaml`](aws_tag_sched_ops.yaml). On the next page, set these items (only):
 
    |Item|Value|
    |--|--|
    |Stack name|`TagSchedOps`|
    |LambdaCodeS3Bucket|_Name of your S3 bucket_|
    
-6. Navigate to [Volumes](https://console.aws.amazon.com/ec2/v2/home#Volumes) in the EC2 Console. Right-click the name of a volume and select Add/Edit Tags. Add:
+4. Navigate to [Volumes](https://console.aws.amazon.com/ec2/v2/home#Volumes) in the EC2 Console. Right-click the name of a volume and select Add/Edit Tags. Add:
 
    |Key|Value|Note|
    |--|--|--|
    |`managed-snapshot`||Leave value blank|
    |`managed-snapshot-periodic`|`d=*,H:M=11:30`|Replace `11:30` with [current UTC time](https://www.timeanddate.com/worldclock/timezone/utc) + 15 minutes|
 
-7. After 20 minutes, check [Snapshots](https://console.aws.amazon.com/ec2/v2/home#Snapshots:sort=desc:startTime) in the EC2 Console.
+5. After 20 minutes, check [Snapshots](https://console.aws.amazon.com/ec2/v2/home#Snapshots:sort=desc:startTime) in the EC2 Console.
 
-8. Delete the sample snapshot and untag the volume.
+6. Delete the sample snapshot and untag the volume.
 
-9. Navigate to [Users](https://console.aws.amazon.com/iam/home#/users) in the IAM Console. Click on your regular (uprivileged) username. Click Add Permissions, then click "Attach existing policies directly". Add:
-
-      * `Ec2TagSchedOpsAdminister`
-      * `Rds2TagSchedOpsAdminister`
+7. Navigate to [Users](https://console.aws.amazon.com/iam/home#/users) in the IAM Console. Click on your regular (uprivileged) username. Click Add Permissions, then click "Attach existing policies directly". Add the two `TagSchedOpsAdminister` policies, one for EC2 and the other for RDS.
       
-   _Security Tip_: Carefully limit all EC2 and RDS tagging privileges.
+   _Security Tip_: Review EC2 and RDS tagging privileges for all entities.
 
-10. Log out of the AWS Console. You can now manage schedule tags without logging in as a privileged user.
+8. Log out of the AWS Console. You can now manage schedule tags without logging in as a privileged user.
 
 ## Operation-Enabling Tags
 
@@ -199,33 +192,37 @@ Some operations create a child resource (image or snapshot) from a parent resour
 
  * Only a few trusted users should be allowed to tag EC2 and RDS resources, because tags determine which resources are started, backed up, rebooted, and stopped, and which backups are protected from deletion.
 
- * It is a good practice to tag images and snapshots for deletion, but to let a privileged user actually delete them. This is the purpose of the `managed-delete` tag.
+ * It is a good practice to tag backups for deletion, but to let a privileged user actually delete them. To mark images and snapshots for (manual) deletion, add the `managed-delete` tag.
  
- * Entities that can create backups should not be able to delete backups (or even to tag them for deletion).
+ * Entities that can create backups must not be allowed to delete backups (or even to tag them for deletion).
  
- * Various pairs of mutually exclusive IAM policies are provided (\* represents Ec2 or Rds):
+ * Many policy choices are provided, to control tagging and deletion:
  
-   |Policy Name|Create Images/Snapshots|Tag for Deletion|Delete|Other Effects?|
-   |--|--|--|--|--|
-   |\*TagSchedOpsPerform|Allow|Deny|Deny|Yes|
-   |\*TagSchedOpsAdminister|No effect|Allow|Deny|Yes|
-   |\*TagSchedOpsTagScheduleOnce|No effect|Deny|Deny|Yes|
-   |\*TagSchedOpsTagSchedulePeriodic|No Effect|Deny|Deny|Yes|
-   |\*TagSchedOpsTagForDeletion|No effect|Allow|Deny|No|
-   |\*TagSchedOpsDelete|Deny|Deny|Allow|No|
-   |\*TagSchedOpsNoTag|No effect|Deny|Deny|Yes|
+   |Policy Name|Manage Operation-Enabling Tags|Manage One-Time Schedule Tags|Manage Repetitive Schedule Tags|Back Up|Manage Deletion Tag|Delete|
+   |--|--|--|--|--|--|--|
+   |_Scope &rarr;_|_Instances, Volumes_|_Instances, Volumes_|_Instances, Volumes_|_Instances, Volumes_|_Images, Snapshots_|_Images, Snapshots_|
+   |TagSchedOpsAdminister|Allow|Allow|Allow|No effect|Allow|Deny|
+   |TagSchedOpsTagScheduleOnce|Deny|Allow\*|Deny|No effect|Deny|Deny|
+   |TagSchedOpsTagSchedulePeriodic|Deny|No effect|Allow\*|No Effect|Deny|Deny|
+   |TagSchedOpsTagForDeletion|No effect|No effect|No effect|No effect|Allow|Deny|
+   |TagSchedOpsDelete|No effect|No effect|No effect|Deny|Deny|Allow|
+   |TagSchedOpsNoTag|Deny|Deny|Deny|No effect|Deny|Deny|
 
- * In IAM policies, the `Deny` Effect always takes precedence over `Allow`. Extending broad privileges and then denying tagging privileges (\*TagSchedOpsNoTag) works for entities not meant to have any tagging rights, but not for entities meant to have some tagging rights. For the latter, you must create policies that explicitly allow all desired EC2 and RDS actions _other than tagging_.
+   Because privilege denial always takes precendence in IAM, some policies are mutually exclusive.
+   
+   \* Operation-enabling tag required. For example, a user could only add `managed-image-once` if an EC2 instance were already tagged with `managed-image`.
+   
+ * Note AWS technical limitations and oversights:
  
- * Due to an oversight in IAM for EC2, an entity that can create an instance image can always force a reboot by omitting the `NoReboot` option. Explicitly denying reboot privileges does not help. This combination of a safe privilege, taking a backup, with a dangerous one, rebooting, is unfortunate.
- 
- * Due to a limitation in IAM for EC2, tags are ignored when deleting images and snapshots. Limit EC2 image and snapshot deletion privileges -- even `Ec2TagSchedOpsDelete` -- to highly-trusted entities.
- 
- * Due to a limitation in IAM for RDS, an entity that can add specific tags can add _any_ other tags in the same request. Limit RDS tagging privileges -- even the provided policies -- to highly-trusted users.
+    * An entity that can create an image of an EC2 instance can always force a reboot by omitting the `NoReboot` option. (Explicitly denying the reboot privilege does not help.) The unavoidable pairing of a harmless privilege, taking a backup, with a risky one, rebooting, is unfortunate.
+
+    * Tags are ignored when deleting EC2 images and snapshots. Limit EC2 image and snapshot deletion privileges -- even Ec2TagSchedOpsDelete -- to highly-trusted entities.
+
+    * In RDS, an entity that can add specific tags can add _any other_ tags in the same request. Limit RDS tagging privileges -- even the provided policies -- to highly-trusted users.
  
  * Privileges to change the AWS Lambda function, the CloudWatch Events rule that triggers it, the IAM policies on which it depends, or the CloudWatch Log group and log streams to which it sends infomration, must be strictly controlled. Apply the TagSchedOpsPerformLambdaFnProtect policy to all but the most highly-trusted users.
 
- * There is not yet an automatic mechanism to tag images and snapshots for deletion. A correct archival policy would not be strictly age-based. For example, it might preserve the last 30 days' worth of daily backups, and beyond 30 days, the first backup of every month. Work on a syntax for specifying archival policies remains to be done. Consider the snapshot retention property of RDS databases instances: the daily backups created when that property is set cannot be kept longer than 35 days.
+ * There is not yet an automatic mechanism to tag backups for deletion. A correct archival policy would not be strictly age-based. For example, it might preserve the last 30 daily backups, and beyond 30 days, the first backup of every month. Work on a syntax for specifying archival policies remains to be done. Consider the snapshot retention property of RDS databases instances: the daily backups created when that property is set can never be kept longer than 35 days.
 
 ## Licensing
 
