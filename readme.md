@@ -197,19 +197,28 @@ Some operations create a child resource (image or snapshot) from a parent resour
 
 ## Security Model
 
- * Entities that can create backups should not be able to delete backups. Mutually exclusive IAM policies:
+ * It is a good practice to tag images and snapshots for deletion, but to let a privileged user actually delete them. This is the purpose of the `managed-delete` tag.
  
- * It is a good practice to tag images and snapshots for deletion, and let a privileged user actually delete them. IAM policies for deletion of backups:
+ * Entities that can create backups should not be able to delete backups (or even to tag them for deletion). Mutually exclusive IAM policies are provided:
  
- * Although policies for a `managed-delete` tag are provided, there is no automatic mechanism for applying the tag. A correct archival policy would not be strictly age-based. For example, it might preserve the last 30 days' worth daily of backups, and beyond 30 days, the first backup of every month. Work on a syntax for specifying archival policies remains to be done. For comparison, consider the built-in snapshot retention property for RDS databases instances: daily backups created thanks to that property can never be kept longer than 35 days. S3 object life cycle policies suffer from the same limitation; nothing beyond a certain age is spared.
+   |Policy Name|Create Images/Snapshots|Tag for Deletion|Delete|Any Other Effects?|
+   |--|--|--|--|--|
+   |\*TagSchedOpsPerform|Yes|No|No|Yes|
+   |\*TagSchedOpsAdminister|No|Yes|No|Yes|
+   |\*TagSchedOpsTagForDeletion|No|Yes|No|No|
+   |\*TagSchedOpsDelete|No|No|Yes|No|
+   
+ * There is not yet an automatic mechanism to tag images and snapshots for deletion. A correct archival policy would not be strictly age-based. For example, it might preserve the last 30 days' worth of daily backups, and beyond 30 days, the first backup of every month. Work on a syntax for specifying archival policies remains to be done. Consider the snapshot retention property of RDS databases instances: the daily backups created when that property is set cannot be kept longer than 35 days.
 
  * Only a few trusted users should be allowed to tag EC2 and RDS resources, because tags determine which resources are started, backed up, rebooted, and stopped, and which backups are protected from deletion. IAM policies for users with no other tagging privileges:
  
  * In IAM policies, the `Deny` Effect always takes precedence over `Allow`. Extending broad privileges and then denying tagging privileges works for entities not meant to have any tagging rights, but not for entities meant to have some tagging rights. For the latter, you must create policies that explicitly allow all desired EC2 and RDS actions _other than tagging_.
  
- * Due to an oversight in EC2, an entity that can create an instance image can always force a reboot by omitting the `NoReboot` option. Denying reboot privileges does not help. Ths combination of a safe privilege, taking a backup, with a dangerous one, rebooting, is particularly unfortunate.
+ * Due to an oversight in IAM for EC2, an entity that can create an instance image can always force a reboot by omitting the `NoReboot` option. Denying reboot privileges does not help. Ths combination of a safe privilege, taking a backup, with a dangerous one, rebooting, is particularly unfortunate.
  
- * Due to a limitation in RDS, an entity that can add specific tags can add _any_ other tags in the same request. Limit RDS tagging privileges -- even `Rds2TagSchedOpsAdminister` -- to a highly-trusted users.
+ * Due to a limitation in IAM for EC2, tags are ignored when deleting images and snapshots. Limit EC2 image and snapshot deletion privileges -- even `Ec2TagSchedOpsDelete` -- to highly-trusted entities.
+ 
+ * Due to a limitation in IAM for RDS, an entity that can add specific tags can add _any_ other tags in the same request. Limit RDS tagging privileges -- even `Rds2TagSchedOpsAdminister` -- to highly-trusted users.
  
  * Privileges to change the AWS Lambda function, the CloudWatch Event rule that triggers it, or the IAM policies on which it depends, must be strictly controlled.
 
