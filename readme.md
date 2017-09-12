@@ -205,18 +205,22 @@ Some operations create a child resource (image or snapshot) from a parent resour
    |Policy Name|Manage Operation-Enabling Tags|Manage One-Time Schedule Tags|Manage Repetitive Schedule Tags|Back Up|Manage Deletion Tag|Delete|
    |--|--|--|--|--|--|--|
    |_Scope &rarr;_|_Instances, Volumes_|_Instances, Volumes_|_Instances, Volumes_|_Instances, Volumes_|_Images, Snapshots_|_Images, Snapshots_|
-   |TagSchedOpsAdminister|Allow|Allow|Allow|No effect|Allow[<sup>1</sup>](#policy-footnote-1)|Deny|
-   |TagSchedOpsTagScheduleOnce|Deny|Allow[<sup>2</sup>](#policy-footnote-2)|Deny|No effect|Deny|Deny|
-   |TagSchedOpsTagSchedulePeriodic|Deny|No effect|Allow[<sup>2</sup>](#policy-footnote-2)|No Effect|Deny|Deny|
+   |TagSchedOpsAdminister|Allow|Allow|Allow|No effect|Allow [<sup>i</sup>](#policy-footnote-1)|Deny|
+   |TagSchedOpsTagScheduleOnce|Deny [<sup>iii</sup>](#policy-footnote-3)|Allow [<sup>ii</sup>](#policy-footnote-2)|Deny|No effect|Deny|Deny|
+   |TagSchedOpsTagSchedulePeriodic|Deny [<sup>iii</sup>](#policy-footnote-3)|No effect|Allow[<sup>ii</sup>](#policy-footnote-2)|No Effect|Deny|Deny|
    |TagSchedOpsTagForDeletion|Deny|Deny|Deny|Deny|Allow|Deny|
    |TagSchedOpsDelete|Deny|Deny|Deny|Deny|Deny|Allow|
    |TagSchedOpsNoTag|Deny|Deny|Deny|No effect|Deny|Deny|
    
-   <a name="policy-footnote-1">1</a>. This is an exception, and it makes the policy suitable only for administrative users. Never use this policy in any kind of automation.
+   Footnotes:
    
-   <a name="policy-footnote-2">2</a>. Operation-enabling tag required. For example, a user could only add `managed-image-once` if an EC2 instance were already tagged with `managed-image`.
+     1. <a name="policy-footnote-1"></a>This is an exception, and it makes the policy suitable only for administrative users. Never use this policy in any kind of automation.
    
-   Because `Deny` always takes precendence in IAM, some policy combinations conflict.
+     2. <a name="policy-footnote-2"></a>Operation-enabling tag required. For example, a user could only add `managed-image-once` if an EC2 instance were already tagged with `managed-image`.
+   
+     3. <a name="policy-footnote-3"></a>For RDS, No Effect.
+      
+   Because Deny always takes precendence in IAM, some policy combinations conflict.
    
    A shortcoming of these policies is that, in some cases, you cannot add, change or delete more than one tag in the same operation.
    
