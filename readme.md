@@ -38,7 +38,7 @@
    |`managed-snapshot`||Leave value blank|
    |`managed-snapshot-periodic`|`d=*,H:M=11:30`|Replace `11:30` with [current UTC time](https://www.timeanddate.com/worldclock/timezone/utc) + 15 minutes|
 
-7. After 20 minutes, check [Snapshots](https://console.aws.amazon.com/ec2/v2/home#Snapshots) in the EC2 Console, for a new snapshot.
+7. After 20 minutes, check [Snapshots](https://console.aws.amazon.com/ec2/v2/home#Snapshots:sort=desc:startTime) in the EC2 Console.
 
 8. Delete the sample snapshot and untag the volume.
 
