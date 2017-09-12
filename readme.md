@@ -201,9 +201,11 @@ Some operations create a child resource (image or snapshot) from a parent resour
  
  * It is a good practice to tag images and snapshots for deletion, and let a privileged user actually delete them. IAM policies for deletion of backups:
  
+ * Although policies for a `managed-delete` tag are provided, there is no automatic mechanism for applying the tag. A correct archival policy would not be strictly age-based. For example, it might preserve the last 30 days' worth daily of backups, and beyond 30 days, the first backup of every month. Work on a syntax for specifying archival policies remains to be done. For comparison, consider the built-in snapshot retention property for RDS databases instances: daily backups created thanks to that property can never be kept longer than 35 days. S3 object life cycle policies suffer from the same limitation; nothing beyond a certain age is spared.
+
  * Only a few trusted users should be allowed to tag EC2 and RDS resources, because tags determine which resources are started, backed up, rebooted, and stopped, and which backups are protected from deletion. IAM policies for users with no other tagging privileges:
  
- * In IAM the `Deny` Effect always takes precedence over `Allow`. Extending broad privileges and then denying tagging privileges works for entities not meant to have any tagging privileges, but not for entities meant to have some tagging privileges. For the latter, you must create policies that explicitly allow all desired EC2 and RDS actions _other than tagging_.
+ * In IAM policies, the `Deny` Effect always takes precedence over `Allow`. Extending broad privileges and then denying tagging privileges works for entities not meant to have any tagging rights, but not for entities meant to have some tagging rights. For the latter, you must create policies that explicitly allow all desired EC2 and RDS actions _other than tagging_.
  
  * Due to an oversight in EC2, an entity that can create an instance image can always force a reboot by omitting the `NoReboot` option. Denying reboot privileges does not help. Ths combination of a safe privilege, taking a backup, with a dangerous one, rebooting, is particularly unfortunate.
  
