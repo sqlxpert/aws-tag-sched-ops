@@ -205,16 +205,18 @@ Some operations create a child resource (image or snapshot) from a parent resour
    |Policy Name|Manage Operation-Enabling Tags|Manage One-Time Schedule Tags|Manage Repetitive Schedule Tags|Back Up|Manage Deletion Tag|Delete|
    |--|--|--|--|--|--|--|
    |_Scope &rarr;_|_Instances, Volumes_|_Instances, Volumes_|_Instances, Volumes_|_Instances, Volumes_|_Images, Snapshots_|_Images, Snapshots_|
-   |TagSchedOpsAdminister|Allow|Allow|Allow|No effect|Allow|Deny|
-   |TagSchedOpsTagScheduleOnce|Deny|Allow\*|Deny|No effect|Deny|Deny|
-   |TagSchedOpsTagSchedulePeriodic|Deny|No effect|Allow\*|No Effect|Deny|Deny|
-   |TagSchedOpsTagForDeletion|No effect|No effect|No effect|Deny|Allow|Deny|
-   |TagSchedOpsDelete|No effect|No effect|No effect|Deny|Deny|Allow|
+   |TagSchedOpsAdminister|Allow|Allow|Allow|No effect|Allow[<sup>1</sup>](#policy-footnote-1)|Deny|
+   |TagSchedOpsTagScheduleOnce|Deny|Allow[<sup>2</sup>](#policy-footnote-2)|Deny|No effect|Deny|Deny|
+   |TagSchedOpsTagSchedulePeriodic|Deny|No effect|Allow[<sup>2</sup>](#policy-footnote-2)|No Effect|Deny|Deny|
+   |TagSchedOpsTagForDeletion|Deny|Deny|Deny|Deny|Allow|Deny|
+   |TagSchedOpsDelete|Deny|Deny|Deny|Deny|Deny|Allow|
    |TagSchedOpsNoTag|Deny|Deny|Deny|No effect|Deny|Deny|
 
    Because `Deny` always takes precendence in IAM, some policy combinations conflict.
    
-   \* Operation-enabling tag required. For example, a user could only add `managed-image-once` if an EC2 instance were already tagged with `managed-image`.
+   <a name="policy-footnote-1">1</a>. This is an exception, and it makes the policy suitable only for administrative users. Never use this policy in any kind of automation.
+   
+   <a name="policy-footnote-2">2</a>. Operation-enabling tag required. For example, a user could only add `managed-image-once` if an EC2 instance were already tagged with `managed-image`.
    
  * Note AWS technical limitations/oversights:
  
