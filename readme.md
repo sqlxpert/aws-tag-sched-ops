@@ -194,7 +194,7 @@ Some operations create a child resource (image or snapshot) from a parent resour
  
  * Entities that can create backups must not be allowed to delete backups (or even to tag them for deletion).
  
- * Many policy choices are provided, to control tagging and deletion:
+ * Many policy choices are provided:
  
    |Policy Name|Manage Operation-Enabling Tags|Manage One-Time Schedule Tags|Manage Repetitive Schedule Tags|Back Up|Manage Deletion Tag|Delete|
    |--|--|--|--|--|--|--|
@@ -202,7 +202,7 @@ Some operations create a child resource (image or snapshot) from a parent resour
    |TagSchedOpsAdminister|Allow|Allow|Allow|No effect|Allow|Deny|
    |TagSchedOpsTagScheduleOnce|Deny|Allow\*|Deny|No effect|Deny|Deny|
    |TagSchedOpsTagSchedulePeriodic|Deny|No effect|Allow\*|No Effect|Deny|Deny|
-   |TagSchedOpsTagForDeletion|No effect|No effect|No effect|No effect|Allow|Deny|
+   |TagSchedOpsTagForDeletion|No effect|No effect|No effect|Deny|Allow|Deny|
    |TagSchedOpsDelete|No effect|No effect|No effect|Deny|Deny|Allow|
    |TagSchedOpsNoTag|Deny|Deny|Deny|No effect|Deny|Deny|
 
