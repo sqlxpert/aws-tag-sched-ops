@@ -207,7 +207,7 @@ Some operations create a child resource (image or snapshot) from a parent resour
    |_Scope &rarr;_|_Instances, Volumes_|_Instances, Volumes_|_Instances, Volumes_|_Instances, Volumes_|_Images, Snapshots_|_Images, Snapshots_|
    |TagSchedOpsAdminister|Allow|Allow|Allow|No effect|Allow [<sup>i</sup>](#policy-footnote-1)|Deny|
    |TagSchedOpsTagScheduleOnce|Deny [<sup>iii</sup>](#policy-footnote-3)|Allow [<sup>ii</sup>](#policy-footnote-2)|Deny|No effect|Deny|Deny|
-   |TagSchedOpsTagSchedulePeriodic|Deny [<sup>iii</sup>](#policy-footnote-3)|No effect|Allow[<sup>ii</sup>](#policy-footnote-2)|No Effect|Deny|Deny|
+   |TagSchedOpsTagSchedulePeriodic|Deny [<sup>iii</sup>](#policy-footnote-3)|No effect|Allow [<sup>ii</sup>](#policy-footnote-2)|No Effect|Deny|Deny|
    |TagSchedOpsTagForDeletion|Deny|Deny|Deny|Deny|Allow|Deny|
    |TagSchedOpsDelete|Deny|Deny|Deny|Deny|Deny|Allow|
    |TagSchedOpsNoTag|Deny|Deny|Deny|No effect|Deny|Deny|
