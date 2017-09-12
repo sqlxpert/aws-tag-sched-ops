@@ -236,10 +236,10 @@ Some operations create a child resource (image or snapshot) from a parent resour
 
 ## Licensing
 
-|Scope|License|
-|---|---|
-|Source code files|[GNU General Public License (GPL) 3.0](http://www.gnu.org/licenses/gpl-3.0.html)|
-|Source code within documentation files|[GNU General Public License (GPL) 3.0](http://www.gnu.org/licenses/gpl-3.0.html)|
-|Documentation files|[GNU Free Documentation License (FDL) 1.3](http://www.gnu.org/licenses/fdl-1.3.html)|
+|Scope|License|Copy Included|
+|--|--|--|
+|Source code files|[GNU General Public License (GPL) 3.0](http://www.gnu.org/licenses/gpl-3.0.html)|[license-code.txt](https://github.com/sqlxpert/aws-tag-sched-ops/blob/master/license-code.txt)|
+|Source code within documentation files|[GNU General Public License (GPL) 3.0](http://www.gnu.org/licenses/gpl-3.0.html)|[license-code.txt](https://github.com/sqlxpert/aws-tag-sched-ops/blob/master/license-code.txt)|
+|Documentation files (including this readme file)|[GNU Free Documentation License (FDL) 1.3](http://www.gnu.org/licenses/fdl-1.3.html)|[license-doc.txt](https://github.com/sqlxpert/aws-tag-sched-ops/blob/master/license-doc.txt)|
 
 Copyright 2017, Paul Marcelin
