@@ -188,13 +188,19 @@ Some operations create a child resource (image or snapshot) from a parent resour
 
 ## Security Model
 
- * Only a few trusted users should be allowed to tag EC2 and RDS resources, because tags determine which resources are started, backed up, rebooted, and stopped, and which backups are protected from deletion.
+ * Prevent unauthorized changes to the AWS Lambda function by attaching the TagSchedOpsPerformLambdaFnProtect IAM policy to entities with write privileges for:
+     * AWS Lambda
+     * CloudFormation Events
+     * CloudFormation Logs
+     * IAM (roles and/or policies)
+ 
+ * Allow only a few trusted users to tag EC2 and RDS resources, because tags determine which resources are started, backed up, rebooted, and stopped.
 
- * It is a good practice to tag backups for deletion, but to let a privileged user actually delete them. To mark images and snapshots for (manual) deletion, add the `managed-delete` tag.
+ * Tag backups for deletion, but let a special user or entity actually delete them. To mark images and snapshots for (manual) deletion, add the `managed-delete` tag.
  
- * Entities that can create backups must not be allowed to delete backups (or even to tag them for deletion).
+ * Do not allow the same entities that create backups to delete backups (or even to tag them for deletion).
  
- * Many policy choices are provided:
+ * Choose from a library of IAM policies:
  
    |Policy Name|Manage Operation-Enabling Tags|Manage One-Time Schedule Tags|Manage Repetitive Schedule Tags|Back Up|Manage Deletion Tag|Delete|
    |--|--|--|--|--|--|--|
@@ -206,21 +212,19 @@ Some operations create a child resource (image or snapshot) from a parent resour
    |TagSchedOpsDelete|No effect|No effect|No effect|Deny|Deny|Allow|
    |TagSchedOpsNoTag|Deny|Deny|Deny|No effect|Deny|Deny|
 
-   Because privilege denial always takes precendence in IAM, some policies are mutually exclusive.
+   Because `Deny` always takes precendence in IAM, some policy combinations conflict.
    
    \* Operation-enabling tag required. For example, a user could only add `managed-image-once` if an EC2 instance were already tagged with `managed-image`.
    
- * Note AWS technical limitations and oversights:
+ * Note AWS technical limitations/oversights:
  
-    * An entity that can create an image of an EC2 instance can always force a reboot by omitting the `NoReboot` option. (Explicitly denying the reboot privilege does not help.) The unavoidable pairing of a harmless privilege, taking a backup, with a risky one, rebooting, is unfortunate.
+    * An entity that can create an image of an EC2 instance can force a reboot by omitting the `NoReboot` option. (Explicitly denying the reboot privilege does not help.) The unavoidable pairing of a harmless privilege, taking a backup, with a risky one, rebooting, is unfortunate.
 
     * Tags are ignored when deleting EC2 images and snapshots. Limit EC2 image and snapshot deletion privileges -- even Ec2TagSchedOpsDelete -- to highly-trusted entities.
 
     * In RDS, an entity that can add specific tags can add _any other_ tags in the same request. Limit RDS tagging privileges -- even the provided policies -- to highly-trusted users.
- 
- * Privileges to change the AWS Lambda function, the CloudWatch Events rule that triggers it, the IAM policies on which it depends, or the CloudWatch Log group and log streams to which it sends infomration, must be strictly controlled. Apply the TagSchedOpsPerformLambdaFnProtect policy to all but the most highly-trusted users.
 
- * There is not yet an automatic mechanism to tag backups for deletion. A correct archival policy would not be strictly age-based. For example, it might preserve the last 30 daily backups, and beyond 30 days, the first backup of every month. Work on a syntax for specifying archival policies remains to be done. Consider the snapshot retention property of RDS databases instances: the daily backups created when that property is set can never be kept longer than 35 days.
+ * For now, manually select unneeded backups to tag them for deletion. A correct archival policy is not strictly age-based. For example, you might preserve the last 30 daily backups, and beyond 30 days, the first backup of every month. (Work on an an archival policy syntax remains to be done. Consider the flaw in the snapshot retention property of RDS database instances: the daily automatic snapshots created when that property is set can never be kept longer than 35 days.)
 
 ## Licensing
 
