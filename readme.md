@@ -223,7 +223,7 @@ Some operations create a child resource (image or snapshot) from a parent resour
  
  * Due to a limitation in IAM for RDS, an entity that can add specific tags can add _any_ other tags in the same request. Limit RDS tagging privileges -- even the provided policies -- to highly-trusted users.
  
- * Privileges to change the AWS Lambda function, the CloudWatch Event rule that triggers it, or the IAM policies on which it depends, must be strictly controlled.
+ * Privileges to change the AWS Lambda function, the CloudWatch Events rule that triggers it, the IAM policies on which it depends, or the CloudWatch Log group and log streams to which it sends infomration, must be strictly controlled. Apply the TagSchedOpsPerformLambdaFnProtect policy to all but the most highly-trusted users.
 
  * There is not yet an automatic mechanism to tag images and snapshots for deletion. A correct archival policy would not be strictly age-based. For example, it might preserve the last 30 days' worth of daily backups, and beyond 30 days, the first backup of every month. Work on a syntax for specifying archival policies remains to be done. Consider the snapshot retention property of RDS databases instances: the daily backups created when that property is set cannot be kept longer than 35 days.
 
