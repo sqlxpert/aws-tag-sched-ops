@@ -14,13 +14,13 @@
 
    _Security Tip:_ To see which kinds of resources you'll be installing, [search for `Type: ` in CloudFormation templates](https://github.com/sqlxpert/aws-tag-sched-ops/search?q=Type%20path%3A%2Fcloudformation%2F%20extension%3Ayaml).
 
-2. Navigate to the [S3 Console](https://console.aws.amazon.com/s3/home). Click the name of the bucket where you keep CloudFormation templates, or create the bucket, if necessary. Upload the compressed source code of the AWS Lambda function, [`aws_tag_sched_ops_perform.py.zip`](/raw/master/aws_tag_sched_ops_perform.py.zip)
+2. Navigate to the [S3 Console](https://console.aws.amazon.com/s3/home). Click the name of the bucket where you keep CloudFormation templates, or create the bucket, if necessary. Upload the compressed source code of the AWS Lambda function, [`aws_tag_sched_ops_perform.py.zip`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/aws_tag_sched_ops_perform.py.zip)
 
    _Security Tip:_ Remove public read and write access from the S3 bucket. Carefully limit write access.
 
    _Security Tip:_ Download the file from S3 and verify it with `md5sum`. The current checksum is `3f061dc1025a224e1eb04bd74e993bda`.
 
-3. Navigate to the [CloudFormation Console](https://console.aws.amazon.com/cloudformation/home). Click Create Stack. Under "Choose a template", click "Upload a template to Amazon S3". Click Choose File and navigate to your local copy of [`cloudformation/aws_tag_sched_ops.yaml`](/raw/master/aws_tag_sched_ops.yaml). On the next page, set these items (only):
+3. Navigate to the [CloudFormation Console](https://console.aws.amazon.com/cloudformation/home). Click Create Stack. Under "Choose a template", click "Upload a template to Amazon S3". Click Choose File and navigate to your local copy of [`cloudformation/aws_tag_sched_ops.yaml`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set these items (only):
 
    |Item|Value|
    |--|--|
@@ -238,8 +238,8 @@ Some operations create a child resource (image or snapshot) from a parent resour
 
 |Scope|License|Copy Included|
 |--|--|--|
-|Source code files|[GNU General Public License (GPL) 3.0](http://www.gnu.org/licenses/gpl-3.0.html)|[license-code.txt](/raw/master/license-code.txt)|
-|Source code within documentation files|[GNU General Public License (GPL) 3.0](http://www.gnu.org/licenses/gpl-3.0.html)|[license-code.txt](/raw/master/license-code.txt)|
-|Documentation files (including this readme file)|[GNU Free Documentation License (FDL) 1.3](http://www.gnu.org/licenses/fdl-1.3.html)|[license-doc.txt](/raw/master/license-doc.txt)|
+|Source code files|[GNU General Public License (GPL) 3.0](http://www.gnu.org/licenses/gpl-3.0.html)|[license-code.txt](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/license-code.txt)|
+|Source code within documentation files|[GNU General Public License (GPL) 3.0](http://www.gnu.org/licenses/gpl-3.0.html)|[license-code.txt](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/license-code.txt)|
+|Documentation files (including this readme file)|[GNU Free Documentation License (FDL) 1.3](http://www.gnu.org/licenses/fdl-1.3.html)|[license-doc.txt](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/license-doc.txt)|
 
 Copyright 2017, Paul Marcelin
