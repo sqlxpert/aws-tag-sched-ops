@@ -44,6 +44,16 @@
 
 8. Log out of the AWS Console. You can now manage schedule tags without logging in as a privileged user.
 
+## Warnings
+
+ * You are responsible for using other tools or procedures to verify that the AWS operations you intend do complete successfully. Verification is beyond the scope of this project.
+ 
+ * Rebooting is usually necessary to make software updates take effect. Nevertheless, a system may stop working after it is rebooted. You must weigh the benefits of software updates agains the risks.
+ 
+ * No backup is complete until it has been restored successfully. You are responsible for testing your backups.
+ 
+ * You are responsible for securing your AWS environment. You should test the AWS Lambda function and the IAM policies comprising this project, to make sure that they work correctly and meet your expectations. To help improve the project, please submit [bug reports and feature requests](https://github.com/sqlxpert/aws-tag-sched-ops/issues), as well as proposed [code changes](https://github.com/sqlxpert/aws-tag-sched-ops/pulls).
+
 ## Operation-Enabling Tags
 
 * To enable an operation, tag the resource with a tag from the table. The value of this tag does not matter; leave it blank.
@@ -232,7 +242,39 @@ Some operations create a child resource (image or snapshot) from a parent resour
 
     * In RDS, an entity that can add specific tags can add _any other_ tags in the same request. Limit RDS tagging privileges -- even the provided policies -- to highly-trusted users.
 
- * For now, manually select unneeded backups to tag them for deletion. A correct archival policy is not strictly age-based. For example, you might preserve the last 30 daily backups, and beyond 30 days, the first backup of every month. (Work on an an archival policy syntax remains to be done. Consider the flaw in the snapshot retention property of RDS database instances: the daily automatic snapshots created when that property is set can never be kept longer than 35 days.)
+## Future Work
+
+ * Documentation updates:
+ 
+     * Output format, and how to use CloudWatch Logs
+     
+     * `DEBUG` mode
+     
+     * CloudFormation change set instructions, for template and AWS Lambda function source code updates (includes S3 object versioning)
+     
+ * Automated testing, consisting of a CloudFormation template to create sample AWS resources, and a program (perhaps another AWS Lambda function!) to check whether the intended operations were performed. An AWS Lambda function would also be ideal for testing security policies, while cycling through different IAM roles.
+ 
+ * Archival policy syntax, and automatic application of `managed-delete` to expired backups. A correct archival policy is not strictly age-based. For example, you might preserve the last 30 daily backups, and beyond 30 days, the first backup of every month. Consider the flaw in the snapshot retention property of RDS database instances: the daily automatic snapshots created when that property is set can never be kept longer than 35 days.
+ 
+ * Simplification of [cloudformation/aws_tag_sched_ops.yaml](/cloudformation/aws_tag_sched_ops.yaml], including testing of CloudFormation's support for YAML anchors (`&`) and references (`*`), and evaluation of general-purpose or CloudFormation-specific YAML preprocessors.
+ 
+ * Further modularization of [aws_tag_sched_ops_perform.py](/aws_tag_sched_ops_perform.py)
+ 
+ * Additional AWS Lambda function, to automatically delete backups tagged `managed-delete`
+ 
+ * Makefile
+ 
+ * Packaging for standalone execution outside AWS Lambda (`requirements.txt`, etc.), to encourage collaborative development
+ 
+ * Tags and reference dictionary updates to support scheduled restoration of images and snapshots
+ 
+ * Function to list AWS resources tagged for unsupported combinations of operations, in the usual compact, line-oriented format
+ 
+ * Generalization of reference dictionaries to support more AWS services and resource types. (Which ones?)
+
+## Dedication
+
+This work is dedicated to [Ernie Salazar](https://github.com/ehsalazar), R&eacute;gis and Marianne Marcelin, and my wonderful colleagues of the past few years.
 
 ## Licensing
 
