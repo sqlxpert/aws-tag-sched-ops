@@ -12,7 +12,7 @@
 
 1. Log in to the [AWS Web Console](https://signin.aws.amazon.com/console) as a privileged user.
 
-   _Security Tip:_ To see which kinds of resources you'll be installing, look in the [CloudFormation template](/cloudformation/aws_tag_sched_ops.yaml).<br/>`grep 'Type: "AWS::' cloudformation/aws_tag_sched_ops.yaml | sort | uniq --count` works well.
+   _Security Tip:_ To see which kinds of resources you'll be installing, look in the [CloudFormation template](/cloudformation/aws_tag_sched_ops.yaml). <br/>`grep 'Type: "AWS::' aws_tag_sched_ops.yaml | sort | uniq --count` works well.
    
 2. Navigate to [Instances](https://console.aws.amazon.com/ec2/v2/home#Instances) in the EC2 Console. Right-click the Name or ID of an instance, select Instance Settings, and then select Add/Edit Tags. Add:
 
@@ -25,7 +25,7 @@
 
    _Security Tip:_ Remove public read and write access from the S3 bucket. Carefully limit write access.
 
-   _Security Tip:_ Download the file from S3 and verify it.<br/>`md5sum aws_tag_sched_ops_perform.py.zip` should yield `3f061dc1025a224e1eb04bd74e993bda`
+   _Security Tip:_ Download the file from S3 and verify it. <br/>`md5sum aws_tag_sched_ops_perform.py.zip` should yield `3f061dc1025a224e1eb04bd74e993bda`
 
 4. Navigate to the [CloudFormation Console](https://console.aws.amazon.com/cloudformation/home). Click Create Stack. Click Choose File, immediately below "Upload a template to Amazon S3", and navigate to your locally downloaded copy of [`cloudformation/aws_tag_sched_ops.yaml`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
 
@@ -36,7 +36,7 @@
    
 5. After 20 minutes, check [Images](https://console.aws.amazon.com/ec2/v2/home#Images:sort=desc:creationDate) in the EC2 Console.
 
-6. Before deleting the sample image, note its ID, so that you can find and delete the associated snapshots. Also untag the instance.
+6. Before deleting the sample image, note its ID, so that you can find and delete the associated [snapshots](https://console.aws.amazon.com/ec2/v2/home#Snapshots:sort=desc:startTime). Also untag the instance.
 
 7. Navigate to [Users](https://console.aws.amazon.com/iam/home#/users) in the IAM Console. Click your regular (uprivileged) username. Click Add Permissions, then click "Attach existing policies directly". In the Search box, type `TagSchedOpsAdminister`. Add the two matching policies.
       
