@@ -12,7 +12,7 @@
 
 1. Log in to the [AWS Web Console](https://signin.aws.amazon.com/console) as a privileged user.
 
-   _Security Tip:_ To see which kinds of resources you'll be installing, [search for `Type: ` in CloudFormation templates](https://github.com/sqlxpert/aws-tag-sched-ops/search?q=Type%20path%3A%2Fcloudformation%2F%20extension%3Ayaml).
+   _Security Tip:_ To see which kinds of resources you'll be installing, search for '`Type: "AWS::`' within the [`cloudformation/aws_tag_sched_ops.yaml`](/cloudformation/aws_tag_sched_ops.yaml) CloudFormation template. `grep | sort | uniq` works well.
 
 2. Navigate to the [S3 Console](https://console.aws.amazon.com/s3/home). Click the name of the bucket where you keep CloudFormation templates, or create the bucket, if necessary. Upload the compressed source code of the AWS Lambda function, [`aws_tag_sched_ops_perform.py.zip`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/aws_tag_sched_ops_perform.py.zip)
 
@@ -256,7 +256,7 @@ Some operations create a child resource (image or snapshot) from a parent resour
  
  * Archival policy syntax, and automatic application of `managed-delete` to expired backups. A correct archival policy is not strictly age-based. For example, you might preserve the last 30 daily backups, and beyond 30 days, the first backup of every month. Consider the flaw in the snapshot retention property of RDS database instances: the daily automatic snapshots created when that property is set can never be kept longer than 35 days.
  
- * Simplification of [cloudformation/aws_tag_sched_ops.yaml](/cloudformation/aws_tag_sched_ops.yaml], including testing of CloudFormation's support for YAML anchors (`&`) and references (`*`), and evaluation of general-purpose or CloudFormation-specific YAML preprocessors.
+ * Simplification of [cloudformation/aws_tag_sched_ops.yaml](/cloudformation/aws_tag_sched_ops.yaml], including testing of CloudFormation's support for [YAML `&` anchors and `*` references](https://en.wikipedia.org/wiki/YAML#Advanced_components), and evaluation of general-purpose or CloudFormation-specific YAML preprocessors.
  
  * Further modularization of [aws_tag_sched_ops_perform.py](/aws_tag_sched_ops_perform.py)
  
