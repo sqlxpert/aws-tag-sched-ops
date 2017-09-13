@@ -25,7 +25,7 @@
 
    _Security Tip:_ Remove public read and write access from the S3 bucket. Carefully limit write access.
 
-   _Security Tip:_ Download the file from S3 and verify it.<br/>`md5sum aws_tag_sched_ops_perform.py.zip` should yield `3f061dc1025a224e1eb04bd74e993bda`.
+   _Security Tip:_ Download the file from S3 and verify it.<br/>`md5sum aws_tag_sched_ops_perform.py.zip` should yield `3f061dc1025a224e1eb04bd74e993bda`
 
 4. Navigate to the [CloudFormation Console](https://console.aws.amazon.com/cloudformation/home). Click Create Stack. Click Choose File, immediately below "Upload a template to Amazon S3", and navigate to your locally downloaded copy of [`cloudformation/aws_tag_sched_ops.yaml`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
 
@@ -71,17 +71,17 @@
 * To temporarily suspend an operation, delete its enabling tag. You may leave its schedule tag(s) in place.
 * Examples (for an EC2 or RDS instance):
 
-  |Tag(s) and Value(s)|Success|Comment|
+  |Tags and Values|Success?|Comment|
   |--|--|--|
-  |`managed-start`, `managed-start-periodic`=`u=1,H=09,M=05`|Yes|Enabled and scheduled|
-  |`managed-start`=`No`, `managed-start-periodic`=`u=1,H=09,M=05`|Yes|Value of enabling tag is ignored|
-  |`managed-start`, `managed-start-once`=`2017-12-31T09:05`|Yes||
-  |`managed-start`, `managed-start-periodic`=`u=1,H=09,M=05`,`managed-start-once`=`2017-12-31T09:05`|Yes|Both repetitive and one-time schedules are allowed|
+  |`managed-start` <br/>`managed-start-periodic`=`u=1,H=09,M=05`|Yes|Enabled and scheduled|
+  |`managed-start`=`No` <br/>`managed-start-periodic`=`u=1,H=09,M=05`|Yes|Value of enabling tag is always ignored|
+  |`managed-start` <br/>`managed-start-once`=`2017-12-31T09:05`|Yes||
+  |`managed-start` <br/>`managed-start-periodic`=`u=1,H=09,M=05` <br/>`managed-start-once`=`2017-12-31T09:05`|Yes|Both repetitive and one-time schedule tags are allowed|
   |`managed-start`|No|No schedule tag|
-  |`managed-start-once`=`2017-12-31`|No|No enabling tag (suspend)|
-  |`managed-start`, `managed-start-once`|No|Blank schedule|
-  |`managed-start`, `managed-start-periodic`=`Monday`|No|Invalid schedule|
-  |`managed-start`, `managed-stop-periodic`=`u=1,H=09,M=05`|No|Enabling tag and schedule tag cover different operations|
+  |`managed-start-once`=`2017-12-31`|No|No enabling tag (operation is suspended)|
+  |`managed-start` <br/>`managed-start-once`|No|Blank schedule|
+  |`managed-start` <br/>`managed-start-periodic`=`Monday`|No|Invalid schedule|
+  |`managed-start` <br/>`managed-stop-periodic`=`u=1,H=09,M=05`|No|Enabling tag and schedule tag cover different operations|
 
 ## Scheduling
  
