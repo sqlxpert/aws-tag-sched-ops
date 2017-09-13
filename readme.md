@@ -42,17 +42,17 @@
       
    _Security Tip_: Review EC2 and RDS tagging privileges for all entities.
 
-8. Log out of the AWS Console. You can now manage schedule tags without logging in as a privileged user.
+8. Log out of the AWS Console. You can now manage the relevant tags without logging in as a privileged user.
 
 ## Warnings
 
- * You are responsible for using other tools or procedures to verify that the AWS operations you intend do complete successfully. Verification is beyond the scope of this project.
+ * You are responsible for using other tools or procedures to verify that intended AWS operations complete successfully. Verification is beyond the scope of this project.
  
  * Rebooting is usually necessary to make software updates take effect. Nevertheless, a system may stop working after it is rebooted. You must weigh the benefits of software updates agains the risks.
  
  * No backup is complete until it has been restored successfully. You are responsible for testing your backups.
  
- * You are responsible for your own AWS charges, including but not limited to: the costs of running the AWS Lambda function, storing the output in CloudWatch Logs, and storing images and snapshots; the whole-hour cost when you stop an instance; the cost of storage for stopped instances and unattached volumes; and the costs that accumulate when AWS automatically starts an RDS instance that has been stopped for too many days.
+ * You are responsible for paying your own AWS charges, including but not limited to: the costs of running the AWS Lambda function, storing the output in CloudWatch Logs, and storing images and snapshots; the whole-hour cost when you stop an instance; the cost of storage for stopped instances and unattached volumes; and the costs that accumulate when AWS automatically starts an RDS instance that has been stopped for too many days.
  
  * You are responsible for securing your own AWS environment. You should test the AWS Lambda function and the IAM policies comprising this project, to make sure that they work correctly and meet your expectations. To help improve the project, please submit [bug reports and feature requests](https://github.com/sqlxpert/aws-tag-sched-ops/issues), as well as proposed [code changes](https://github.com/sqlxpert/aws-tag-sched-ops/pulls).
 
@@ -86,11 +86,11 @@
 ## Scheduling
  
  * All times are UTC, on a 24-hour clock.
- * The function runs once every 10 minutes. The last digit of the minute is always ignored. For example, an operation scheduled for `M=47` is expected to begin between 40 and 50 minutes after the hour, depending on startup overhead.
- * Month and minute values must have two digits. Use a leading zero (for example, `03`) if a month or minute value is less than or equal to 9. (Because there are only 7 days in a week, weekday numbers have only one digit.)
- * Use a comma (`,`) _without any spaces_ to separate components. The order of components within a tag value does not matter.
+ * The AWS Lambda function runs once every 10 minutes. The last digit of the minute is always ignored. For example, an operation scheduled for `M=47` is expected to begin between 40 and 50 minutes after the hour.
+ * Month and minute values must have two digits. Use a leading zero (for example, `03`) if a month or minute value is less than or equal to 9. (Weekday numbers have only one digit.)
+ * Use a comma (`,`) _without spaces_ to separate components. The order of components within a tag value does not matter.
  * `T` separates day information from time; it is not a variable.
- * Each operation supports a pair of tags for [repetitive (`-periodic`)](#repetitive-schedules) and [one-time (`-once`)](#one-time-schedules) schedules. Prefix with the operation.
+ * [Repetitive (`-periodic`)](#repetitive-schedules) and [one-time (`-once`)](#one-time-schedules) schedule tags are supported. Prefix with the operation.
  * If the corresponding [enabling tag](#operation-enabling-tags) is missing, schedule tags will be ignored, and the operation will never occur.
 
 ### Repetitive Schedules
@@ -113,7 +113,7 @@
       * Repeat a whole component to specify multiple values. For example, `d=01,d=11,d=21` means the 1st, 11th and 21st days of the month.
       * The `*` wildcard is allowed for day (every day of the month) and hour (every hour of the day).
       * For consistent one-day-a-month scheduling, avoid `d=29` through `d=31`.
-      * Labels are from `strftime` and weekday numbering follows the [ISO 8601 standard](https://en.wikipedia.org/wiki/ISO_8601#Week_dates) (different from `cron`).
+      * Labels are from `strftime` and weekday numbers are [ISO 8601-standard](https://en.wikipedia.org/wiki/ISO_8601#Week_dates) (different from `cron`).
 
   * Examples:
   
@@ -129,7 +129,7 @@
  
   * Tag suffix: `-once`
 
-  * Values: one or more [ISO 8601 combined date and time strings](https://en.wikipedia.org/wiki/ISO_8601#Combined_date_and_time_representations), of the form `2017-03-21T22:40` (this example means March 21, 2017 at 22:40)
+  * Values: one or more [ISO 8601 combined date and time strings](https://en.wikipedia.org/wiki/ISO_8601#Combined_date_and_time_representations), of the form `2017-03-21T22:40` (March 21, 2017, in this example)
       * Remember, the code runs once every 10 minutes and the _last digit of the minute is ignored_
       * Omit seconds and fractions of seconds
       * Omit time zone
@@ -137,7 +137,7 @@
 ## Operation Combinations
 
 * Multiple _non-simultaneous_ operations on the same resource are allowed.
-* If two or more operations on the same resource fall on the same day, during the same 10-minute time interval, the function combines them if possible:
+* If two or more operations on the same resource fall on the same day, during the same 10-minute interval, the function combines them if possible:
 
   |Resource|Simultaneous Operations|Effect|
   |--|--|--|
@@ -146,7 +146,7 @@
   |RDS instance|Stop + Reboot|Stop|
   |RDS instance|Stop + Create Snapshot|Create Snapshot then Stop|
 
-* The EC2 instance Create Image + Reboot combination is the most useful. For example, you could use it to take hourly backups but reboot only before the midnight backup. The midnight backup would be guaranteed to be coherent for all files, but you could safely retrieve static files as of any given hour, from the other backups. To set up this example:
+* The Create Image + Reboot combination for EC2 instances is useful. For example, you could use it to take hourly backups but reboot only before the midnight backup. The midnight backup would be guaranteed to be coherent for all files, but you could safely retrieve static files as of any given hour, from the other backups. To set up this example:
 
   |Tag|Value|
   |--|--|
@@ -171,8 +171,8 @@ Some operations create a child resource (image or snapshot) from a parent resour
  
 ### Naming Conventions
 
-* AWS imposes different character set restrictions for different resource types. This project replaces known forbidden characters with with `X`.
-* The name consists of these parts, in order, and separated by hyphens (`-`):
+* AWS imposes some character set restrictions. This project replaces known forbidden characters with with `X`.
+* The name consists of these parts, separated by hyphens (`-`):
 
   |#|Part|Example|Purpose|
   |--|--|--|--|
@@ -181,14 +181,14 @@ Some operations create a child resource (image or snapshot) from a parent resour
   |3|Date/time|`20171231T1400`|Indicates when the child was created. The last digit of the minute is normalized to 0. The `-` and `:` separators are removed for brevity, and because AWS does not allow `:` in names, for some resource types. (The `managed-date-time` tag stores the original string, with separators intact.)|
   |4|Random string|`g3a8a`|Guarantees unique names. Five characters are chosen from a small set of letters and numbers that are unambiguous.|
 
-* If it is ever necessary to parse these names, keep in mind that the second part may contain internal hyphens.
+* If parsing is ever necessary, keep in mind that the second part may contain internal hyphens.
 * For some resource types, the description is also set to the name, in case interfaces only expose one or the other.
 
 ### Special Tags
 
 * Tags other than operation-enabling tags, schedule tags, and the `Name` tag, are copied from parent to child. (The deletion tag, `managed-delete`, would not make sense on instances and volumes, but if it is present, it is not copied to images and snapshots.)
 
-* Special tags are added to the child resource:
+* Special tags are added to the child:
 
   |Tag(s)|Purpose|
   |--|--|
@@ -200,7 +200,7 @@ Some operations create a child resource (image or snapshot) from a parent resour
 
 ## Security Model
 
- * Prevent unauthorized changes to the AWS Lambda function by attaching the TagSchedOpsPerformLambdaFnProtect IAM policy to entities with write privileges for:
+ * Prevent unauthorized changes to the AWS Lambda function by attaching the TagSchedOpsPerformLambdaFnProtect IAM policy to most entities with write privileges for:
      * AWS Lambda
      * CloudFormation Events
      * CloudFormation Logs
@@ -218,8 +218,8 @@ Some operations create a child resource (image or snapshot) from a parent resour
    |--|--|--|--|--|--|--|
    |_Scope &rarr;_|_Instances, Volumes_|_Instances, Volumes_|_Instances, Volumes_|_Instances, Volumes_|_Images, Snapshots_|_Images, Snapshots_|
    |TagSchedOpsAdminister|Allow|Allow|Allow|No effect|Allow [<sup>i</sup>](#policy-footnote-1)|Deny|
-   |TagSchedOpsTagScheduleOnce|Deny [<sup>iii</sup>](#policy-footnote-3)|Allow [<sup>ii</sup>](#policy-footnote-2)|Deny|No effect|Deny|Deny|
-   |TagSchedOpsTagSchedulePeriodic|Deny [<sup>iii</sup>](#policy-footnote-3)|No effect|Allow [<sup>ii</sup>](#policy-footnote-2)|No Effect|Deny|Deny|
+   |TagSchedOpsTagScheduleOnce|Deny [<sup>ii</sup>](#policy-footnote-2)|Allow [<sup>iii</sup>](#policy-footnote-3)|Deny|No effect|Deny|Deny|
+   |TagSchedOpsTagSchedulePeriodic|Deny [<sup>ii</sup>](#policy-footnote-2)|No effect|Allow [<sup>iii</sup>](#policy-footnote-3)|No Effect|Deny|Deny|
    |TagSchedOpsTagForDeletion|Deny|Deny|Deny|Deny|Allow|Deny|
    |TagSchedOpsDelete|Deny|Deny|Deny|Deny|Deny|Allow|
    |TagSchedOpsNoTag|Deny|Deny|Deny|No effect|Deny|Deny|
@@ -227,10 +227,8 @@ Some operations create a child resource (image or snapshot) from a parent resour
    Footnotes:
    
      1. <a name="policy-footnote-1"></a>This is an exception, and it makes the policy suitable only for administrative users. Never use this policy in any kind of automation.
-   
-     2. <a name="policy-footnote-2"></a>Operation-enabling tag required. For example, a user could only add `managed-image-once` if an EC2 instance were already tagged with `managed-image`.
-   
-     3. <a name="policy-footnote-3"></a>For RDS, No Effect.
+     2. <a name="policy-footnote-2"></a>For RDS, No Effect.
+     2. <a name="policy-footnote-3"></a>Operation-enabling tag required. For example, a user could only add `managed-image-once` if an EC2 instance were already tagged with `managed-image`.
       
    Because Deny always takes precendence in IAM, some policy combinations conflict.
    
@@ -258,7 +256,7 @@ Some operations create a child resource (image or snapshot) from a parent resour
  
  * Archival policy syntax, and automatic application of `managed-delete` to expired backups. A correct archival policy is not strictly age-based. For example, you might preserve the last 30 daily backups, and beyond 30 days, the first backup of every month. Consider the flaw in the snapshot retention property of RDS database instances: the daily automatic snapshots created when that property is set can never be kept longer than 35 days.
  
- * Simplification of [cloudformation/aws_tag_sched_ops.yaml](/cloudformation/aws_tag_sched_ops.yaml), including testing of CloudFormation's support for [YAML `&` anchors and `*` references](https://en.wikipedia.org/wiki/YAML#Advanced_components), and evaluation of general-purpose or CloudFormation-specific YAML preprocessors.
+ * Simplification of [aws_tag_sched_ops.yaml](/cloudformation/aws_tag_sched_ops.yaml), including testing of CloudFormation's support for [YAML `&` anchors and `*` references](https://en.wikipedia.org/wiki/YAML#Advanced_components), and evaluation of general-purpose or CloudFormation-specific YAML preprocessors.
  
  * Further modularization of [aws_tag_sched_ops_perform.py](/aws_tag_sched_ops_perform.py)
  
@@ -282,8 +280,8 @@ This work is dedicated to [Ernie Salazar](https://github.com/ehsalazar), R&eacut
 
 |Scope|License|Copy Included|
 |--|--|--|
-|Source code files|[GNU General Public License (GPL) 3.0](http://www.gnu.org/licenses/gpl-3.0.html)|[license-code.txt](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/license-code.txt)|
-|Source code within documentation files|[GNU General Public License (GPL) 3.0](http://www.gnu.org/licenses/gpl-3.0.html)|[license-code.txt](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/license-code.txt)|
-|Documentation files (including this readme file)|[GNU Free Documentation License (FDL) 1.3](http://www.gnu.org/licenses/fdl-1.3.html)|[license-doc.txt](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/license-doc.txt)|
+|Source code files|[GNU General Public License (GPL) 3.0](http://www.gnu.org/licenses/gpl-3.0.html)|[zlicense-code.txt](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/zlicense-code.txt)|
+|Source code within documentation files|[GNU General Public License (GPL) 3.0](http://www.gnu.org/licenses/gpl-3.0.html)|[zlicense-code.txt](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/zlicense-code.txt)|
+|Documentation files (including this readme file)|[GNU Free Documentation License (FDL) 1.3](http://www.gnu.org/licenses/fdl-1.3.html)|[zlicense-doc.txt](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/zlicense-doc.txt)|
 
 Copyright 2017, Paul Marcelin
