@@ -171,30 +171,37 @@ parent_params = {
         "start": {  # CONVENTION: Supported operation (op)
           "method": None,  # Set at run-time
           "id_list": True,  # Does operation method accept multiple IDs?
+          "op_kwargs": {},
           "child_rsrc_type": "",  # Kind of child created (if any)
           "two_step_tag": False,  # Follow-up tagging call after create_ call?
         },
         "reboot": {
           "method": None,
           "id_list": True,
+          "op_kwargs": {},
           "child_rsrc_type": "",
           "two_step_tag": False,
         },
         "stop": {
           "method": None,
           "id_list": True,
+          "op_kwargs": {},
           "child_rsrc_type": "",
           "two_step_tag": False,
         },
         "image": {
           "method": None,
           "id_list": False,
+          "op_kwargs": {
+            "NoReboot": True,
+          },
           "child_rsrc_type": "Image",
           "two_step_tag": True,
         },
         "reboot-image": {
           "method": None,
           "id_list": False,
+          "op_kwargs": {},
           "child_rsrc_type": "Image",
           "two_step_tag": True,
         },
@@ -223,6 +230,7 @@ parent_params = {
         "snapshot": {
           "method": None,
           "id_list": False,
+          "op_kwargs": {},
           "child_rsrc_type": "Snapshot",
           "two_step_tag": True,
         },
@@ -245,30 +253,44 @@ parent_params = {
         "start": {
           "method": None,
           "id_list": False,
+          "op_kwargs": {},
           "child_rsrc_type": "",
           "two_step_tag": False,
         },
         "reboot": {
           "method": None,
           "id_list": False,
+          "op_kwargs": {},
+          "child_rsrc_type": "",
+          "two_step_tag": False,
+        },
+        "reboot-failover": {
+          "method": None,
+          "id_list": False,
+          "op_kwargs": {
+            "ForceFailover": True,
+          },
           "child_rsrc_type": "",
           "two_step_tag": False,
         },
         "stop": {
           "method": None,
           "id_list": False,
+          "op_kwargs": {},
           "child_rsrc_type": "",
           "two_step_tag": False,
         },
         "snapshot": {
           "method": None,
           "id_list": False,
+          "op_kwargs": {},
           "child_rsrc_type": "DBSnapshot",
           "two_step_tag": False,
         },
         "snapshot-stop": {
           "method": None,
           "id_list": False,
+          "op_kwargs": {},
           "child_rsrc_type": "DBSnapshot",
           "two_step_tag": True,
         },
@@ -605,6 +627,7 @@ def methods_set(svc, aws_client):
       ("DBInstance", "snapshot", aws_client.create_db_snapshot),
       ("DBInstance", "start", aws_client.start_db_instance),
       ("DBInstance", "reboot", aws_client.reboot_db_instance),
+      ("DBInstance", "reboot-failover", aws_client.reboot_db_instance),
       ("DBInstance", "stop", aws_client.stop_db_instance),
       ("DBInstance", "snapshot-stop", aws_client.stop_db_instance),
     )
@@ -663,19 +686,17 @@ def ops_perform(ops_rsrcs, date_time_norm_str, svc, rsrc_type):
     id_kwarg = (
       parent_params[svc][rsrc_type]["id_key"] + ("s" if id_list else "")
     )
+    op_kwargs = parent_params_op["op_kwargs"]
 
     two_step_tag = parent_params_op["two_step_tag"]
     child_rsrc_type = parent_params_op["child_rsrc_type"]
     if child_rsrc_type:
       child_params_rsrc_type = child_params[svc][child_rsrc_type]
       child_name_kwargs = child_params_rsrc_type["name_kwargs"]
-      ec2_inst_image_no_reboot = (
-        (svc == "ec2") and (rsrc_type == "Instance") and (op == "image")
-        # The image and reboot-image operations are distinct.
-      )
 
     for (rsrc_id, rsrc) in rsrcs.items():
       kwargs = {id_kwarg: [rsrc_id] if id_list else rsrc_id}
+      kwargs.update(op_kwargs)
 
       if child_rsrc_type:
         child_name = child_name_get(
@@ -688,9 +709,6 @@ def ops_perform(ops_rsrcs, date_time_norm_str, svc, rsrc_type):
           child_name_kwarg: child_name
           for child_name_kwarg in child_name_kwargs
         })
-        if ec2_inst_image_no_reboot:
-          kwargs["NoReboot"] = True
-          # AWS default (reboot) applies when operation is reboot-image.
         rsrc["child_tags"].extend(child_tags_to_add(
           rsrc_id,
           rsrc["name_from_tag"],
