@@ -52,7 +52,9 @@
  
  * No backup is complete until it has been restored successfully. You are responsible for testing your backups.
  
- * You are responsible for securing your AWS environment. You should test the AWS Lambda function and the IAM policies comprising this project, to make sure that they work correctly and meet your expectations. To help improve the project, please submit [bug reports and feature requests](https://github.com/sqlxpert/aws-tag-sched-ops/issues), as well as proposed [code changes](https://github.com/sqlxpert/aws-tag-sched-ops/pulls).
+ * You are responsible for your own AWS charges, including but not limited to: the costs of running the AWS Lambda function, storing the output in CloudWatch Logs, and storing images and snapshots; the whole-hour cost when you stop an instance; the cost of storage for stopped instances and unattached volumes; and the costs that accumulate when AWS automatically starts an RDS instance that has been stopped for too many days.
+ 
+ * You are responsible for securing your own AWS environment. You should test the AWS Lambda function and the IAM policies comprising this project, to make sure that they work correctly and meet your expectations. To help improve the project, please submit [bug reports and feature requests](https://github.com/sqlxpert/aws-tag-sched-ops/issues), as well as proposed [code changes](https://github.com/sqlxpert/aws-tag-sched-ops/pulls).
 
 ## Operation-Enabling Tags
 
