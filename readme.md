@@ -258,7 +258,7 @@ Some operations create a child resource (image or snapshot) from a parent resour
  
  * Archival policy syntax, and automatic application of `managed-delete` to expired backups. A correct archival policy is not strictly age-based. For example, you might preserve the last 30 daily backups, and beyond 30 days, the first backup of every month. Consider the flaw in the snapshot retention property of RDS database instances: the daily automatic snapshots created when that property is set can never be kept longer than 35 days.
  
- * Simplification of [cloudformation/aws_tag_sched_ops.yaml](/cloudformation/aws_tag_sched_ops.yaml], including testing of CloudFormation's support for [YAML `&` anchors and `*` references](https://en.wikipedia.org/wiki/YAML#Advanced_components), and evaluation of general-purpose or CloudFormation-specific YAML preprocessors.
+ * Simplification of [cloudformation/aws_tag_sched_ops.yaml](/cloudformation/aws_tag_sched_ops.yaml), including testing of CloudFormation's support for [YAML `&` anchors and `*` references](https://en.wikipedia.org/wiki/YAML#Advanced_components), and evaluation of general-purpose or CloudFormation-specific YAML preprocessors.
  
  * Further modularization of [aws_tag_sched_ops_perform.py](/aws_tag_sched_ops_perform.py)
  
