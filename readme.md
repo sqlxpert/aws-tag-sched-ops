@@ -25,7 +25,7 @@
 
    _Security Tip:_ Remove public read and write access from the S3 bucket. Carefully limit write access.
 
-   _Security Tip:_ Download the file from S3 and verify it. <br/>`md5sum aws_tag_sched_ops_perform.py.zip` should yield `3f061dc1025a224e1eb04bd74e993bda`
+   _Security Tip:_ Download the file from S3 and verify it. <br/>`md5sum aws_tag_sched_ops_perform.py.zip` should yield `9f95b7dba28ee9a474d772d698f8dfcf`
 
 4. Navigate to the [CloudFormation Console](https://console.aws.amazon.com/cloudformation/home). Click Create Stack. Click Choose File, immediately below "Upload a template to Amazon S3", and navigate to your locally downloaded copy of [`cloudformation/aws_tag_sched_ops.yaml`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
 
@@ -60,11 +60,11 @@
 
 * To enable an operation, add a tag from the table. Leave the value blank.
 
-  |AWS Resource|Start|Create Image|Reboot then Create Image|Reboot|Create Snapshot|Create Snapshot then Stop|Stop|
-  |--|--|--|--|--|--|--|--|
-  |EC2 compute instance|`managed-start`|`managed-image`|`managed-reboot-image`|`managed-reboot`| | |`managed-stop`|
-  |EC2 EBS disk volume| | | | |`managed-snapshot`| | |
-  |RDS database instance|`managed-start`| | |`managed-reboot`|`managed-snapshot`|`managed-snapshot-stop`|`managed-stop`|
+  |AWS Resource|Start|Create Image|Reboot then Create Image|Reboot then Fail Over|Reboot|Create Snapshot|Create Snapshot then Stop|Stop|
+  |--|--|--|--|--|--|--|--|--|
+  |EC2 compute instance|`managed-start`|`managed-image`|`managed-reboot-image`| |`managed-reboot`| | |`managed-stop`|
+  |EC2 EBS disk volume| | | | | |`managed-snapshot`| | |
+  |RDS database instance|`managed-start`| | |`managed-reboot-failover`|`managed-reboot`|`managed-snapshot`|`managed-snapshot-stop`|`managed-stop`|
 
 * Also add tags for [repetitive (`-periodic`)](#repetitive-schedules) and/or [one-time (`-once`)](#one-time-schedules) schedules. Prefix with the operation.
 * If there are no corresponding schedule tags, an enabling tag will be ignored, and the operation will never occur.
