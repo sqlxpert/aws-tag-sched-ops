@@ -137,7 +137,7 @@
 ## Operation Combinations
 
 * Multiple _non-simultaneous_ operations on the same resource are allowed.
-* If two or more operations on the same resource fall on the same day, during the same 10-minute interval, the function combines them if possible:
+* If two or more operations on the same resource are scheduled for the same 10-minute interval, the function combines them, where possible:
 
   |Resource|Simultaneous Operations|Effect|
   |--|--|--|
@@ -146,7 +146,7 @@
   |RDS instance|Stop + Reboot|Stop|
   |RDS instance|Stop + Create Snapshot|Create Snapshot then Stop|
 
-* The Create Image + Reboot combination for EC2 instances is useful. For example, you could use it to take hourly backups but reboot only before the midnight backup. The midnight backup would be guaranteed to be coherent for all files, but you could safely retrieve static files as of any given hour, from the other backups. To set up this example:
+* The Create Image + Reboot combination for EC2 instances is useful. For example, you could take hourly backups but reboot only in conjunction with the midnight backup. The midnight backup would be guaranteed to be coherent for all files, but you could safely retrieve static files as of any given hour, from the other backups. To set up this example:
 
   |Tag|Value|
   |--|--|
@@ -157,12 +157,12 @@
   
   (23:59, which for the purposes of this project represents the last 10-minute interval of the day, is the unambiguous way to express _almost the end of some designated day_, on any system. 00:00 and 24:00 could refer to the start or the end of the designated day, and not all systems accept 24:00, in any case. Remember that all times are UTC; adjust for night-time in your time zone!)
 
-* Non-combinable operations result in no operation. Affected resources are logged only when the function is executed in [Debug Mode](#debug-mode).
+* Non-combinable operations result in no operation.
 
   |Bad Combination|Reason|Example|
   |--|--|--|
-  |Mutually exclusive operations|These conflict with each other.|Start + Stop|
-  |Choice of operation depends on current state of instance|The state could change between the status query and the operation request.|Start + Reboot|
+  |Mutually exclusive operations|The operations conflict with each other.|Start + Stop|
+  |Choice of operation depends on current state of instance|The state of the instance could change between the status query and the operation request.|Start + Reboot|
   |Sequential or dependent operations|The logical order cannot always be inferred. Also, operations proceed asynchronously; one might not complete in time for another to begin. Note that Reboot then Create Image (EC2 instance) and Create Snapshot then Stop (RDS instance) are _single_ AWS operations.|Start + Create Image|
   
 ## "Child" Resources
@@ -171,7 +171,7 @@ Some operations create a child resource (image or snapshot) from a parent resour
  
 ### Naming Conventions
 
-* AWS imposes some character set restrictions. This project replaces known forbidden characters with with `X`.
+* This project replaces characters forbidden by AWS with `X`.
 * The name consists of these parts, separated by hyphens (`-`):
 
   |#|Part|Example|Purpose|
@@ -179,10 +179,10 @@ Some operations create a child resource (image or snapshot) from a parent resour
   |1|Prefix|`zm`|Identifies and groups children created by this project, in interfaces that do not expose tags. `z` will sort after most manually-created images and snapshots. `m` stands for "managed".|
   |2|Parent name or identifier|`webserver`|Conveniently indicates the parent. Derived from the `Name` tag (if not blank), the logical name (if supported), or the physical identifier (as a last resort). Multiple children of the same parent will sort together, by creation date (see next row).|
   |3|Date/time|`20171231T1400`|Indicates when the child was created. The last digit of the minute is normalized to 0. The `-` and `:` separators are removed for brevity, and because AWS does not allow `:` in names, for some resource types. (The `managed-date-time` tag stores the original string, with separators intact.)|
-  |4|Random string|`g3a8a`|Guarantees unique names. Five characters are chosen from a small set of letters and numbers that are unambiguous.|
+  |4|Random string|`g3a8a`|Guarantees unique names. Five characters are chosen from a small set of unambiguous letters and numbers.|
 
 * If parsing is ever necessary, keep in mind that the second part may contain internal hyphens.
-* For some resource types, the description is also set to the name, in case interfaces only expose one or the other.
+* For some resource types, the description is also set to the name, in case interfaces expose only one or the other.
 
 ### Special Tags
 
