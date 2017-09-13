@@ -2,43 +2,43 @@
 
 ## Benefits
 
-* **Save money** by stopping resources during off-hours
+* **Save money** by stopping EC2 instances and RDS databases during off-hours
 * **Enhance reliability** by taking frequent backups
 * **Use tags** to schedule operations
-* Secure tagging rights, and backup deletion, with Identity and Access Management (IAM) policies
-* Install easily, from a CloudFormation template
+* Secure tagging, and backup deletion, with Identity and Access Management (IAM) policies
+* Install and update easily, with CloudFormation
 
 ## Quick Start
 
 1. Log in to the [AWS Web Console](https://signin.aws.amazon.com/console) as a privileged user.
 
-   _Security Tip:_ To see which kinds of resources you'll be installing, search for '`Type: "AWS::`' within the [`cloudformation/aws_tag_sched_ops.yaml`](/cloudformation/aws_tag_sched_ops.yaml) CloudFormation template. `grep | sort | uniq` works well.
+   _Security Tip:_ To see which kinds of resources you'll be installing, look in the [CloudFormation template](/cloudformation/aws_tag_sched_ops.yaml).<br/>`grep 'Type: "AWS::' cloudformation/aws_tag_sched_ops.yaml | sort | uniq --count` works well.
+   
+2. Navigate to [Instances](https://console.aws.amazon.com/ec2/v2/home#Instances) in the EC2 Console. Right-click the Name or ID of an instance, select Instance Settings, and then select Add/Edit Tags. Add:
 
-2. Navigate to the [S3 Console](https://console.aws.amazon.com/s3/home). Click the name of the bucket where you keep CloudFormation templates, or create the bucket, if necessary. Upload the compressed source code of the AWS Lambda function, [`aws_tag_sched_ops_perform.py.zip`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/aws_tag_sched_ops_perform.py.zip)
+   |Key|Value|Note|
+   |--|--|--|
+   |`managed-image`||Leave value blank|
+   |`managed-image-periodic`|`d=*,H:M=11:30`|Replace `11:30` with [current UTC time](https://www.timeanddate.com/worldclock/timezone/utc) + 15 minutes|
+
+3. Navigate to the [S3 Console](https://console.aws.amazon.com/s3/home). Click the name of the bucket where you keep CloudFormation templates, or create the bucket, if necessary. Upload the compressed source code of the AWS Lambda function, [`aws_tag_sched_ops_perform.py.zip`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/aws_tag_sched_ops_perform.py.zip)
 
    _Security Tip:_ Remove public read and write access from the S3 bucket. Carefully limit write access.
 
-   _Security Tip:_ Download the file from S3 and verify it with `md5sum`. The current checksum is `3f061dc1025a224e1eb04bd74e993bda`.
+   _Security Tip:_ Download the file from S3 and verify it.<br/>`md5sum aws_tag_sched_ops_perform.py.zip` should yield `3f061dc1025a224e1eb04bd74e993bda`.
 
-3. Navigate to the [CloudFormation Console](https://console.aws.amazon.com/cloudformation/home). Click Create Stack. Under "Choose a template", click "Upload a template to Amazon S3". Click Choose File and navigate to your local copy of [`cloudformation/aws_tag_sched_ops.yaml`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set these items (only):
+4. Navigate to the [CloudFormation Console](https://console.aws.amazon.com/cloudformation/home). Click Create Stack. Click Choose File, immediately below "Upload a template to Amazon S3", and navigate to your locally downloaded copy of [`cloudformation/aws_tag_sched_ops.yaml`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
 
    |Item|Value|
    |--|--|
    |Stack name|`TagSchedOps`|
    |LambdaCodeS3Bucket|_Name of your S3 bucket_|
    
-4. Navigate to [Volumes](https://console.aws.amazon.com/ec2/v2/home#Volumes) in the EC2 Console. Right-click the name of a volume and select Add/Edit Tags. Add:
+5. After 20 minutes, check [Images](https://console.aws.amazon.com/ec2/v2/home#Images:sort=desc:creationDate) in the EC2 Console.
 
-   |Key|Value|Note|
-   |--|--|--|
-   |`managed-snapshot`||Leave value blank|
-   |`managed-snapshot-periodic`|`d=*,H:M=11:30`|Replace `11:30` with [current UTC time](https://www.timeanddate.com/worldclock/timezone/utc) + 15 minutes|
+6. Before deleting the sample image, note its ID, so that you can find and delete the associated snapshots. Also untag the instance.
 
-5. After 20 minutes, check [Snapshots](https://console.aws.amazon.com/ec2/v2/home#Snapshots:sort=desc:startTime) in the EC2 Console.
-
-6. Delete the sample snapshot and untag the volume.
-
-7. Navigate to [Users](https://console.aws.amazon.com/iam/home#/users) in the IAM Console. Click on your regular (uprivileged) username. Click Add Permissions, then click "Attach existing policies directly". Add the two `TagSchedOpsAdminister` policies, one for EC2 and the other for RDS.
+7. Navigate to [Users](https://console.aws.amazon.com/iam/home#/users) in the IAM Console. Click your regular (uprivileged) username. Click Add Permissions, then click "Attach existing policies directly". In the Search box, type `TagSchedOpsAdminister`. Add the two matching policies.
       
    _Security Tip_: Review EC2 and RDS tagging privileges for all entities.
 
@@ -46,19 +46,19 @@
 
 ## Warnings
 
- * You are responsible for using other tools or procedures to verify that intended AWS operations complete successfully. Verification is beyond the scope of this project.
+ * Use other tools or procedures to confirm that intended AWS operations complete successfully. Verification is beyond the scope of this project.
  
- * Rebooting is usually necessary to make software updates take effect. Nevertheless, a system may stop working after it is rebooted. You must weigh the benefits of software updates agains the risks.
+ * Rebooting is usually necessary to make software updates take effect. Nevertheless, a system may stop working after it is rebooted. Weigh the benefits of software updates against the risks.
  
- * No backup is complete until it has been restored successfully. You are responsible for testing your backups.
+ * No backup is complete until it has been restored successfully. Test your backups!
  
- * You are responsible for paying your own AWS charges, including but not limited to: the costs of running the AWS Lambda function, storing the output in CloudWatch Logs, and storing images and snapshots; the whole-hour cost when you stop an instance; the cost of storage for stopped instances and unattached volumes; and the costs that accumulate when AWS automatically starts an RDS instance that has been stopped for too many days.
+ * Be aware of AWS charges, including but not limited to: the costs of running the AWS Lambda function, storing the output in CloudWatch Logs, and storing images and snapshots; the whole-hour cost when you stop an instance; the cost of storage for stopped instances, as well as detached volumes; and the costs that accumulate when AWS automatically starts an RDS instance that has been stopped for too many days.
  
- * You are responsible for securing your own AWS environment. You should test the AWS Lambda function and the IAM policies comprising this project, to make sure that they work correctly and meet your expectations. To help improve the project, please submit [bug reports and feature requests](https://github.com/sqlxpert/aws-tag-sched-ops/issues), as well as proposed [code changes](https://github.com/sqlxpert/aws-tag-sched-ops/pulls).
+ * Secure your own AWS environment. Test the AWS Lambda function and the IAM policies from end-to-end, to make sure that they work correctly and meet your expectations. To help improve this project, please submit [bug reports and feature requests](https://github.com/sqlxpert/aws-tag-sched-ops/issues), as well as proposed [code changes](https://github.com/sqlxpert/aws-tag-sched-ops/pulls).
 
-## Operation-Enabling Tags
+## Operation Tags
 
-* To enable an operation, tag the resource with a tag from the table. The value of this tag does not matter; leave it blank.
+* To enable an operation, add a tag from the table. Leave the value blank.
 
   |AWS Resource|Start|Create Image|Reboot then Create Image|Reboot|Create Snapshot|Create Snapshot then Stop|Stop|
   |--|--|--|--|--|--|--|--|
@@ -66,7 +66,7 @@
   |EC2 EBS disk volume| | | | |`managed-snapshot`| | |
   |RDS database instance|`managed-start`| | |`managed-reboot`|`managed-snapshot`|`managed-snapshot-stop`|`managed-stop`|
 
-* Also tag the resource with valid [repetitive (`-periodic`)](#repetitive-schedules) and/or [one-time (`-once`)](#one-time-schedules) schedule tag(s). Prefix with the operation.
+* Also add tags for [repetitive (`-periodic`)](#repetitive-schedules) and/or [one-time (`-once`)](#one-time-schedules) schedules. Prefix with the operation.
 * If there are no corresponding schedule tags, an enabling tag will be ignored, and the operation will never occur.
 * To temporarily suspend an operation, delete its enabling tag. You may leave its schedule tag(s) in place.
 * Examples (for an EC2 or RDS instance):
@@ -75,13 +75,13 @@
   |--|--|--|
   |`managed-start`, `managed-start-periodic`=`u=1,H=09,M=05`|Yes|Enabled and scheduled|
   |`managed-start`=`No`, `managed-start-periodic`=`u=1,H=09,M=05`|Yes|Value of enabling tag is ignored|
-  |`managed-start`, `managed-start-once`=`2017-12-31T09:05`|Yes|Enabled and scheduled|
-  |`managed-start`, `managed-start-periodic`=`u=1,H=09,M=05`,`managed-start-once`=`2017-12-31T09:05`|Yes|Repetitive and one-time schedules can be combined|
+  |`managed-start`, `managed-start-once`=`2017-12-31T09:05`|Yes||
+  |`managed-start`, `managed-start-periodic`=`u=1,H=09,M=05`,`managed-start-once`=`2017-12-31T09:05`|Yes|Both repetitive and one-time schedules are allowed|
   |`managed-start`|No|No schedule tag|
   |`managed-start-once`=`2017-12-31`|No|No enabling tag (suspend)|
   |`managed-start`, `managed-start-once`|No|Blank schedule|
   |`managed-start`, `managed-start-periodic`=`Monday`|No|Invalid schedule|
-  |`managed-start`, `managed-stop-periodic`=`u=1,H=09,M=05`|No|Different operations|
+  |`managed-start`, `managed-stop-periodic`=`u=1,H=09,M=05`|No|Enabling tag and schedule tag cover different operations|
 
 ## Scheduling
  
@@ -117,7 +117,7 @@
 
   * Examples:
   
-    |Value of `-periodic` Schedule Tag|Demonstrates|Operation Expected to Begin|
+    |Value of `-periodic` Schedule Tag|Demonstrates|Operation Begins|
     |--|--|--|
     |`d=28,H=14,M=25` _or_ `dTH:M=28T14:25`|Monthly event|Between 14:20 and 14:30 on the 28th day of every month.|
     |`d=1,d=8,d=15,d=22,H=03,H=19,M=01`|`cron`-style schedule|Between 03:00 and 03:10 and again between 19:00 and 19:10, on the 1st, 8th, 15th, and 22nd days of every month.|
