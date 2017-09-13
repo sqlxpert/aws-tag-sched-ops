@@ -56,7 +56,7 @@
  
  * Secure your own AWS environment. Test the AWS Lambda function and the IAM policies from end-to-end, to make sure that they work correctly and meet your expectations. To help improve this project, please submit [bug reports and feature requests](https://github.com/sqlxpert/aws-tag-sched-ops/issues), as well as proposed [code changes](https://github.com/sqlxpert/aws-tag-sched-ops/pulls).
 
-## Operation Tags
+## Enabling Operations
 
 * To enable an operation, add a tag from the table. Leave the value blank.
 
@@ -71,19 +71,19 @@
 * To temporarily suspend an operation, delete its enabling tag. You may leave its schedule tag(s) in place.
 * Examples (for an EC2 or RDS instance):
 
-  |Tags and Values|Success?|Comment|
+  |Tags and Values|Operation?|Comment|
   |--|--|--|
   |`managed-start` <br/>`managed-start-periodic`=`u=1,H=09,M=05`|Yes|Enabled and scheduled|
   |`managed-start`=`No` <br/>`managed-start-periodic`=`u=1,H=09,M=05`|Yes|Value of enabling tag is always ignored|
   |`managed-start` <br/>`managed-start-once`=`2017-12-31T09:05`|Yes||
   |`managed-start` <br/>`managed-start-periodic`=`u=1,H=09,M=05` <br/>`managed-start-once`=`2017-12-31T09:05`|Yes|Both repetitive and one-time schedule tags are allowed|
   |`managed-start`|No|No schedule tag|
-  |`managed-start-once`=`2017-12-31`|No|No enabling tag (operation is suspended)|
+  |`managed-start-once`=`2017-12-31T09:05`|No|No enabling tag (operation is suspended)|
   |`managed-start` <br/>`managed-start-once`|No|Blank schedule|
   |`managed-start` <br/>`managed-start-periodic`=`Monday`|No|Invalid schedule|
   |`managed-start` <br/>`managed-stop-periodic`=`u=1,H=09,M=05`|No|Enabling tag and schedule tag cover different operations|
 
-## Scheduling
+## Scheduling Operations
  
  * All times are UTC, on a 24-hour clock.
  * The AWS Lambda function runs once every 10 minutes. The last digit of the minute is always ignored. For example, an operation scheduled for `M=47` is expected to begin between 40 and 50 minutes after the hour.
@@ -171,8 +171,7 @@ Some operations create a child resource (image or snapshot) from a parent resour
  
 ### Naming Conventions
 
-* This project replaces characters forbidden by AWS with `X`.
-* The name consists of these parts, separated by hyphens (`-`):
+* The name of the child consists of these parts, separated by hyphens (`-`):
 
   |#|Part|Example|Purpose|
   |--|--|--|--|
@@ -182,11 +181,10 @@ Some operations create a child resource (image or snapshot) from a parent resour
   |4|Random string|`g3a8a`|Guarantees unique names. Five characters are chosen from a small set of unambiguous letters and numbers.|
 
 * If parsing is ever necessary, keep in mind that the second part may contain internal hyphens.
+* This project replaces characters forbidden by AWS with `X`.
 * For some resource types, the description is also set to the name, in case interfaces expose only one or the other.
 
 ### Special Tags
-
-* Tags other than operation-enabling tags, schedule tags, and the `Name` tag, are copied from parent to child. (The deletion tag, `managed-delete`, would not make sense on instances and volumes, but if it is present, it is not copied to images and snapshots.)
 
 * Special tags are added to the child:
 
@@ -197,6 +195,8 @@ Some operations create a child resource (image or snapshot) from a parent resour
   |`managed-parent-id`|The identifier of the parent EC2 instance, EC2 EBS volume, or RDS instance. AWS metadata captures this (for example, as `VolumeId`, for EC2 EBS volume snapshots), but the interface differs for each resource type.|
   |`managed-origin`|The operation (for example, `snapshot`) that created the child. Identifies resources created by this project. Also distinguishes special cases, such as whether an EC2 instance was or was not rebooted before an image was created.|
   |`managed-date-time`|Groups resources created during the same 10-minute interval. AWS metadata captures the _exact_ time, and the interface differs for each resource type.|
+
+* Tags other than operation-enabling tags, schedule tags, and the `Name` tag, are copied from parent to child. (The deletion tag, `managed-delete`, would not make sense on instances and volumes, but if it is present, it is not copied to images and snapshots.)
 
 ## Security Model
 
@@ -214,7 +214,7 @@ Some operations create a child resource (image or snapshot) from a parent resour
  
  * Choose from a library of IAM policies:
  
-   |Policy Name|Manage Operation-Enabling Tags|Manage One-Time Schedule Tags|Manage Repetitive Schedule Tags|Back Up|Manage Deletion Tag|Delete|
+   |Policy Name|Manage Enabling Tags|Manage One-Time Schedule Tags|Manage Repetitive Schedule Tags|Back Up|Manage Deletion Tag|Delete|
    |--|--|--|--|--|--|--|
    |_Scope &rarr;_|_Instances, Volumes_|_Instances, Volumes_|_Instances, Volumes_|_Instances, Volumes_|_Images, Snapshots_|_Images, Snapshots_|
    |TagSchedOpsAdminister|Allow|Allow|Allow|No effect|Allow [<sup>i</sup>](#policy-footnote-1)|Deny|
@@ -226,13 +226,13 @@ Some operations create a child resource (image or snapshot) from a parent resour
    
    Footnotes:
    
-     1. <a name="policy-footnote-1"></a>This is an exception, and it makes the policy suitable only for administrative users. Never use this policy in any kind of automation.
+     1. <a name="policy-footnote-1"></a>This deviation from best practice is convenient but makes the policy suitable only for highly-trusted users. Never use this policy in any kind of automation.
      2. <a name="policy-footnote-2"></a>For RDS, No Effect.
-     2. <a name="policy-footnote-3"></a>Operation-enabling tag required. For example, a user could only add `managed-image-once` if an EC2 instance were already tagged with `managed-image`.
+     2. <a name="policy-footnote-3"></a>Enabling tag required. For example, a user could only add `managed-image-once` to an EC2 instance already tagged with `managed-image`.
       
    Because Deny always takes precendence in IAM, some policy combinations conflict.
    
-   A shortcoming of these policies is that, in some cases, you cannot add, change or delete more than one tag in the same operation.
+   A known shortcoming is that, in some cases, you cannot add, change or delete more than one tag in the same operation.
    
  * Note AWS technical limitations/oversights:
  
@@ -268,7 +268,7 @@ Some operations create a child resource (image or snapshot) from a parent resour
  
  * Tags and reference dictionary updates to support scheduled restoration of images and snapshots
  
- * Function to list AWS resources tagged for unsupported combinations of operations, in the usual compact, line-oriented format
+ * `DEBUG` mode function to list AWS resources tagged for unsupported combinations of operations, but in the usual compact, line-oriented format
  
  * Generalization of reference dictionaries to support more AWS services and resource types. (Which ones?)
 
