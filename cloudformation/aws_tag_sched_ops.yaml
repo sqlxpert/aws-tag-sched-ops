@@ -60,6 +60,12 @@ Conditions:
 Resources:
 
 
+  # This file contains many repeated blocks that would be good
+  # candidates for YAML anchors/aliases. Unforunately, submitting
+  # a CloudFormation template with aliases produces the following
+  # error: "YAML aliases are not allowed in CloudFormation templates"
+
+
   Ec2TagSchedOpsPerform:
     Type: "AWS::IAM::ManagedPolicy"
     DeletionPolicy: Delete
