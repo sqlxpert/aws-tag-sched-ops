@@ -36,7 +36,7 @@
    
 5. After 20 minutes, check [Images](https://console.aws.amazon.com/ec2/v2/home#Images:sort=desc:creationDate) in the EC2 Console.
 
-6. Before deregistering (deleting) the sample image, note its ID, so that you can find and delete the associated [snapshots](https://console.aws.amazon.com/ec2/v2/home#Snapshots:sort=desc:startTime). Also untag the instance.
+6. Before deregistering (deleting) the sample image, note its ID, so that you can find and delete the associated [Snapshots](https://console.aws.amazon.com/ec2/v2/home#Snapshots:sort=desc:startTime). Also untag the instance.
 
 7. Navigate to [Users](https://console.aws.amazon.com/iam/home#/users) in the IAM Console. Click your regular (uprivileged) username. Click Add Permissions, then click "Attach existing policies directly". In the Search box, type `TagSchedOpsAdminister`. Add the two matching policies.
       
@@ -46,13 +46,13 @@
 
 ## Warnings
 
- * Use other tools or procedures to confirm that intended AWS operations complete successfully. Verification is beyond the scope of this project.
+ * Use other tools or procedures to verify that scheduled AWS operations complete successfully. Verification is beyond the scope of this project.
  
- * Rebooting is usually necessary to make software updates take effect. Nevertheless, a system may stop working after it is rebooted. Weigh the benefits of software updates against the risks.
+ * Test your backups! No backup is complete until it has been restored successfully.
  
- * No backup is complete until it has been restored successfully. Test your backups!
+ * Weigh the benefits of rebooting against the risks. Rebooting is usually necessary to make software updates take effect, but a system may stop working after it is rebooted.
  
- * Be aware of AWS charges, including but not limited to: the costs of running the AWS Lambda function, storing the output in CloudWatch Logs, and storing images and snapshots; the whole-hour cost when you stop an instance; the cost of storage for stopped instances, as well as detached volumes; and the costs that accumulate when AWS automatically starts an RDS instance that has been stopped for too many days.
+ * Be aware of AWS charges, including but not limited to: the costs of running the AWS Lambda function, storing the output in CloudWatch Logs, and storing images and snapshots; the whole-hour cost when you stop an instance; the continued cost of storage for stopped instances; and the costs that accumulate when AWS automatically starts an RDS instance that has been stopped for too many days.
  
  * Secure your own AWS environment. Test the AWS Lambda function and the IAM policies from end-to-end, to make sure that they work correctly and meet your expectations. To help improve this project, please submit [bug reports and feature requests](https://github.com/sqlxpert/aws-tag-sched-ops/issues), as well as proposed [code changes](https://github.com/sqlxpert/aws-tag-sched-ops/pulls).
 
@@ -134,6 +134,33 @@
       * Omit seconds and fractions of seconds
       * Omit time zone
 
+## Output
+
+* After logging in to the [AWS Web Console](https://signin.aws.amazon.com/console), go to the [CloudWatch Log Group for the AWS Lambda function](https://console.aws.amazon.com/cloudwatch/home#logs:prefix=/aws/lambda/TagSchedOps-TagSchedOpsPerformLambdaFn-). If you gave the CloudFormation stack a name other than `TagSchedOps`, the link will not work; instead, check the list of [Log Groups for _all_ AWS Lambda functions](https://console.aws.amazon.com/cloudwatch/home#logs:prefix=/aws/lambda/).
+
+* Sample output for one run:
+
+  |`initiated`|`svc`|`rsrc_type`|`rsrc_id`|`op`|`child_rsrc_type`|`child`|`child_op`|`note`|
+  |--|--|--|--|--|--|--|--|--|
+  |`9`||||||||`2017-09-12T20:40`|
+  |`1`|`ec2`|`Instance`|`i-04d2c0140da5bb13e`|`start`|||||
+  |`1`|`ec2`|`Instance`|`i-08abefc70375d36e8`|`reboot-image`|`Image`|`zm-my-server-20170912T2040-83xx7`|||
+  |`1`|`ec2`|`Instance`|`i-08abefc70375d36e8`|`reboot-image`|`Image`|`ami-bc9fcbc6`|`tag`||
+  |`0`|`rds`|`DBInstance`|`my-database`|`reboot-failover`||||...`ForceFailover cannot be specified`...|
+  
+  _The run began September 12, 2017 between 20:40 and 20:50 UTC. An EC2 instance is starting up, but may not yet be available. A different EC2 instance is being rebooted and backed up, but the instance may not yet be available again, and the image may not yet be complete; the image is named `zm-my-server-20170912T2040-83xx7`. The image has received ID `ami-bc9fcbc6`, and has been tagged. An RDS database instance could not be rebooted with fail-over. (The full error message goes on to explain that it is not a multi-zone instance.)_
+
+* There is a header line, an information line, and one line for each operation requested.
+
+* Values are tab-separated (but CloudWatch seems to collapse multiple tabs).
+
+* Columns and possible values:
+
+  |`initiated`|`svc`|`rsrc_type`|`rsrc_id`|`op`|`child_rsrc_type`|`child`|`child_op`|`note`|
+  |--|--|--|--|--|--|--|--|--|
+  |Operation initiated?|Service|Resource type|Resource ID|Operation name|Child type|Child name or ID|Child operation name|Message|
+  |`0`&nbsp;No <br/>`1`&nbsp;Yes <br/>`9`&nbsp;_Info._|`ec2` <br/>`rds`|`Instance` <br/>`Volume` <br/>`DBInstance`||_See_ [_operation table_](#enabling-operations)|`Image` <br/>`Snapshot`|_ID, once known_|`tag`||
+  
 ## Operation Combinations
 
 * Multiple _non-simultaneous_ operations on the same resource are allowed.
@@ -246,8 +273,6 @@ Some operations create a child resource (image or snapshot) from a parent resour
 
  * Documentation updates:
  
-     * Output format, and how to use CloudWatch Logs
-     
      * `DEBUG` mode
      
      * CloudFormation change set instructions, for template and AWS Lambda function source code updates (includes S3 object versioning)
