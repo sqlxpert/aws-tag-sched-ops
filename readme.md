@@ -158,8 +158,8 @@
 
   |`initiated`|`svc`|`rsrc_type`|`rsrc_id`|`op`|`child_rsrc_type`|`child`|`child_op`|`note`|
   |--|--|--|--|--|--|--|--|--|
-  |Operation initiated?|Service|Resource type|Resource ID|Operation|Child type|Child name or ID|Child operation|Message|
-  |`0`&nbsp;No <br/>`1`&nbsp;Yes <br/>`9`&nbsp;_Info._|`ec2` <br/>`rds`|`Instance` <br/>`Volume` <br/>`DBInstance`||_See_ [_table_](#enabling-operations)|`Image` <br/>`Snapshot`|_ID, once known_|`tag`||
+  |Operation initiated?|Service|Resource type|Resource ID|Operation|Child type|Pointer to child|Child operation|Message|
+  |`0`&nbsp;No <br/>`1`&nbsp;Yes <br/>`9`&nbsp;_Info._|`ec2` <br/>`rds`|`Instance` <br/>`Volume` <br/>`DBInstance`||_See_ [_table_](#enabling-operations)|`Image` <br/>`Snapshot`|_Name, ID, or ARN, as available_|`tag`||
 
 * Although the TagSchedOpsAdminister and TagSchedOpsTagSchedule policies authorize read-only access to the logs via the AWS API, and seem to be sufficient for using the links provided above, users who are not AWS administrators may also want [additional privileges for the CloudWatch Console](http://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/iam-identity-based-access-control-cwl.html#console-permissions-cwl).
 
