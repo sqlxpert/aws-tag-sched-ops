@@ -152,7 +152,7 @@
 
 * There is a header line, an information line, and one line for each operation requested. (Tagging is usually a separate operation.)
 
-* Values are tab-separated (but the CloudWatch Console seems to collapse multiple tabs).
+* Values are tab-separated (but the CloudWatch Logs Console seems to collapse multiple tabs).
 
 * Columns and standard values:
 
@@ -162,6 +162,14 @@
   |`0`&nbsp;No <br/>`1`&nbsp;Yes <br/>`9`&nbsp;_Info._|`ec2` <br/>`rds`|`Instance` <br/>`Volume` <br/>`DBInstance`||_See_ [_table_](#enabling-operations)|`Image` <br/>`Snapshot`|_ID, once known_|`tag`||
 
 * Although the TagSchedOpsAdminister and TagSchedOpsTagSchedule policies authorize read-only access to the logs via the AWS API, and seem to be sufficient for using the links provided above, users who are not AWS administrators may also want [additional privileges for the CloudWatch Console](http://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/iam-identity-based-access-control-cwl.html#console-permissions-cwl).
+
+## Master On/Off Switch
+
+* The TagSchedOpsAdminister policies authorize turning the AWS Lambda function on or off completely.
+
+* After logging in to the [AWS Web Console](https://signin.aws.amazon.com/console), navigate to [Rules](https://console.aws.amazon.com/cloudwatch/home#rules:) in the CloudWatch Events Console. Click  TagSchedOpsPerform10MinEventRule. On the next page, select Enable or Disable from the Actions pop-up menu near the top-right corner.
+
+* Operations missed while the function was off will not occur when it is turned back on; there is no queue or backlog.
 
 ## "Child" Resources
 

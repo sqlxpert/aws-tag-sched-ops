@@ -283,8 +283,8 @@ Resources:
             Action:
               - "logs:CreateLogStream"
               - "logs:PutLogEvents"
-            # Field 6 (counting from 0) of a CloudWatch Log Group
-            # ARN is the Log Group's name, which in this case is
+            # Field 6 (counting from 0) of a CloudWatch log group
+            # ARN is the log group's name, which in this case is
             # the final name of the AWS Lambda function, including
             # the random string appended by CloudFormation:
             Resource: !Join [ ":", [ !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
@@ -335,7 +335,7 @@ Resources:
     Type: "AWS::IAM::ManagedPolicy"
     DeletionPolicy: Delete
     Properties:
-      Description: "TagSchedOpsPerform Lambda function, CloudWatch log group, log stream, and CloudWatch event: cannot change or delete. This policy may not be exhaustive."
+      Description: "TagSchedOpsPerform Lambda function, CloudWatch log group, log stream, and CloudWatch event: cannot change or delete. TagSchedOpsPerform Lambda function: cannot invoke manually. This policy may not be exhaustive."
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -347,6 +347,7 @@ Resources:
               - "lambda:PublishVersion"
               - "lambda:UpdateFunctionConfiguration"
               - "lambda:AddPermission"
+              - "lambda:InvokeFunction"
             Resource: !GetAtt TagSchedOpsPerformLambdaFn.Arn
 
           - Effect: Deny
@@ -365,8 +366,8 @@ Resources:
 
           - Effect: Deny
             Action: "logs:DeleteLogStream"
-            # Field 6 (counting from 0) of a CloudWatch Log Group
-            # ARN is the Log Group's name, which in this case is
+            # Field 6 (counting from 0) of a CloudWatch log group
+            # ARN is the log group's name, which in this case is
             # the final name of the AWS Lambda function, including
             # the random string appended by CloudFormation:
             Resource: !Join [ ":", [ !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
@@ -411,7 +412,7 @@ Resources:
     Type: "AWS::IAM::ManagedPolicy"
     DeletionPolicy: Delete
     Properties:
-      Description: "All EC2 instances, EBS volumes: add, delete tags for scheduled operations. All EC2 images, EBS snapshots: add, delete tags for deletion, but cannot delete images or snapshots."
+      Description: "All EC2 instances, EBS volumes: add, delete tags for scheduled operations. All EC2 images, EBS snapshots: add, delete tags for deletion, but cannot delete images or snapshots. All CloudWatch events: list and describe. Event for TagSchedOps: enable and disable."
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -490,8 +491,8 @@ Resources:
             Action:
               - "logs:GetLogEvents"
               - "logs:FilterLogEvents"
-            # Field 6 (counting from 0) of a CloudWatch Log Group
-            # ARN is the Log Group's name, which in this case is
+            # Field 6 (counting from 0) of a CloudWatch log group
+            # ARN is the log group's name, which in this case is
             # the final name of the AWS Lambda function, including
             # the random string appended by CloudFormation:
             Resource: !Join [ ":", [ !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
@@ -502,12 +503,28 @@ Resources:
             Action: "sts:DecodeAuthorizationMessage"
             Resource: "*"
 
+          # Turn project on or off
+
+          - Effect: Allow
+            Action:
+              - "events:ListRules"
+              - "events:ListRuleNamesByTarget"
+              - "events:ListTargetsByRule"
+              - "events:DescribeRule"
+              - "events:TestEventPattern"  # Necessary for CW Events Console
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - "events:EnableRule"
+              - "events:DisableRule"
+            Resource: !GetAtt TagSchedOpsPerform10MinEventRule.Arn
+
 
   RdsTagSchedOpsAdminister:
     Type: "AWS::IAM::ManagedPolicy"
     DeletionPolicy: Delete
     Properties:
-      Description: "All RDS instances: add, delete tags for scheduled operations. All RDS snapshots: add, delete tags for deletion, but cannot delete snapshots. Due to an AWS limitation, ANY tag can be added with an intended tag. Withholding all RDS tagging privileges is safer than relying on this policy."
+      Description: "All RDS instances: add, delete tags for scheduled operations. All RDS snapshots: add, delete tags for deletion, but cannot delete snapshots.  All CloudWatch events: list and describe. Event for TagSchedOps: enable and disable. Due to an AWS limitation, ANY tag can be added with an intended tag. Withholding all RDS tagging privileges is safer than relying on this policy."
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -701,8 +718,8 @@ Resources:
             Action:
               - "logs:GetLogEvents"
               - "logs:FilterLogEvents"
-            # Field 6 (counting from 0) of a CloudWatch Log Group
-            # ARN is the Log Group's name, which in this case is
+            # Field 6 (counting from 0) of a CloudWatch log group
+            # ARN is the log group's name, which in this case is
             # the final name of the AWS Lambda function, including
             # the random string appended by CloudFormation:
             Resource: !Join [ ":", [ !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
@@ -712,6 +729,22 @@ Resources:
           - Effect: Allow
             Action: "sts:DecodeAuthorizationMessage"
             Resource: "*"
+
+          # Turn project on or off
+
+          - Effect: Allow
+            Action:
+              - "events:ListRules"
+              - "events:ListRuleNamesByTarget"
+              - "events:ListTargetsByRule"
+              - "events:DescribeRule"
+              - "events:TestEventPattern"  # Necessary for CW Events Console
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - "events:EnableRule"
+              - "events:DisableRule"
+            Resource: !GetAtt TagSchedOpsPerform10MinEventRule.Arn
 
 
   Ec2TagSchedOpsScheduleOnce:
@@ -860,8 +893,8 @@ Resources:
             Action:
               - "logs:GetLogEvents"
               - "logs:FilterLogEvents"
-            # Field 6 (counting from 0) of a CloudWatch Log Group
-            # ARN is the Log Group's name, which in this case is
+            # Field 6 (counting from 0) of a CloudWatch log group
+            # ARN is the log group's name, which in this case is
             # the final name of the AWS Lambda function, including
             # the random string appended by CloudFormation:
             Resource: !Join [ ":", [ !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
@@ -1065,8 +1098,8 @@ Resources:
             Action:
               - "logs:GetLogEvents"
               - "logs:FilterLogEvents"
-            # Field 6 (counting from 0) of a CloudWatch Log Group
-            # ARN is the Log Group's name, which in this case is
+            # Field 6 (counting from 0) of a CloudWatch log group
+            # ARN is the log group's name, which in this case is
             # the final name of the AWS Lambda function, including
             # the random string appended by CloudFormation:
             Resource: !Join [ ":", [ !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
@@ -1215,8 +1248,8 @@ Resources:
             Action:
               - "logs:GetLogEvents"
               - "logs:FilterLogEvents"
-            # Field 6 (counting from 0) of a CloudWatch Log Group
-            # ARN is the Log Group's name, which in this case is
+            # Field 6 (counting from 0) of a CloudWatch log group
+            # ARN is the log group's name, which in this case is
             # the final name of the AWS Lambda function, including
             # the random string appended by CloudFormation:
             Resource: !Join [ ":", [ !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
@@ -1369,8 +1402,8 @@ Resources:
             Action:
               - "logs:GetLogEvents"
               - "logs:FilterLogEvents"
-            # Field 6 (counting from 0) of a CloudWatch Log Group
-            # ARN is the Log Group's name, which in this case is
+            # Field 6 (counting from 0) of a CloudWatch log group
+            # ARN is the log group's name, which in this case is
             # the final name of the AWS Lambda function, including
             # the random string appended by CloudFormation:
             Resource: !Join [ ":", [ !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
