@@ -158,7 +158,7 @@
 
   |`initiated`|`svc`|`rsrc_type`|`rsrc_id`|`op`|`child_rsrc_type`|`child`|`child_op`|`note`|
   |--|--|--|--|--|--|--|--|--|
-  |Operation initiated?|Service|Resource type|Resource ID|Operation name|Child type|Child name or ID|Child operation name|Message|
+  |Operation initiated?|Service|Resource type|Resource ID|Operation|Child type|Child name or ID|Child operation|Message|
   |`0`&nbsp;No <br/>`1`&nbsp;Yes <br/>`9`&nbsp;_Info._|`ec2` <br/>`rds`|`Instance` <br/>`Volume` <br/>`DBInstance`||_See_ [_table_](#enabling-operations)|`Image` <br/>`Snapshot`|_ID, once known_|`tag`||
   
 ## Operation Combinations
