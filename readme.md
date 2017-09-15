@@ -148,9 +148,9 @@
   |`1`|`ec2`|`Instance`|`i-08abefc70375d36e8`|`reboot-image`|`Image`|`ami-bc9fcbc6`|`tag`||
   |`0`|`rds`|`DBInstance`|`my-database`|`reboot-failover`||||...`ForceFailover cannot be specified`...|
   
-  _The run began September 12, 2017 between 20:40 and 20:50 UTC. An EC2 instance is starting up, but may not yet be available. A different EC2 instance is being rebooted and backed up, but the instance may not yet be available again, and the image may not yet be complete; the image is named `zm-my-server-20170912T2040-83xx7`. The image has received ID `ami-bc9fcbc6`, and has been tagged. An RDS database instance could not be rebooted with fail-over. (The full error message goes on to explain that it is not a multi-zone instance.)_
+  _Execution began September 12, 2017 between 20:40 and 20:50 UTC. An EC2 instance is starting up, but may not yet be available. A different EC2 instance is being rebooted and backed up, but the instance may not yet be available again, and the image may not yet be complete; the image is named `zm-my-server-20170912T2040-83xx7`. The image has received ID `ami-bc9fcbc6`, and has been tagged. An RDS database instance could not be rebooted with fail-over. (The full error message goes on to explain that it is not a multi-zone instance.)_
 
-* There is a header line, an information line, and one line for each operation requested.
+* There is a header line, an information line, and one line for each operation requested. (Tagging is usually a separate operation.)
 
 * Values are tab-separated (but CloudWatch seems to collapse multiple tabs).
 
@@ -159,7 +159,7 @@
   |`initiated`|`svc`|`rsrc_type`|`rsrc_id`|`op`|`child_rsrc_type`|`child`|`child_op`|`note`|
   |--|--|--|--|--|--|--|--|--|
   |Operation initiated?|Service|Resource type|Resource ID|Operation name|Child type|Child name or ID|Child operation name|Message|
-  |`0`&nbsp;No <br/>`1`&nbsp;Yes <br/>`9`&nbsp;_Info._|`ec2` <br/>`rds`|`Instance` <br/>`Volume` <br/>`DBInstance`||_See_ [_operation table_](#enabling-operations)|`Image` <br/>`Snapshot`|_ID, once known_|`tag`||
+  |`0`&nbsp;No <br/>`1`&nbsp;Yes <br/>`9`&nbsp;_Info._|`ec2` <br/>`rds`|`Instance` <br/>`Volume` <br/>`DBInstance`||_See_ [_table_](#enabling-operations)|`Image` <br/>`Snapshot`|_ID, once known_|`tag`||
   
 ## Operation Combinations
 
