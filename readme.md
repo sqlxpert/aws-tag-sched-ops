@@ -152,7 +152,8 @@
 
 * There is a header line, an information line, and one line for each operation requested. (Tagging is usually a separate operation.)
 
-* Values are tab-separated (but the CloudWatch Console seems to collapse multiple tabs).
+* Values are tab-separated (but the CloudWatch Console 
+to collapse multiple tabs).
 
 * Columns and standard values:
 
@@ -161,7 +162,7 @@
   |Operation initiated?|Service|Resource type|Resource ID|Operation|Child type|Child name or ID|Child operation|Message|
   |`0`&nbsp;No <br/>`1`&nbsp;Yes <br/>`9`&nbsp;_Info._|`ec2` <br/>`rds`|`Instance` <br/>`Volume` <br/>`DBInstance`||_See_ [_table_](#enabling-operations)|`Image` <br/>`Snapshot`|_ID, once known_|`tag`||
 
-* Although the TagSchedOpsAdminister, TagSchedOpsTagPeriodic and TagSchedOpsTagOnce policies authorize read-only access to the logs via the AWS API, and seems to be sufficient for using the links provided above, users who are not AWS administrators may also want [additional privileges for the CloudWatch Console](http://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/iam-identity-based-access-control-cwl.html#console-permissions-cwl).
+* Although the TagSchedOpsAdminister, TagSchedOpsTagPeriodic and TagSchedOpsTagOnce policies authorize read-only access to the logs via the AWS API, and seem to be sufficient for using the links provided above, users who are not AWS administrators may also want [additional privileges for the CloudWatch Console](http://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/iam-identity-based-access-control-cwl.html#console-permissions-cwl).
 
 ## "Child" Resources
 
