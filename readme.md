@@ -42,7 +42,7 @@
       
    _Security Tip_: Review EC2 and RDS tagging privileges for all entities.
 
-8. Log out of the AWS Console. You can now manage the relevant tags without logging in as a privileged user.
+8. Log out of the AWS Console. You can now manage the relevant tags, view logs, and decode errors, without logging in as a privileged user.
 
 ## Warnings
 
@@ -136,7 +136,7 @@
 
 ## Output
 
-* After logging in to the [AWS Web Console](https://signin.aws.amazon.com/console), go to the [CloudWatch Log Group for the AWS Lambda function](https://console.aws.amazon.com/cloudwatch/home#logs:prefix=/aws/lambda/TagSchedOps-TagSchedOpsPerformLambdaFn-). If you gave the CloudFormation stack a name other than `TagSchedOps`, the link will not work; instead, check the list of [Log Groups for _all_ AWS Lambda functions](https://console.aws.amazon.com/cloudwatch/home#logs:prefix=/aws/lambda/).
+* After logging in to the [AWS Web Console](https://signin.aws.amazon.com/console), go to the [CloudWatch Log Group for the AWS Lambda function](https://console.aws.amazon.com/cloudwatch/home#logs:prefix=/aws/lambda/TagSchedOps-TagSchedOpsPerformLambdaFn-). If you gave the CloudFormation stack a name other than `TagSchedOps`, the direct link will not work; instead, check the list of [Log Groups for _all_ AWS Lambda functions](https://console.aws.amazon.com/cloudwatch/home#logs:prefix=/aws/lambda/).
 
 * Sample output for one run:
 
@@ -152,7 +152,7 @@
 
 * There is a header line, an information line, and one line for each operation requested. (Tagging is usually a separate operation.)
 
-* Values are tab-separated (but CloudWatch seems to collapse multiple tabs).
+* Values are tab-separated (but the CloudWatch Console seems to collapse multiple tabs).
 
 * Columns and standard values:
 
@@ -160,38 +160,9 @@
   |--|--|--|--|--|--|--|--|--|
   |Operation initiated?|Service|Resource type|Resource ID|Operation|Child type|Child name or ID|Child operation|Message|
   |`0`&nbsp;No <br/>`1`&nbsp;Yes <br/>`9`&nbsp;_Info._|`ec2` <br/>`rds`|`Instance` <br/>`Volume` <br/>`DBInstance`||_See_ [_table_](#enabling-operations)|`Image` <br/>`Snapshot`|_ID, once known_|`tag`||
-  
-## Operation Combinations
 
-* Multiple _non-simultaneous_ operations on the same resource are allowed.
-* If two or more operations on the same resource are scheduled for the same 10-minute interval, the function combines them, where possible:
+* Although the TagSchedOpsAdminister, TagSchedOpsTagPeriodic and TagSchedOpsTagOnce policies authorize read-only access to the logs via the AWS API, and seems to be sufficient for using the links provided above, users who are not AWS administrators may also want [additional privileges for the CloudWatch Console](http://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/iam-identity-based-access-control-cwl.html#console-permissions-cwl).
 
-  |Resource|Simultaneous Operations|Effect|
-  |--|--|--|
-  |EC2 instance|Stop + Reboot|Stop|
-  |EC2 instance|Create Image + Reboot|Reboot then Create Image|
-  |RDS instance|Stop + Reboot|Stop|
-  |RDS instance|Stop + Create Snapshot|Create Snapshot then Stop|
-
-* The Create Image + Reboot combination for EC2 instances is useful. For example, you could take hourly backups but reboot only in conjunction with the midnight backup. The midnight backup would be guaranteed to be coherent for all files, but you could safely retrieve static files as of any given hour, from the other backups. To set up this example:
-
-  |Tag|Value|
-  |--|--|
-  |`managed-image`||
-  |`managed-image-periodic`|`d=*,H=*,M=59`|
-  |`managed-reboot`||
-  |`managed-reboot-periodic`|`d=*,H=23,M=59`|
-  
-  (23:59, which for the purposes of this project represents the last 10-minute interval of the day, is the unambiguous way to express _almost the end of some designated day_, on any system. 00:00 and 24:00 could refer to the start or the end of the designated day, and not all systems accept 24:00, in any case. Remember that all times are UTC; adjust for night-time in your time zone!)
-
-* Non-combinable operations result in no operation.
-
-  |Bad Combination|Reason|Example|
-  |--|--|--|
-  |Mutually exclusive operations|The operations conflict with each other.|Start + Stop|
-  |Choice of operation depends on current state of instance|The state of the instance could change between the status query and the operation request.|Start + Reboot|
-  |Sequential or dependent operations|The logical order cannot always be inferred. Also, operations proceed asynchronously; one might not complete in time for another to begin. Note that Reboot then Create Image (EC2 instance) and Create Snapshot then Stop (RDS instance) are _single_ AWS operations.|Start + Create Image|
-  
 ## "Child" Resources
 
 Some operations create a child resource (image or snapshot) from a parent resource (instance or volume).
@@ -224,6 +195,37 @@ Some operations create a child resource (image or snapshot) from a parent resour
   |`managed-date-time`|Groups resources created during the same 10-minute interval. AWS metadata captures the _exact_ time, and the interface differs for each resource type.|
 
 * Tags other than operation-enabling tags, schedule tags, and the `Name` tag, are copied from parent to child. (The deletion tag, `managed-delete`, would not make sense on instances and volumes, but if it is present, it is not copied to images and snapshots.)
+
+## Operation Combinations
+
+* Multiple _non-simultaneous_ operations on the same resource are allowed.
+* If two or more operations on the same resource are scheduled for the same 10-minute interval, the function combines them, where possible:
+
+  |Resource|Simultaneous Operations|Effect|
+  |--|--|--|
+  |EC2 instance|Stop + Reboot|Stop|
+  |EC2 instance|Create Image + Reboot|Reboot then Create Image|
+  |RDS instance|Stop + Reboot|Stop|
+  |RDS instance|Stop + Create Snapshot|Create Snapshot then Stop|
+
+* The Create Image + Reboot combination for EC2 instances is useful. For example, you could take hourly backups but reboot only in conjunction with the midnight backup. The midnight backup would be guaranteed to be coherent for all files, but you could safely retrieve static files as of any given hour, from the other backups. To set up this example:
+
+  |Tag|Value|
+  |--|--|
+  |`managed-image`||
+  |`managed-image-periodic`|`d=*,H=*,M=59`|
+  |`managed-reboot`||
+  |`managed-reboot-periodic`|`d=*,H=23,M=59`|
+  
+  (23:59, which for the purposes of this project represents the last 10-minute interval of the day, is the unambiguous way to express _almost the end of some designated day_, on any system. 00:00 and 24:00 could refer to the start or the end of the designated day, and not all systems accept 24:00, in any case. Remember that all times are UTC; adjust for night-time in your time zone!)
+
+* Non-combinable operations result in no operation.
+
+  |Bad Combination|Reason|Example|
+  |--|--|--|
+  |Mutually exclusive operations|The operations conflict with each other.|Start + Stop|
+  |Choice of operation depends on current state of instance|The state of the instance could change between the status query and the operation request.|Start + Reboot|
+  |Sequential or dependent operations|The logical order cannot always be inferred. Also, operations proceed asynchronously; one might not complete in time for another to begin. Note that Reboot then Create Image (EC2 instance) and Create Snapshot then Stop (RDS instance) are _single_ AWS operations.|Start + Create Image|
 
 ## Security Model
 
@@ -260,7 +262,14 @@ Some operations create a child resource (image or snapshot) from a parent resour
    Because Deny always takes precendence in IAM, some policy combinations conflict.
    
    A known shortcoming is that, in some cases, you cannot add, change or delete more than one tag in the same operation.
-   
+ 
+ * Although the TagSchedOpsAdminister and TagSchedOpsTag policies authorize tagging via the AWS API, users who are not AWS administrators may also want:
+ 
+     * [AmazonEC2ReadOnlyAccess](https://console.aws.amazon.com/iam/home#policies/arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess), to use the EC2 Console
+     * [AmazonRDSReadOnlyAccess](https://console.aws.amazon.com/iam/home#policies/arn:aws:iam::aws:policy/AmazonRDSReadOnlyAccess), to use the RDS Console
+
+ * You may have to [decode authorization errors](http://docs.aws.amazon.com/cli/latest/reference/sts/decode-authorization-message.html). The TagSchedOpsAdminister and TagSchedOpsTag policies grant the necessary privilege.
+ 
  * Note AWS technical limitations/oversights:
  
     * An entity that can create an image of an EC2 instance can force a reboot by omitting the `NoReboot` option. (Explicitly denying the reboot privilege does not help.) The unavoidable pairing of a harmless privilege, taking a backup, with a risky one, rebooting, is unfortunate.
