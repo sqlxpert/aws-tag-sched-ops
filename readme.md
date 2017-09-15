@@ -60,7 +60,7 @@
 
 * To enable an operation, add a tag from the table. Leave the value blank.
 
-  |AWS Resource|Start|Create Image|Reboot then Create Image|Reboot then Fail Over|Reboot|Create Snapshot|Create Snapshot then Stop|Stop|
+  | |Start|Create Image|Reboot then Create Image|Reboot then Fail Over|Reboot|Create Snapshot|Create Snapshot then Stop|Stop|
   |--|--|--|--|--|--|--|--|--|
   |EC2 compute instance|`managed-start`|`managed-image`|`managed-reboot-image`| |`managed-reboot`| | |`managed-stop`|
   |EC2 EBS disk volume| | | | | |`managed-snapshot`| | |
