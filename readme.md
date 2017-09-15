@@ -154,7 +154,7 @@
 
 * Values are tab-separated (but CloudWatch seems to collapse multiple tabs).
 
-* Columns and possible values:
+* Columns and standard values:
 
   |`initiated`|`svc`|`rsrc_type`|`rsrc_id`|`op`|`child_rsrc_type`|`child`|`child_op`|`note`|
   |--|--|--|--|--|--|--|--|--|
