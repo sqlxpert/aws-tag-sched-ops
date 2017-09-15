@@ -111,16 +111,6 @@ Resources:
             Action: "ec2:CreateTags"
             Resource: !Sub "arn:aws:ec2:${AWS::Region}::image/*"
 
-          - Effect: Deny  # Security: an entity that creates cannot delete...
-            Action: "ec2:DeregisterImage"
-            Resource: "*"
-          - Effect: Deny  # Security: ...and cannot tag for deletion.
-            Action: "ec2:CreateTags"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}::image/*"
-            Condition:
-              StringLike:
-                "aws:RequestTag/managed-delete": "*"
-
           - Effect: Allow
             Action: "ec2:DescribeVolumes"
             Resource: "*"
@@ -134,15 +124,28 @@ Resources:
             Action: "ec2:CreateTags"
             Resource: !Sub "arn:aws:ec2:${AWS::Region}::snapshot/*"
 
-          - Effect: Deny  # Security: an entity that creates cannot delete...
+          # Security: an entity that creates cannot delete
+
+          - Effect: Deny
+            Action: "ec2:DeregisterImage"
+            Resource: "*"
+          - Effect: Deny
             Action: "ec2:DeleteSnapshot"
             Resource: "*"
-          - Effect: Deny  # Security: ...and cannot tag for deletion.
-            Action: "ec2:CreateTags"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}::snapshot/*"
+
+          # Security: An entity that creates cannot tag for deletion
+
+          - Effect: Deny
+            Action:
+              - "ec2:CreateTags"
+              - "ec2:DeleteTags"
+            Resource:
+              - !Sub "arn:aws:ec2:${AWS::Region}::image/*"
+              - !Sub "arn:aws:ec2:${AWS::Region}::snapshot/*"
             Condition:
-              StringLike:
-                "aws:RequestTag/managed-delete": "*"
+              "ForAnyValue:StringEquals":
+                "aws:TagKeys":
+                  - "managed-delete"
 
 
   RdsTagSchedOpsPerform:
@@ -419,49 +422,26 @@ Resources:
               - "ec2:DeleteTags"
             Resource: !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*"
             Condition:
-              "ForAllValues:StringLike":
+              "ForAllValues:StringEquals":
                 "aws:TagKeys":
-                  - "managed-start*"
-
-          - Effect: Allow
-            Action:
-              - "ec2:CreateTags"
-              - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*"
-            Condition:
-              "ForAllValues:StringLike":
-                "aws:TagKeys":
-                  - "managed-reboot*"
-
-          - Effect: Allow
-            Action:
-              - "ec2:CreateTags"
-              - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*"
-            Condition:
-              "ForAllValues:StringLike":
-                "aws:TagKeys":
-                  - "managed-reboot-image*"
-
-          - Effect: Allow
-            Action:
-              - "ec2:CreateTags"
-              - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*"
-            Condition:
-              "ForAllValues:StringLike":
-                "aws:TagKeys":
-                  - "managed-image*"
-
-          - Effect: Allow
-            Action:
-              - "ec2:CreateTags"
-              - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*"
-            Condition:
-              "ForAllValues:StringLike":
-                "aws:TagKeys":
-                  - "managed-stop*"
+                  # Operation-enabling tags:
+                  - "managed-start"
+                  - "managed-reboot"
+                  - "managed-reboot-image"
+                  - "managed-image"
+                  - "managed-stop"
+                  # Repetitive schedule tags:
+                  - "managed-start-periodic"
+                  - "managed-reboot-periodic"
+                  - "managed-reboot-image-periodic"
+                  - "managed-image-periodic"
+                  - "managed-stop-periodic"
+                  # One-time schedule tags:
+                  - "managed-start-once"
+                  - "managed-reboot-once"
+                  - "managed-reboot-image-once"
+                  - "managed-image-once"
+                  - "managed-stop-once"
 
           - Effect: Allow
             Action:
@@ -469,35 +449,35 @@ Resources:
               - "ec2:DeleteTags"
             Resource: !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:volume/*"
             Condition:
-              "ForAllValues:StringLike":
+              "ForAllValues:StringEquals":
                 "aws:TagKeys":
-                  - "managed-snapshot*"
+                  # Operation-enabling tags:
+                  - "managed-snapshot"
+                  # Repetitive schedule tags:
+                  - "managed-snapshot-periodic"
+                  # One-time schedule tags:
+                  - "managed-snapshot-once"
 
           - Effect: Allow
             Action:
               - "ec2:CreateTags"
               - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}::image/*"
+            Resource:
+              - !Sub "arn:aws:ec2:${AWS::Region}::image/*"
+              - !Sub "arn:aws:ec2:${AWS::Region}::snapshot/*"
             Condition:
               "ForAllValues:StringEquals":
                 "aws:TagKeys":
                   - "managed-delete"
-          - Effect: Deny  # Sec: an entity that tags for deletion cannot delete
+
+          # Security: an entity that tags for deletion cannot delete
+
+          - Effect: Deny
             Action: "ec2:DeregisterImage"
-            Resource: "*"  # Resource-level permissions not supported
-
-          - Effect: Allow
-            Action:
-              - "ec2:CreateTags"
-              - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}::snapshot/*"
-            Condition:
-              "ForAllValues:StringEquals":
-                "aws:TagKeys":
-                  - "managed-delete"
-          - Effect: Deny  # Sec: an entity that tags for deletion cannot delete
+            Resource: "*"
+          - Effect: Deny
             Action: "ec2:DeleteSnapshot"
-            Resource: "*"  # Resource-level permissions not supported
+            Resource: "*"
 
           # See effects of tags
 
@@ -811,7 +791,7 @@ Resources:
                 "aws:TagKeys":
                   - "managed-snapshot-once"
 
-          # Deny addition/modification/deletion of operation-enabling tags
+          # Deny addition/modification/deletion of certain other tags
 
           - Effect: Deny
             Action:
@@ -821,38 +801,18 @@ Resources:
             Condition:
               "ForAnyValue:StringEquals":
                 "aws:TagKeys":
+                  # Operation-enabling tags:
                   - "managed-start"
                   - "managed-reboot"
                   - "managed-reboot-image"
                   - "managed-image"
                   - "managed-stop"
-
-          - Effect: Deny
-            Action:
-              - "ec2:CreateTags"
-              - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:volume/*"
-            Condition:
-              "ForAnyValue:StringEquals":
-                "aws:TagKeys":
-                  - "managed-snapshot"
-
-          # Deny addition/modification/deletion of repetitive schedule tags
-
-          - Effect: Deny
-            Action:
-              - "ec2:CreateTags"
-              - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*"
-            Condition:
-              "ForAnyValue:StringEquals":
-                "aws:TagKeys":
+                  # Repetitive schedule tags:
                   - "managed-start-periodic"
                   - "managed-reboot-periodic"
                   - "managed-reboot-image-periodic"
                   - "managed-image-periodic"
                   - "managed-stop-periodic"
-
           - Effect: Deny
             Action:
               - "ec2:CreateTags"
@@ -861,30 +821,33 @@ Resources:
             Condition:
               "ForAnyValue:StringEquals":
                 "aws:TagKeys":
+                  # Operation-enabling tags:
+                  - "managed-snapshot"
+                  # Repetitive schedule tags:
                   - "managed-snapshot-periodic"
 
-          # Security: An entity that can schedule backups
-          #           cannot delete them, or tag them for deletion.
+          # Security: an entity that schedules backups cannot delete
 
-          - Effect: Deny
-            Action: "ec2:CreateTags"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}::image/*"
-            Condition:
-              StringLike:
-                "aws:RequestTag/managed-delete": "*"
           - Effect: Deny
             Action: "ec2:DeregisterImage"
             Resource: "*"  # Resource-level permissions not supported
-
-          - Effect: Deny
-            Action: "ec2:CreateTags"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}::snapshot/*"
-            Condition:
-              StringLike:
-                "aws:RequestTag/managed-delete": "*"
           - Effect: Deny
             Action: "ec2:DeleteSnapshot"
             Resource: "*"  # Resource-level permissions not supported
+
+          # Security: an entity that schedules backups cannot tag for deletion
+
+          - Effect: Deny
+            Action:
+              - "ec2:CreateTags"
+              - "ec2:DeleteTags"
+            Resource:
+              - !Sub "arn:aws:ec2:${AWS::Region}::image/*"
+              - !Sub "arn:aws:ec2:${AWS::Region}::snapshot/*"
+            Condition:
+              "ForAnyValue:StringEquals":
+                "aws:TagKeys":
+                  - "managed-delete"
 
           # See effects of tags
 
@@ -1218,28 +1181,28 @@ Resources:
                 "aws:TagKeys":
                   - "managed-snapshot"
 
-          # Security: An entity that can schedule backups
-          #           cannot delete them, or tag them for deletion.
+          # Security: An entity that schedules backups cannot delete
 
-          - Effect: Deny
-            Action: "ec2:CreateTags"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}::image/*"
-            Condition:
-              StringLike:
-                "aws:RequestTag/managed-delete": "*"
           - Effect: Deny
             Action: "ec2:DeregisterImage"
-            Resource: "*"  # Resource-level permissions not supported
-
-          - Effect: Deny
-            Action: "ec2:CreateTags"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}::snapshot/*"
-            Condition:
-              StringLike:
-                "aws:RequestTag/managed-delete": "*"
+            Resource: "*"
           - Effect: Deny
             Action: "ec2:DeleteSnapshot"
-            Resource: "*"  # Resource-level permissions not supported
+            Resource: "*"
+
+          # Security: an entity that schedules backups cannot tag for deletion
+
+          - Effect: Deny
+            Action:
+              - "ec2:CreateTags"
+              - "ec2:DeleteTags"
+            Resource:
+              - !Sub "arn:aws:ec2:${AWS::Region}::image/*"
+              - !Sub "arn:aws:ec2:${AWS::Region}::snapshot/*"
+            Condition:
+              "ForAnyValue:StringEquals":
+                "aws:TagKeys":
+                  - "managed-delete"
 
           # See effects of tags
 
@@ -1428,39 +1391,37 @@ Resources:
         Version: "2012-10-17"
         Statement:
 
-          - Effect: Allow  # Security: an entity that tags for deletion...
+          - Effect: Allow
             Action:
               - "ec2:CreateTags"
               - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}::image/*"
+            Resource:
+              - !Sub "arn:aws:ec2:${AWS::Region}::image/*"
+              - !Sub "arn:aws:ec2:${AWS::Region}::snapshot/*"
             Condition:
               "ForAllValues:StringEquals":
                 "aws:TagKeys":
                   - "managed-delete"
-          - Effect: Deny  # Security: ...cannot create...
+
+          # Security: an entity that tags for deletion cannot create
+
+          - Effect: Deny
             Action: "ec2:CreateImage"
             Resource: "*"
-          - Effect: Deny  # Security: ...and cannot delete.
-            Action: "ec2:DeregisterImage"
-            Resource: "*"  # Resource-level permissions not supported
-
-          - Effect: Allow  # Security: an entity that tags for deletion...
-            Action:
-              - "ec2:CreateTags"
-              - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}::snapshot/*"
-            Condition:
-              "ForAllValues:StringEquals":
-                "aws:TagKeys":
-                  - "managed-delete"
           - Effect: Deny  # Security: ...cannot create...
             Action: "ec2:CreateSnapshot"
             Resource: "*"
-          - Effect: Deny  # Security: ...and cannot delete.
-            Action: "ec2:DeleteSnapshot"
-            Resource: "*"  # Resource-level permissions not supported
 
-          # Deny addition/modification/deletion of operation-enabling tags
+          # Security: an entity that tags for deletion cannot delete
+
+          - Effect: Deny
+            Action: "ec2:DeregisterImage"
+            Resource: "*"
+          - Effect: Deny
+            Action: "ec2:DeleteSnapshot"
+            Resource: "*"
+
+          # Deny addition/modification/deletion of certain other tags
 
           - Effect: Deny
             Action:
@@ -1470,32 +1431,19 @@ Resources:
             Condition:
               "ForAnyValue:StringEquals":
                 "aws:TagKeys":
+                  # Operation-enabling tags:
                   - "managed-start"
                   - "managed-reboot"
                   - "managed-reboot-image"
                   - "managed-image"
                   - "managed-stop"
-
-          - Effect: Deny
-            Action:
-              - "ec2:CreateTags"
-              - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:volume/*"
-            Condition:
-              "ForAnyValue:StringEquals":
-                "aws:TagKeys":
-                  - "managed-snapshot"
-
-          # Deny addition/modification/deletion of one-time schedule tags
-
-          - Effect: Deny
-            Action:
-              - "ec2:CreateTags"
-              - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*"
-            Condition:
-              "ForAnyValue:StringEquals":
-                "aws:TagKeys":
+                  # Repetitive schedule tags
+                  - "managed-start-periodic"
+                  - "managed-reboot-periodic"
+                  - "managed-reboot-image-periodic"
+                  - "managed-image-periodic"
+                  - "managed-stop-periodic"
+                  # One-time schedule tags:
                   - "managed-start-once"
                   - "managed-reboot-once"
                   - "managed-reboot-image-once"
@@ -1510,33 +1458,12 @@ Resources:
             Condition:
               "ForAnyValue:StringEquals":
                 "aws:TagKeys":
-                  - "managed-snapshot-once"
-
-          # Deny addition/modification/deletion of repetitive schedule tags
-
-          - Effect: Deny
-            Action:
-              - "ec2:CreateTags"
-              - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*"
-            Condition:
-              "ForAnyValue:StringEquals":
-                "aws:TagKeys":
-                  - "managed-start-periodic"
-                  - "managed-reboot-periodic"
-                  - "managed-reboot-image-periodic"
-                  - "managed-image-periodic"
-                  - "managed-stop-periodic"
-
-          - Effect: Deny
-            Action:
-              - "ec2:CreateTags"
-              - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:volume/*"
-            Condition:
-              "ForAnyValue:StringEquals":
-                "aws:TagKeys":
+                  # Operation-enabling tags:
+                  - "managed-snapshot"
+                  # Repetitive schedule tags:
                   - "managed-snapshot-periodic"
+                  # One-time schedule tags:
+                  - "managed-snapshot-once"
 
           # Diagnose permissions errors
 
@@ -1758,26 +1685,28 @@ Resources:
             Action: "ec2:DeleteSnapshot"
             Resource: "*"  # Resource-level permissions not supported
 
-          - Effect: Deny  # Security: an entity that deletes cannot create...
+          # Security: an entity that deletes cannot create
+
+          - Effect: Deny
             Action: "ec2:CreateImage"
             Resource: "*"
-          - Effect: Deny  # Security: ...and cannot tag for deletion.
-            Action: "ec2:CreateTags"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}::image/*"
-            Condition:
-              StringLike:
-                "aws:RequestTag/managed-delete": "*"
-          - Effect: Deny  # Security: an entity that deletes cannot create...
+          - Effect: Deny
             Action: "ec2:CreateSnapshot"
             Resource: "*"
-          - Effect: Deny  # Security: ...and cannot tag for deletion.
-            Action: "ec2:CreateTags"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}::snapshot/*"
-            Condition:
-              StringLike:
-                "aws:RequestTag/managed-delete": "*"
 
-          # Deny addition/modification/deletion of operation-enabling tags
+          # Security: an entity that deletes cannot tag for deletion
+
+          - Effect: Deny
+            Action:
+              - "ec2:CreateTags"
+              - "ec2:DeleteTags"
+            Resource:
+              - !Sub "arn:aws:ec2:${AWS::Region}::image/*"
+              - !Sub "arn:aws:ec2:${AWS::Region}::snapshot/*"
+            Condition:
+              "ForAnyValue:StringEquals":
+                "aws:TagKeys":
+                  - "managed-delete"
 
           - Effect: Deny
             Action:
@@ -1787,32 +1716,19 @@ Resources:
             Condition:
               "ForAnyValue:StringEquals":
                 "aws:TagKeys":
+                  # Operation-enabling tags:
                   - "managed-start"
                   - "managed-reboot"
                   - "managed-reboot-image"
                   - "managed-image"
                   - "managed-stop"
-
-          - Effect: Deny
-            Action:
-              - "ec2:CreateTags"
-              - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:volume/*"
-            Condition:
-              "ForAnyValue:StringEquals":
-                "aws:TagKeys":
-                  - "managed-snapshot"
-
-          # Deny addition/modification/deletion of one-time schedule tags
-
-          - Effect: Deny
-            Action:
-              - "ec2:CreateTags"
-              - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*"
-            Condition:
-              "ForAnyValue:StringEquals":
-                "aws:TagKeys":
+                  # Repetitive schedule tags:
+                  - "managed-start-periodic"
+                  - "managed-reboot-periodic"
+                  - "managed-reboot-image-periodic"
+                  - "managed-image-periodic"
+                  - "managed-stop-periodic"
+                  # One-time schedule tags:
                   - "managed-start-once"
                   - "managed-reboot-once"
                   - "managed-reboot-image-once"
@@ -1827,33 +1743,12 @@ Resources:
             Condition:
               "ForAnyValue:StringEquals":
                 "aws:TagKeys":
-                  - "managed-snapshot-once"
-
-          # Deny addition/modification/deletion of repetitive schedule tags
-
-          - Effect: Deny
-            Action:
-              - "ec2:CreateTags"
-              - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*"
-            Condition:
-              "ForAnyValue:StringEquals":
-                "aws:TagKeys":
-                  - "managed-start-periodic"
-                  - "managed-reboot-periodic"
-                  - "managed-reboot-image-periodic"
-                  - "managed-image-periodic"
-                  - "managed-stop-periodic"
-
-          - Effect: Deny
-            Action:
-              - "ec2:CreateTags"
-              - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:volume/*"
-            Condition:
-              "ForAnyValue:StringEquals":
-                "aws:TagKeys":
+                  # Operation-enabling tags:
+                  - "managed-snapshot"
+                  # Repetitive schedule tags:
                   - "managed-snapshot-periodic"
+                  # One-time schedule tags:
+                  - "managed-snapshot-once"
 
 
   RdsTagSchedOpsDelete:
@@ -2058,8 +1953,6 @@ Resources:
         Version: "2012-10-17"
         Statement:
 
-          # Deny addition/modification/deletion of operation-enabling tags
-
           - Effect: Deny
             Action:
               - "ec2:CreateTags"
@@ -2068,32 +1961,19 @@ Resources:
             Condition:
               "ForAnyValue:StringEquals":
                 "aws:TagKeys":
+                  # Operation-enabling tags:
                   - "managed-start"
                   - "managed-reboot"
                   - "managed-reboot-image"
                   - "managed-image"
                   - "managed-stop"
-
-          - Effect: Deny
-            Action:
-              - "ec2:CreateTags"
-              - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:volume/*"
-            Condition:
-              "ForAnyValue:StringEquals":
-                "aws:TagKeys":
-                  - "managed-snapshot"
-
-          # Deny addition/modification/deletion of one-time schedule tags
-
-          - Effect: Deny
-            Action:
-              - "ec2:CreateTags"
-              - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*"
-            Condition:
-              "ForAnyValue:StringEquals":
-                "aws:TagKeys":
+                  # Repetitive schedule tags:
+                  - "managed-start-periodic"
+                  - "managed-reboot-periodic"
+                  - "managed-reboot-image-periodic"
+                  - "managed-image-periodic"
+                  - "managed-stop-periodic"
+                  # One-time schedule tags:
                   - "managed-start-once"
                   - "managed-reboot-once"
                   - "managed-reboot-image-once"
@@ -2108,33 +1988,12 @@ Resources:
             Condition:
               "ForAnyValue:StringEquals":
                 "aws:TagKeys":
-                  - "managed-snapshot-once"
-
-          # Deny addition/modification/deletion of repetitive schedule tags
-
-          - Effect: Deny
-            Action:
-              - "ec2:CreateTags"
-              - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*"
-            Condition:
-              "ForAnyValue:StringEquals":
-                "aws:TagKeys":
-                  - "managed-start-periodic"
-                  - "managed-reboot-periodic"
-                  - "managed-reboot-image-periodic"
-                  - "managed-image-periodic"
-                  - "managed-stop-periodic"
-
-          - Effect: Deny
-            Action:
-              - "ec2:CreateTags"
-              - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:volume/*"
-            Condition:
-              "ForAnyValue:StringEquals":
-                "aws:TagKeys":
+                  # Operation-enabling tags:
+                  - "managed-snapshot"
+                  # Repetitive schedule tags:
                   - "managed-snapshot-periodic"
+                  # One-time schedule tags:
+                  - "managed-snapshot-once"
 
           # Deny addition/modification/deletion of deletion tags
 
@@ -2142,28 +2001,22 @@ Resources:
             Action:
               - "ec2:CreateTags"
               - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}::image/*"
+            Resource:
+              - !Sub "arn:aws:ec2:${AWS::Region}::image/*"
+              - !Sub "arn:aws:ec2:${AWS::Region}::snapshot/*"
             Condition:
-              StringLike:
-                "aws:RequestTag/managed-delete": "*"
-
-          - Effect: Deny
-            Action:
-              - "ec2:CreateTags"
-              - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}::snapshot/*"
-            Condition:
-              StringLike:
-                "aws:RequestTag/managed-delete": "*"
+              "ForAnyValue:StringEquals":
+                "aws:TagKeys":
+                  - "managed-delete"
 
           # Deny deletion
 
           - Effect: Deny
             Action: "ec2:DeregisterImage"
-            Resource: "*"  # Resource-level permissions not supported
+            Resource: "*"
           - Effect: Deny
             Action: "ec2:DeleteSnapshot"
-            Resource: "*"  # Resource-level permissions not supported
+            Resource: "*"
 
 
   RdsTagSchedOpsNoTag:
