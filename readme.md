@@ -138,17 +138,17 @@
 
 * After logging in to the [AWS Web Console](https://signin.aws.amazon.com/console), go to the [CloudWatch Log Group for the AWS Lambda function](https://console.aws.amazon.com/cloudwatch/home#logs:prefix=/aws/lambda/TagSchedOps-TagSchedOpsPerformLambdaFn-). If you gave the CloudFormation stack a name other than `TagSchedOps`, the direct link will not work; instead, check the list of [Log Groups for _all_ AWS Lambda functions](https://console.aws.amazon.com/cloudwatch/home#logs:prefix=/aws/lambda/).
 
-* Sample output for one run:
+* Sample output from one run:
 
   |`initiated`|`svc`|`rsrc_type`|`rsrc_id`|`op`|`child_rsrc_type`|`child`|`child_op`|`note`|
   |--|--|--|--|--|--|--|--|--|
   |`9`||||||||`2017-09-12T20:40`|
-  |`1`|`ec2`|`Instance`|`i-04d2c0140da5bb13e`|`start`|||||
   |`1`|`ec2`|`Instance`|`i-08abefc70375d36e8`|`reboot-image`|`Image`|`zm-my-server-20170912T2040-83xx7`|||
   |`1`|`ec2`|`Instance`|`i-08abefc70375d36e8`|`reboot-image`|`Image`|`ami-bc9fcbc6`|`tag`||
+  |`1`|`ec2`|`Instance`|`i-04d2c0140da5bb13e`|`start`|||||
   |`0`|`rds`|`DBInstance`|`my-database`|`reboot-failover`||||...`ForceFailover cannot be specified`...|
   
-  _Execution began September 12, 2017 between 20:40 and 20:50 UTC. An EC2 instance is starting up, but may not yet be available. A different EC2 instance is being rebooted and backed up, but the instance may not yet be available again, and the image may not yet be complete; the image is named `zm-my-server-20170912T2040-83xx7`. The image has received ID `ami-bc9fcbc6`, and has been tagged. An RDS database instance could not be rebooted with fail-over. (The full error message goes on to explain that it is not a multi-zone instance.)_
+  _Execution began September 12, 2017 between 20:40 and 20:50 UTC. An EC2 instance is being rebooted and backed up, but the instance may not yet be available again, and the image may not yet be complete; the image is named `zm-my-server-20170912T2040-83xx7`. The image has received ID `ami-bc9fcbc6`, and has been tagged. A different EC2 instance is starting up, but may not yet be available. An RDS database instance could not be rebooted with fail-over. (The full error message goes on to explain that it is not a multi-zone instance.)_
 
 * There is a header line, an information line, and one line for each operation requested. (Tagging is usually a separate operation.)
 
@@ -175,7 +175,7 @@ Some operations create a child resource (image or snapshot) from a parent resour
   |--|--|--|--|
   |1|Prefix|`zm`|Identifies and groups children created by this project, in interfaces that do not expose tags. `z` will sort after most manually-created images and snapshots. `m` stands for "managed".|
   |2|Parent name or identifier|`webserver`|Conveniently indicates the parent. Derived from the `Name` tag (if not blank), the logical name (if supported), or the physical identifier (as a last resort). Multiple children of the same parent will sort together, by creation date (see next row).|
-  |3|Date/time|`20171231T1400`|Indicates when the child was created. The last digit of the minute is normalized to 0. The `-` and `:` separators are removed for brevity, and because AWS does not allow `:` in names, for some resource types. (The `managed-date-time` tag stores the original string, with separators intact.)|
+  |3|Date/time|`20171231T1400`|Indicates when the child was created. The last digit of the minute is normalized to 0. The `-` and `:` separators are removed for brevity, and because AWS does not allow `:` in resource names. (The [`managed-date-time` tag](#tag-managed-date-time) preserves the separators.)|
   |4|Random string|`g3a8a`|Guarantees unique names. Five characters are chosen from a small set of unambiguous letters and numbers.|
 
 * If parsing is ever necessary, keep in mind that the second part may contain internal hyphens.
@@ -192,7 +192,7 @@ Some operations create a child resource (image or snapshot) from a parent resour
   |`managed-parent-name`|The `Name` tag value from the parent. Not added if blank.|
   |`managed-parent-id`|The identifier of the parent EC2 instance, EC2 EBS volume, or RDS instance. AWS metadata captures this (for example, as `VolumeId`, for EC2 EBS volume snapshots), but the interface differs for each resource type.|
   |`managed-origin`|The operation (for example, `snapshot`) that created the child. Identifies resources created by this project. Also distinguishes special cases, such as whether an EC2 instance was or was not rebooted before an image was created.|
-  |`managed-date-time`|Groups resources created during the same 10-minute interval. AWS metadata captures the _exact_ time, and the interface differs for each resource type.|
+  |<a name="tag-managed-date-time">`managed-date-time`</a>|Groups resources created during the same 10-minute interval. The last digit of the minute is normalized to 0. AWS metadata captures the _exact_ time, and the interface differs for each resource type.|
 
 * Tags other than operation-enabling tags, schedule tags, and the `Name` tag, are copied from parent to child. (The deletion tag, `managed-delete`, would not make sense on instances and volumes, but if it is present, it is not copied to images and snapshots.)
 
