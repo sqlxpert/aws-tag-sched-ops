@@ -77,7 +77,7 @@ Resources:
 
           - Effect: Allow
             Action: "ec2:DescribeInstances"
-            Resource: "*"   # Resource-level permissions not supported
+            Resource: "*"
 
           - Effect: Allow
             Action: "ec2:StartInstances"
@@ -412,10 +412,19 @@ Resources:
     Type: "AWS::IAM::ManagedPolicy"
     DeletionPolicy: Delete
     Properties:
-      Description: "All EC2 instances, EBS volumes: add, delete tags for scheduled operations. All EC2 images, EBS snapshots: add, delete tags for deletion, but cannot delete images or snapshots. All CloudWatch events: list and describe. Event for TagSchedOps: enable and disable."
+      Description: "All EC2 instances, EBS volumes: describe; view tags; add, delete tags for scheduled operations. All EC2 images, EBS snapshots: describe; view tags; add, delete tags for deletion, but cannot delete images or snapshots. All CloudWatch events: describe. Event for TagSchedOps: enable and disable."
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
+
+          - Effect: Allow
+            Action:
+              - "ec2:DescribeInstances"
+              - "ec2:DescribeVolumes"
+              - "ec2:DescribeImages"
+              - "ec2:DescribeSnapshots"
+              - "ec2:DescribeTags"
+            Resource: "*"
 
           - Effect: Allow
             Action:
@@ -524,10 +533,21 @@ Resources:
     Type: "AWS::IAM::ManagedPolicy"
     DeletionPolicy: Delete
     Properties:
-      Description: "All RDS instances: add, delete tags for scheduled operations. All RDS snapshots: add, delete tags for deletion, but cannot delete snapshots.  All CloudWatch events: list and describe. Event for TagSchedOps: enable and disable. Due to an AWS limitation, ANY tag can be added with an intended tag. Withholding all RDS tagging privileges is safer than relying on this policy."
+      Description: "All RDS instances: describe; view tags; add, delete tags for scheduled operations. All RDS snapshots: describe; view tags; add, delete tags for deletion, but cannot delete snapshots.  All CloudWatch events: describe. Event for TagSchedOps: enable and disable. Due to an AWS limitation, ANY tag can be added with an intended tag. Withholding all RDS tagging privileges is safer than relying on this policy."
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
+
+          - Effect: Allow
+            Action:
+              - "rds:DescribeDBInstances"
+              - "rds:DescribeDBSnapshots"
+            Resource: "*"
+          - Effect: Allow
+            Action: "rds:ListTagsForResource"
+            Resource:
+              - !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:db:*"
+              - !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:snapshot:*"
 
           # The "rds:req-tag/..." Condition key supported by RDS is equivalent
           # to the "aws:RequestTag/..." Condition key supported by EC2. These
@@ -751,10 +771,19 @@ Resources:
     Type: "AWS::IAM::ManagedPolicy"
     DeletionPolicy: Delete
     Properties:
-      Description: "EC2 instances, EBS volumes tagged to enable a managed operation: add, delete one-time schedule tags for that operation. All EC2 instances, EBS volumes: cannot add or delete operation-enabling or repetitive schedule tags. All EC2 images, EBS snapshots: cannot delete, or tag for deletion."
+      Description: "EC2 instances, EBS volumes tagged to enable a managed operation: add, delete one-time schedule tags for that operation. All EC2 instances, EBS volumes: describe; view tags; cannot add or delete operation-enabling or repetitive schedule tags. All EC2 images, EBS snapshots: describe; view tags; cannot delete, or tag for deletion."
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
+
+          - Effect: Allow
+            Action:
+              - "ec2:DescribeInstances"
+              - "ec2:DescribeVolumes"
+              - "ec2:DescribeImages"
+              - "ec2:DescribeSnapshots"
+              - "ec2:DescribeTags"
+            Resource: "*"
 
           - Effect: Allow
             Action:
@@ -910,10 +939,21 @@ Resources:
     Type: "AWS::IAM::ManagedPolicy"
     DeletionPolicy: Delete
     Properties:
-      Description: "RDS instances tagged to enable a managed operation: add, delete one-time schedule tags for that operation. All RDS instances: cannot add or delete operation-enabling or repetitive schedule tags. All RDS snapshots: cannot delete, or tag for deletion. Due to an AWS limitation, ANY tag can be added with an intended tag. Withholding all RDS tagging privileges is safer than relying on this policy."
+      Description: "RDS instances tagged to enable a managed operation: add, delete one-time schedule tags for that operation. All RDS instances: describe; view tags; cannot add or delete operation-enabling or repetitive schedule tags. All RDS snapshots: describe; view tags; cannot delete, or tag for deletion. Due to an AWS limitation, ANY tag can be added with an intended tag. Withholding all RDS tagging privileges is safer than relying on this policy."
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
+
+          - Effect: Allow
+            Action:
+              - "rds:DescribeDBInstances"
+              - "rds:DescribeDBSnapshots"
+            Resource: "*"
+          - Effect: Allow
+            Action: "rds:ListTagsForResource"
+            Resource:
+              - !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:db:*"
+              - !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:snapshot:*"
 
           - Effect: Allow
             Action:
@@ -1115,10 +1155,19 @@ Resources:
     Type: "AWS::IAM::ManagedPolicy"
     DeletionPolicy: Delete
     Properties:
-      Description: "EC2 instances, EBS volumes tagged to enable a managed operation: add, delete repetitive schedule tags for that operation. All EC2 instances, EBS volumes: cannot add or delete operation-enabling tags. All EC2 images, EBS snapshots: cannot delete, or tag for deletion."
+      Description: "EC2 instances, EBS volumes tagged to enable a managed operation: add, delete repetitive schedule tags for that operation. All EC2 instances, EBS volumes: describe; view tags; cannot add or delete operation-enabling tags. All EC2 images, EBS snapshots: describe; view tags; cannot delete, or tag for deletion."
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
+
+          - Effect: Allow
+            Action:
+              - "ec2:DescribeInstances"
+              - "ec2:DescribeVolumes"
+              - "ec2:DescribeImages"
+              - "ec2:DescribeSnapshots"
+              - "ec2:DescribeTags"
+            Resource: "*"
 
           - Effect: Allow
             Action:
@@ -1265,10 +1314,21 @@ Resources:
     Type: "AWS::IAM::ManagedPolicy"
     DeletionPolicy: Delete
     Properties:
-      Description: "RDS instances tagged to enable a managed operation: add, delete repetitive schedule tags for that operation. All RDS instances: cannot add or delete operation-enabling tags. All RDS snapshots: cannot delete, or tag for deletion. Due to an AWS limitation, ANY tag can be added with an intended tag. Withholding all RDS tagging privileges is safer than relying on this policy."
+      Description: "RDS instances tagged to enable a managed operation: add, delete repetitive schedule tags for that operation. All RDS instances: describe; view tags; cannot add or delete operation-enabling tags. All RDS snapshots: describe; view tags; cannot delete, or tag for deletion. Due to an AWS limitation, ANY tag can be added with an intended tag. Withholding all RDS tagging privileges is safer than relying on this policy."
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
+
+          - Effect: Allow
+            Action:
+              - "rds:DescribeDBInstances"
+              - "rds:DescribeDBSnapshots"
+            Resource: "*"
+          - Effect: Allow
+            Action: "rds:ListTagsForResource"
+            Resource:
+              - !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:db:*"
+              - !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:snapshot:*"
 
           - Effect: Allow
             Action:
@@ -1419,10 +1479,19 @@ Resources:
     Type: "AWS::IAM::ManagedPolicy"
     DeletionPolicy: Delete
     Properties:
-      Description: "All EC2 images, EBS snapshots: add, delete tags for deletion, but cannot delete images or snapshots. All EC2 instances, EBS volumes: cannot add or delete operational-enabling, one-time schedule, or repetitive schedule tags."
+      Description: "All EC2 images, EBS snapshots: describe; view tags; add, delete tags for deletion, but cannot delete images or snapshots. All EC2 instances, EBS volumes: describe; view tags; cannot add or delete operational-enabling, one-time schedule, or repetitive schedule tags."
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
+
+          - Effect: Allow
+            Action:
+              - "ec2:DescribeInstances"
+              - "ec2:DescribeVolumes"
+              - "ec2:DescribeImages"
+              - "ec2:DescribeSnapshots"
+              - "ec2:DescribeTags"
+            Resource: "*"
 
           - Effect: Allow
             Action:
@@ -1509,10 +1578,21 @@ Resources:
     Type: "AWS::IAM::ManagedPolicy"
     DeletionPolicy: Delete
     Properties:
-      Description: "All RDS snapshots: add, delete tags for deletion, but cannot delete snapshots. All RDS instances: cannot add or delete operational-enabling, one-time schedule, or repetitive schedule tags. Due to an AWS limitation, ANY tag can be added with an intended tag. Withholding all RDS tagging privileges is safer than relying on this policy."
+      Description: "All RDS snapshots: describe; view tags; add, delete tags for deletion, but cannot delete snapshots. All RDS instances: describe; view tags; cannot add or delete operational-enabling, one-time schedule, or repetitive schedule tags. Due to an AWS limitation, ANY tag can be added with an intended tag. Withholding all RDS tagging privileges is safer than relying on this policy."
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
+
+          - Effect: Allow
+            Action:
+              - "rds:DescribeDBInstances"
+              - "rds:DescribeDBSnapshots"
+            Resource: "*"
+          - Effect: Allow
+            Action: "rds:ListTagsForResource"
+            Resource:
+              - !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:db:*"
+              - !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:snapshot:*"
 
           - Effect: Allow  # Security: an entity that tags for deletion...
             Action:
