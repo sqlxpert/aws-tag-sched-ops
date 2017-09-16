@@ -163,6 +163,30 @@
 
 * Although the TagSchedOpsAdminister and TagSchedOpsTagSchedule policies authorize read-only access to the logs via the AWS API, and seem to be sufficient for using the links provided above, users who are not AWS administrators may also want [additional privileges for the CloudWatch Console](http://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/iam-identity-based-access-control-cwl.html#console-permissions-cwl).
 
+### Debugging Mode
+
+If the `DEBUG` environment variable is set, the AWS Lambda function outputs extra information:
+
+  * Internal `parent_params` reference data, including the regular expressions used to match schedule tags.
+    
+  * AWS resources tagged for [unsupported combinations of operations](#unsupported-combinations).
+
+To use the debugging mode,
+
+1. Log in to the [AWS Web Console](https://signin.aws.amazon.com/console) as a privileged user. AWS Lambda treats changes to environment variables like changes to code.
+    
+2. Click on the [TagSchedOpsPerformLambdaFn AWS Lambda function](https://console.aws.amazon.com/lambda/home?region=us-east-1#/functions?f0=a3c%3D%3AVGFnU2NoZWRPcHNQZXJmb3JtTGFtYmRhRm4%3D).
+    
+3. Open the Code tab and scroll to the bottom. In the "Environment variables" section, type `DEBUG` in the first empty Key box. Leave Value blank.
+    
+4. <a name="debug-step-4"></a>Scroll back to the top and click the white Save button. _Do not click the orange "Save and test" button_; that would cause the function to run more than once in the same 10-minute interval.
+    
+5. After 10 minutes, find the debugging information in [CloudWatch Logs](#output).
+    
+6. Turn off debugging mode quickly, because the extra information is lengthy. Back on the Code tab, scroll down and click Remove, to the far right of `DEBUG`. Repeat [Step 4](#debug-step-4) to save.
+
+7. Log out of the AWS Console.
+
 ## Master On/Off Switch
 
 * The TagSchedOpsAdminister policies authorize turning the AWS Lambda function on or off completely.
@@ -206,34 +230,39 @@ Some operations create a child resource (image or snapshot) from a parent resour
 
 ## Operation Combinations
 
-* Multiple _non-simultaneous_ operations on the same resource are allowed.
-* If two or more operations on the same resource are scheduled for the same 10-minute interval, the function combines them, where possible:
+Multiple _non-simultaneous_ operations on the same resource are allowed.
 
-  |Resource|Simultaneous Operations|Effect|
-  |--|--|--|
-  |EC2 instance|Stop + Reboot|Stop|
-  |EC2 instance|Create Image + Reboot|Reboot then Create Image|
-  |RDS instance|Stop + Reboot|Stop|
-  |RDS instance|Stop + Create Snapshot|Create Snapshot then Stop|
+### Supported Combinations
 
-* The Create Image + Reboot combination for EC2 instances is useful. For example, you could take hourly backups but reboot only in conjunction with the midnight backup. The midnight backup would be guaranteed to be coherent for all files, but you could safely retrieve static files as of any given hour, from the other backups. To set up this example:
+If two or more operations on the same resource are scheduled for the same 10-minute interval, the function combines them, where possible:
 
-  |Tag|Value|
-  |--|--|
-  |`managed-image`||
-  |`managed-image-periodic`|`d=*,H=*,M=59`|
-  |`managed-reboot`||
-  |`managed-reboot-periodic`|`d=*,H=23,M=59`|
+|Resource|Simultaneous Operations|Effect|
+|--|--|--|
+|EC2 instance|Stop + Reboot|Stop|
+|EC2 instance|Create Image + Reboot|Reboot then Create Image|
+|RDS instance|Stop + Reboot|Stop|
+|RDS instance|Stop + Create Snapshot|Create Snapshot then Stop|
+
+The Create Image + Reboot combination for EC2 instances is useful. For example, you could take hourly backups but reboot only in conjunction with the midnight backup. The midnight backup would be guaranteed to be coherent for all files, but you could safely retrieve static files as of any given hour, from the other backups. To set up this example:
+
+|Tag|Value|
+|--|--|
+|`managed-image`||
+|`managed-image-periodic`|`d=*,H=*,M=59`|
+|`managed-reboot`||
+|`managed-reboot-periodic`|`d=*,H=23,M=59`|
   
-  (23:59, which for the purposes of this project represents the last 10-minute interval of the day, is the unambiguous way to express _almost the end of some designated day_, on any system. 00:00 and 24:00 could refer to the start or the end of the designated day, and not all systems accept 24:00, in any case. Remember that all times are UTC; adjust for night-time in your time zone!)
+23:59, which for the purposes of this project represents the last 10-minute interval of the day, is the unambiguous way to express _almost the end of some designated day_, on any system. 00:00 and 24:00 could refer to the start or the end of the designated day, and not all systems accept 24:00, in any case. Remember that all times are UTC; adjust for night-time in your time zone!
 
-* Non-combinable operations result in no operation.
+### Unsupported Combinations
 
-  |Bad Combination|Reason|Example|
-  |--|--|--|
-  |Mutually exclusive operations|The operations conflict with each other.|Start + Stop|
-  |Choice of operation depends on current state of instance|The state of the instance could change between the status query and the operation request.|Start + Reboot|
-  |Sequential or dependent operations|The logical order cannot always be inferred. Also, operations proceed asynchronously; one might not complete in time for another to begin. Note that Reboot then Create Image (EC2 instance) and Create Snapshot then Stop (RDS instance) are _single_ AWS operations.|Start + Create Image|
+Resources tagged for unsupported combinations of operations are ignored. See [Debugging Mode](#debug-mode).
+
+|Bad Combination|Reason|Example|
+|--|--|--|
+|Mutually exclusive operations|The operations conflict with each other.|Start + Stop|
+|Choice of operation depends on current state of instance|The state of the instance could change between the status query and the operation request.|Start + Reboot|
+|Sequential or dependent operations|The logical order cannot always be inferred. Also, operations proceed asynchronously; one might not complete in time for another to begin. Note that Reboot then Create Image (EC2 instance) and Create Snapshot then Stop (RDS instance) are _single_ AWS operations.|Start + Create Image|
 
 ## Security Model
 
@@ -288,11 +317,7 @@ Some operations create a child resource (image or snapshot) from a parent resour
 
 ## Future Work
 
- * Documentation updates:
- 
-     * `DEBUG` mode
-     
-     * CloudFormation change set instructions, for template and AWS Lambda function source code updates (includes S3 object versioning)
+ * Documentation update: CloudFormation change set instructions, for template and AWS Lambda function source code updates (includes S3 object versioning)
      
  * Automated testing, consisting of a CloudFormation template to create sample AWS resources, and a program (perhaps another AWS Lambda function!) to check whether the intended operations were performed. An AWS Lambda function would also be ideal for testing security policies, while cycling through different IAM roles.
  
