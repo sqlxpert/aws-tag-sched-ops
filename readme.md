@@ -25,7 +25,7 @@
 
    _Security Tip:_ Remove public read and write access from the S3 bucket. Carefully limit write access.
 
-   _Security Tip:_ Download the file from S3 and verify it. <br/>`md5sum aws_tag_sched_ops_perform.py.zip` should yield `9f95b7dba28ee9a474d772d698f8dfcf`
+   _Security Tip:_ Download the file from S3 and verify it. <br/>`md5sum aws_tag_sched_ops_perform.py.zip` should yield `95260444a5410b75b48b6d8ef11d9022`
 
 4. Navigate to the [CloudFormation Console](https://console.aws.amazon.com/cloudformation/home). Click Create Stack. Click Choose File, immediately below "Upload a template to Amazon S3", and navigate to your locally downloaded copy of [`cloudformation/aws_tag_sched_ops.yaml`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
 
@@ -165,12 +165,8 @@
 
 ### Debugging Mode
 
-If the `DEBUG` environment variable is set, the AWS Lambda function outputs extra information:
-
-  * Internal `parent_params` reference data, including the regular expressions used to match schedule tags.
+If the `DEBUG` environment variable is set, the AWS Lambda function outputs internal `parent_params` reference data, including the regular expressions used to match schedule tags.
     
-  * AWS resources tagged for [unsupported combinations of operations](#unsupported-combinations).
-
 To use the debugging mode,
 
 1. Log in to the [AWS Web Console](https://signin.aws.amazon.com/console) as a privileged user. AWS Lambda treats changes to environment variables like changes to code.
@@ -183,7 +179,7 @@ To use the debugging mode,
     
 5. After 10 minutes, find the debugging information in [CloudWatch Logs](#output).
     
-6. Turn off debugging mode quickly, because the extra information is lengthy. Back on the Code tab, scroll down and click Remove, to the far right of `DEBUG`. Repeat [Step 4](#debug-step-4) to save.
+6. Turn off debugging mode right away, because the extra information is lengthy. Back on the Code tab, scroll down and click Remove, to the far right of `DEBUG`. Repeat [Step 4](#debug-step-4) to save.
 
 7. Log out of the AWS Console.
 
@@ -256,7 +252,7 @@ The Create Image + Reboot combination for EC2 instances is useful. For example, 
 
 ### Unsupported Combinations
 
-Resources tagged for unsupported combinations of operations are ignored. See [Debugging Mode](#debugging-mode).
+Resources tagged for unsupported combinations of operations are logged (with message `OPS_UNSUPPORTED`) and skipped.
 
 |Bad Combination|Reason|Example|
 |--|--|--|
@@ -334,8 +330,6 @@ Resources tagged for unsupported combinations of operations are ignored. See [De
  * Packaging for standalone execution outside AWS Lambda (`requirements.txt`, etc.), to encourage collaborative development
  
  * Tags and reference dictionary updates to support scheduled restoration of images and snapshots
- 
- * `DEBUG` mode function to list AWS resources tagged for unsupported combinations of operations, but in the usual compact, line-oriented format
  
  * Generalization of reference dictionaries to support more AWS services and resource types. (Which ones?)
 
