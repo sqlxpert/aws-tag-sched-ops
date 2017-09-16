@@ -35,10 +35,7 @@ import boto3
 import botocore
 
 
-# If set (to anything), print parent_params, the data-driven
-# basis of this code, and identify resources whose tags request
-# combinations of operations that would conflict (for example,
-# trying to start and stop an EC2 instance at the same time):
+# If set (regardless of value), print parent_params internal reference dict:
 DEBUG = ("DEBUG" in os.environ)
 
 # Rules for Schedule Tags
@@ -116,7 +113,7 @@ LOG_LINE_FMT = "\t".join([
   "{rsrc_id}",
   "{op}",
   "{child_rsrc_type}",
-  "{child}",  # child_id if known, otherwise child_name
+  "{child}",  # child_id (ID or ARN) if known, otherwise child_name
   "{child_op}",
   "{note}"
 ])
@@ -424,8 +421,8 @@ def rsrc_process(rsrc, parent_params_rsrc_type):
   """
 
   tags_match = set()
-  ops_tentative = set()
   result = {
+    "ops_tentative": set(),
     "name_from_tag": "",
     "child_tags": [],
   }
@@ -453,15 +450,11 @@ def rsrc_process(rsrc, parent_params_rsrc_type):
 
   for (tags_req, op) in parent_params_rsrc_type["tags_to_op"].items():
     if tags_req <= tags_match:
-      ops_tentative.add(op)
-  result["op"] = (
-    parent_params_rsrc_type["ops_to_op"].get(frozenset(ops_tentative), None)
+      result["ops_tentative"].add(op)
+  result["op"] = parent_params_rsrc_type["ops_to_op"].get(
+    frozenset(result["ops_tentative"]),
+    None
   )
-  if DEBUG and (len(ops_tentative) > 1) and not result["op"]:
-    print()
-    print("Check rsrc tags; these ops cannot be combined:", ops_tentative)
-    pprint.pprint(rsrc)
-    print()
 
   return result
 
@@ -545,6 +538,18 @@ def rsrcs_get(
       op = rsrc_processed.pop("op")
       if op:
         rsrcs[op][rsrc[id_key]] = rsrc_processed
+      elif rsrc_processed["ops_tentative"]:
+        print(LOG_LINE_FMT.format(
+          initiated=0,  # 0 is shorter than "False", etc.
+          svc=svc,
+          rsrc_type=rsrc_type,
+          rsrc_id=rsrc[id_key],
+          op=",".join(sorted(rsrc_processed["ops_tentative"])),
+          child_rsrc_type="",
+          child="",
+          child_op="",
+          note="OPS_UNSUPPORTED",
+        ))
 
   return rsrcs
 
