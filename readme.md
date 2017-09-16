@@ -256,7 +256,7 @@ The Create Image + Reboot combination for EC2 instances is useful. For example, 
 
 ### Unsupported Combinations
 
-Resources tagged for unsupported combinations of operations are ignored. See [Debugging Mode](#debug-mode).
+Resources tagged for unsupported combinations of operations are ignored. See [Debugging Mode](#debugging-mode).
 
 |Bad Combination|Reason|Example|
 |--|--|--|
