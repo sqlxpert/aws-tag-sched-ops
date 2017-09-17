@@ -368,8 +368,6 @@ To upgrade,
  
  * Makefile
  
- * Packaging for standalone execution outside AWS Lambda (`requirements.txt`, etc.), to encourage collaborative development
- 
  * Tags and reference dictionary updates to support scheduled restoration of images and snapshots
  
  * Generalization of reference dictionaries to support more AWS services and resource types. (Which ones?)
