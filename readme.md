@@ -14,7 +14,7 @@ Jump to key information: [Operation Tags](#enabling-operations) &bull; [Schedule
 
 1. Log in to the [AWS Web Console](https://signin.aws.amazon.com/console) as a privileged user.
 
-   _Security Tip:_ To see which kinds of resources you'll be installing, look in the [CloudFormation template](/cloudformation/aws_tag_sched_ops.yaml). <br/>`grep 'Type: "AWS::' aws_tag_sched_ops.yaml | sort | uniq` works well.
+   _Security Tip:_ To see what you'll be installing, look in the [CloudFormation template](/cloudformation/aws_tag_sched_ops.yaml). <br/>`grep 'Type: "AWS::' aws_tag_sched_ops.yaml | sort | uniq` works well.
    
 2. Navigate to [Instances](https://console.aws.amazon.com/ec2/v2/home#Instances) in the EC2 Console. Right-click the Name or ID of an instance, select Instance Settings, and then select Add/Edit Tags. Add:
 
@@ -23,13 +23,13 @@ Jump to key information: [Operation Tags](#enabling-operations) &bull; [Schedule
    |`managed-image`||Leave value blank|
    |`managed-image-periodic`|`d=*,H:M=11:30`|Replace `11:30` with [current UTC time](https://www.timeanddate.com/worldclock/timezone/utc) + 15 minutes|
 
-3. Navigate to the [S3 Console](https://console.aws.amazon.com/s3/home). Click the name of the bucket where you keep CloudFormation templates, or create the bucket, if necessary. Upload the compressed source code of the AWS Lambda function, [`aws_tag_sched_ops_perform.py.zip`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/aws_tag_sched_ops_perform.py.zip)
+3. Go to the [S3 Console](https://console.aws.amazon.com/s3/home). Click the name of the bucket where you keep CloudFormation templates, or create the bucket, if necessary. Upload the compressed source code of the AWS Lambda function, [`aws_tag_sched_ops_perform.py.zip`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/aws_tag_sched_ops_perform.py.zip)
 
    _Security Tip:_ Remove public read and write access from the S3 bucket. Carefully limit write access.
 
    _Security Tip:_ Download the file from S3 and verify it. (In some cases, you can simply compare the ETag reported by S3.)<br/>`md5sum aws_tag_sched_ops_perform.py.zip` should yield `95260444a5410b75b48b6d8ef11d9022`
 
-4. Navigate to the [CloudFormation Console](https://console.aws.amazon.com/cloudformation/home). Click Create Stack. Click Choose File, immediately below "Upload a template to Amazon S3", and navigate to your locally downloaded copy of [`cloudformation/aws_tag_sched_ops.yaml`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
+4. Go to the [CloudFormation Console](https://console.aws.amazon.com/cloudformation/home). Click Create Stack. Click Choose File, immediately below "Upload a template to Amazon S3", and navigate to your locally downloaded copy of [`cloudformation/aws_tag_sched_ops.yaml`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
 
    |Item|Value|
    |--|--|
@@ -44,17 +44,17 @@ Jump to key information: [Operation Tags](#enabling-operations) &bull; [Schedule
       
    _Security Tip_: Review EC2 and RDS tagging privileges for all entities.
 
-8. Log out of the AWS Console. You can now manage the relevant tags, view logs, and decode errors, without logging in as a privileged user.
+8. Log out of the AWS Console. You can now manage relevant tags, view logs, and decode errors, without logging in as a privileged user.
 
-## Warnings
+## Advice
 
- * Use other tools or procedures to verify that scheduled AWS operations complete successfully. Verification is beyond the scope of this project.
+ * Use other means to verify that scheduled AWS operations complete successfully. Verification is beyond the scope of this project.
  
  * Test your backups! No backup is complete until it has been restored successfully.
  
- * Weigh the benefits of rebooting against the risks. Rebooting is usually necessary to make software updates take effect, but a system may stop working after it is rebooted.
+ * Weigh the benefits of rebooting against the risks. Rebooting is usually necessary to make software updates take effect, but a system may stop working afterward.
  
- * Be aware of AWS charges, including but not limited to: the costs of running the AWS Lambda function, storing the output in CloudWatch Logs, and storing images and snapshots; the whole-hour cost when you stop an instance; the continued cost of storage for stopped instances; and the costs that accumulate when AWS automatically starts an RDS instance that has been stopped for too many days.
+ * Be aware of AWS charges, including but not limited to: the costs of running the AWS Lambda function, storing CloudWatch Logs, and storing images and snapshots; the whole-hour cost when you stop an instance; the continued cost of storage for stopped instances; and the costs that accumulate when AWS automatically starts an RDS instance that has been stopped for too many days.
  
  * Secure your own AWS environment. Test the AWS Lambda function and the IAM policies from end-to-end, to make sure that they work correctly and meet your expectations. To help improve this project, please submit [bug reports and feature requests](https://github.com/sqlxpert/aws-tag-sched-ops/issues), as well as proposed [code changes](https://github.com/sqlxpert/aws-tag-sched-ops/pulls).
 
@@ -88,8 +88,8 @@ Jump to key information: [Operation Tags](#enabling-operations) &bull; [Schedule
 ## Scheduling Operations
  
  * All times are UTC, on a 24-hour clock.
- * The AWS Lambda function runs once every 10 minutes. The last digit of the minute is always ignored. For example, an operation scheduled for `M=47` is expected to begin between 40 and 50 minutes after the hour.
- * Month and minute values must have two digits. Use a leading zero (for example, `03`) if a month or minute value is less than or equal to 9. (Weekday numbers have only one digit.)
+ * The function runs once every 10 minutes. The last digit of the minute is always ignored. For example, `M=47` means _one time, between 40 and 50 minutes after the hour_.
+ * Month and minute values must have two digits. Use a leading zero if necessary. (Weekday numbers have only one digit.)
  * Use a comma (`,`) _without spaces_ to separate components. The order of components within a tag value does not matter.
  * `T` separates day information from time; it is not a variable.
  * [Repetitive (`-periodic`)](#repetitive-schedules) and [one-time (`-once`)](#one-time-schedules) schedule tags are supported. Prefix with the operation.
@@ -113,7 +113,7 @@ Jump to key information: [Operation Tags](#enabling-operations) &bull; [Schedule
     
       * To be valid, a component or combination of components must specify a day, hour and minute.
       * Repeat a whole component to specify multiple values. For example, `d=01,d=11,d=21` means the 1st, 11th and 21st days of the month.
-      * The `*` wildcard is allowed for day (every day of the month) and hour (every hour of the day).
+      * The `*` wildcard is allowed for day (_every day of the month_) and hour (_every hour of the day_).
       * For consistent one-day-a-month scheduling, avoid `d=29` through `d=31`.
       * Labels are from `strftime` and weekday numbers are [ISO 8601-standard](https://en.wikipedia.org/wiki/ISO_8601#Week_dates) (different from `cron`).
 
@@ -125,20 +125,20 @@ Jump to key information: [Operation Tags](#enabling-operations) &bull; [Schedule
     |`d=1,d=8,d=15,d=22,H=03,H=19,M=01`|`cron`-style schedule|Between 03:00 and 03:10 and again between 19:00 and 19:10, on the 1st, 8th, 15th, and 22nd days of every month.|
     |`d=*,H=*,M=15,M=45,H:M=08:50`|Extra event in the day|Between 10 and 20 minutes after the hour and 40 to 50 minutes after the hour, every hour of every day, _and also_ every day between 08:50 and 09:00.|
     |`d=*,H=11,M=00,uTH:M=2T03:30,uTH:M=5T07:20`|Extra weekly events|Between 11:00 and 11:10 every day, _and also_ every Tuesday between 03:30 and 03:40 and every Friday between 07:20 and 7:30.|
-    |`u=3,H=22,M=15,dTH:M=01T05:20`|Extra monthly event(s)|Between 22:10 and 22:20 every Wednesday, _and also_ on the first day of every month between 05:20 and 05:30.|
+    |`u=3,H=22,M=15,dTH:M=01T05:20`|Extra monthly event|Between 22:10 and 22:20 every Wednesday, _and also_ on the first day of every month between 05:20 and 05:30.|
     
 ### One-Time Schedules
  
   * Tag suffix: `-once`
 
   * Values: one or more [ISO 8601 combined date and time strings](https://en.wikipedia.org/wiki/ISO_8601#Combined_date_and_time_representations), of the form `2017-03-21T22:40` (March 21, 2017, in this example)
-      * Remember, the code runs once every 10 minutes and the _last digit of the minute is ignored_
+      * Remember, the code runs once every 10 minutes and the last digit of the minute is ignored
       * Omit seconds and fractions of seconds
       * Omit time zone
 
 ## Output
 
-* After logging in to the [AWS Web Console](https://signin.aws.amazon.com/console), go to the [CloudWatch Log Group for the AWS Lambda function](https://console.aws.amazon.com/cloudwatch/home#logs:prefix=/aws/lambda/TagSchedOps-TagSchedOpsPerformLambdaFn-). If you gave the CloudFormation stack a name other than `TagSchedOps`, the direct link will not work; instead, check the list of [Log Groups for _all_ AWS Lambda functions](https://console.aws.amazon.com/cloudwatch/home#logs:prefix=/aws/lambda/).
+* After logging in to the [AWS Web Console](https://signin.aws.amazon.com/console), go to the [Log Group for the AWS Lambda function](https://console.aws.amazon.com/cloudwatch/home#logs:prefix=/aws/lambda/TagSchedOps-TagSchedOpsPerformLambdaFn-), in the CloudWatch Logs Console. If you gave the CloudFormation stack a name other than `TagSchedOps`, check the list of [Log Groups for _all_ AWS Lambda functions](https://console.aws.amazon.com/cloudwatch/home#logs:prefix=/aws/lambda/) instead.
 
 * Sample output:
 
@@ -168,7 +168,7 @@ Jump to key information: [Operation Tags](#enabling-operations) &bull; [Schedule
 
 ### Debugging Mode
 
-If the `DEBUG` environment variable is set, the AWS Lambda function outputs internal `parent_params` reference data, including the regular expressions used to match schedule tags.
+If the `DEBUG` environment variable is set, the function outputs internal `parent_params` reference data, including the regular expressions used to match schedule tags.
     
 To use the debugging mode,
 
@@ -186,23 +186,23 @@ To use the debugging mode,
 
 ## Master On/Off Switch
 
-* The TagSchedOpsAdminister policies authorize turning the AWS Lambda function on or off completely.
+* The TagSchedOpsAdminister policies authorize turning the function on or off completely.
 
-* After logging in to the [AWS Web Console](https://signin.aws.amazon.com/console), navigate to [Rules](https://console.aws.amazon.com/cloudwatch/home#rules:) in the CloudWatch Events Console. Click the radio button to the left of TagSchedOpsPerform10MinEventRule, then select Enable or Disable from the Actions pop-up menu, which is to the right of the blue "Create rule" button.
+* After logging in to the [AWS Web Console](https://signin.aws.amazon.com/console), navigate to [Rules](https://console.aws.amazon.com/cloudwatch/home#rules:) in the CloudWatch Events Console. Click the radio button to the left of TagSchedOpsPerform10MinEventRule, then select Enable or Disable from the Actions pop-up menu, next to the blue "Create rule" button.
 
-* Operations missed while the function was off will not occur when it is turned back on; there is no queue or backlog.
+* Operations missed will not occur when the function is turned back on; there is no queue or backlog.
 
-## "Child" Resources
+## Child Resources
 
 Some operations create a child resource (image or snapshot) from a parent resource (instance or volume).
  
-### Naming Conventions
+### Naming
 
 * The name of the child consists of these parts, separated by hyphens (`-`):
 
   |#|Part|Example|Purpose|
   |--|--|--|--|
-  |1|Prefix|`zm`|Identifies and groups children created by this project, in interfaces that do not expose tags. `z` will sort after most manually-created images and snapshots. `m` stands for "managed".|
+  |1|Prefix|`zm`|Identifies and groups children created by this project, for interfaces that do not expose tags. `z` will sort after most manually-created images and snapshots. `m` stands for "managed".|
   |2|Parent name or identifier|`webserver`|Conveniently indicates the parent. Derived from the `Name` tag (if not blank), the logical name (if supported), or the physical identifier (as a last resort). Multiple children of the same parent will sort together, by creation date (see next row).|
   |3|Date/time|`20171231T1400`|Indicates when the child was created. The last digit of the minute is normalized to 0. The `-` and `:` separators are removed for brevity, and because AWS does not allow `:` in resource names. (The [`managed-date-time` tag](#tag-managed-date-time) preserves the separators.)|
   |4|Random string|`g3a8a`|Guarantees unique names. Five characters are chosen from a small set of unambiguous letters and numbers.|
@@ -289,7 +289,7 @@ Resources tagged for unsupported combinations of operations are logged (with mes
    
    Footnotes:
    
-     1. <a name="policy-footnote-1"></a>This deviation from best practice is convenient but makes the policy suitable only for highly-trusted users. Never use this policy in any kind of automation.
+     1. <a name="policy-footnote-1"></a>This convenience makes the policy suitable only for highly-trusted users. Never use this policy for any kind of automation.
      2. <a name="policy-footnote-2"></a>For RDS, No Effect.
      2. <a name="policy-footnote-3"></a>Enabling tag required. For example, a user could only add `managed-image-once` to an EC2 instance already tagged with `managed-image`.
       
@@ -346,7 +346,7 @@ To upgrade,
    
    1. If the resource is for internal use, ignore it.
    
-   2. If, however, it is one of the IAM policies provided for your use, such as TagSchedOpsAdminister, open another Web browser tab or window, navigate to [Policies](https://console.aws.amazon.com/iam/home#/policies) in the IAM Console, click on the name of the policy, open the "Attached entities" tab, and detach it from all entities. Keep notes!
+   2. If, however, it is one of the IAM policies provided for your use, such as TagSchedOpsAdminister, open another Web browser tab or window, navigate to [Policies](https://console.aws.amazon.com/iam/home#/policies) in the IAM Console, click the name of the policy, open the "Attached entities" tab, and detach the policy from all entities. Keep notes!
 
 9. Click Execute, below the top-right corner of the CloudFormation Console window.
 
