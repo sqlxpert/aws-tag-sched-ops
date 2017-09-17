@@ -217,9 +217,9 @@ Some operations create a child resource (image or snapshot) from a parent resour
 
   |Tag(s)|Purpose|
   |--|--|
-  |`Name`|Supplements EC2 resource identifiers. The key is renamed `managed-parent-name` when the value is passed from parent to child, because the child has a `Name` tag of its own. This project handles `Name` specially for both EC2 and RDS, in case EC2-style tag semantics are eventually extended to RDS.|
+  |`Name`|Supplements EC2 resource identifier. The key is renamed `managed-parent-name` when the value is passed from parent to child, because the child has a `Name` tag of its own. The code handles `Name` specially for both EC2 and RDS, in case AWS someday extends EC2-style tag semantics to RDS.|
   |`managed-parent-name`|The `Name` tag value from the parent. Not added if blank.|
-  |`managed-parent-id`|The identifier of the parent EC2 instance, EC2 EBS volume, or RDS instance. AWS metadata captures this (for example, as `VolumeId`, for EC2 EBS volume snapshots), but the interface differs for each resource type.|
+  |`managed-parent-id`|The identifier of the parent instance or volume. AWS metadata captures this (for example, as `VolumeId`, for EC2 EBS volume snapshots), but the interface differs for each resource type.|
   |`managed-origin`|The operation (for example, `snapshot`) that created the child. Identifies resources created by this project. Also distinguishes special cases, such as whether an EC2 instance was or was not rebooted before an image was created.|
   |<a name="tag-managed-date-time">`managed-date-time`</a>|Groups resources created during the same 10-minute interval. The last digit of the minute is normalized to 0. AWS metadata captures the _exact_ time, and the interface differs for each resource type.|
 
