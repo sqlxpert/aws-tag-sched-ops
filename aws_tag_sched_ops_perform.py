@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Perform scheduled operations on AWS resources, based on tags
 
-This code is meant to serve as an AWS Lambda Function;
-It is not intended (or packaged) for direct execution.
+Intended as an AWS Lambda function. DIRECT EXECUTION NOT RECOMMENDED.
+Developers: see instructions below license notice.
 
 https://github.com/sqlxpert/aws-tag-sched-ops/
 
@@ -22,6 +22,49 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with TagSchedOps. If not, see http://www.gnu.org/licenses/
+
+To execute directly, for development purposes ONLY:
+
+0. Have a separate AWS account number, with no production resources.
+   If running on a local system, also have a dedicated IAM user with an AWS
+   API key ("Programmatic access") but no password (no "AWS Management Console
+   access") and no attached IAM policies (certainly not AdministratorAccess).
+
+1. Complete the Python 3 environment setup steps in requirements.txt
+
+2a. If running on an EC2 instance:
+    http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html
+    Add an IAM role to the instance. No AWS API key is needed.
+-OR-
+2b. If running on a local system:
+    http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html#cli-quick-configuration
+    Follow the AWS command-line interface (CLI) configuration prompts to save
+    the IAM user's AWS API Key ID and Secret Key locally, and set a region:
+      aws configure  # Consider --profile (see Named Profiles in linked doc.)
+
+3. Attach the Ec2TagSchedOpsPerform and RdsTagSchedOpsPerform IAM policies
+   to the IAM role (if running on an EC2 instance) or to the IAM user (if
+   running on a local system). Attach no other policies to the role or user.
+
+4. At the start of each session, activate your Python 3 virtual environment.
+
+5. If running on an EC2 instance, also set a region each time:
+     export AWS_DEFAULT_REGION='us-east-1'
+   Optionally, EC2 users too can set this once and for all, using the AWS CLI:
+     aws configure set region 'us-east-1'
+
+6. Run the code:
+     python3 aws_tag_sched_ops_perform.py
+
+7. Check Python syntax and style (must use Python 3 PyLint and PyCodStyle!):
+     cd aws-tag-sched-ops  # Home of pylintrc and PyCodeStyle setup.cfg
+     pylint      aws_tag_sched_ops_perform.py
+     pycodestyle aws_tag_sched_ops_perform.py
+
+8. Package for upload to S3, for use with AWS Lambda:
+     rm     aws_tag_sched_ops_perform.py.zip
+     zip    aws_tag_sched_ops_perform.py.zip aws_tag_sched_ops_perform.py
+     md5sum aws_tag_sched_ops_perform.py.zip
 """
 
 
