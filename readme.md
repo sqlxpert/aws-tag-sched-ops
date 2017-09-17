@@ -73,7 +73,7 @@ Jump to key information: [Operation Tags](#enabling-operations) &bull; [Schedule
 * To temporarily suspend an operation, delete its enabling tag. You may leave its schedule tag(s) in place.
 * Examples (for an EC2 or RDS instance):
 
-  |Tags and Values|Works?|Comment|
+  |Set of Tags|Works?|Comment|
   |--|--|--|
   |`managed-start` <br/>`managed-start-periodic`=`u=1,H=09,M=05`|Yes|Enabled and scheduled|
   |`managed-start`=`No` <br/>`managed-start-periodic`=`u=1,H=09,M=05`|Yes|Value of enabling tag is always ignored|
@@ -115,7 +115,7 @@ Jump to key information: [Operation Tags](#enabling-operations) &bull; [Schedule
       * Repeat a whole component to specify multiple values. For example, `d=01,d=11,d=21` means the 1st, 11th and 21st days of the month.
       * The `*` wildcard is allowed for day (_every day of the month_) and hour (_every hour of the day_).
       * For consistent one-day-a-month scheduling, avoid `d=29` through `d=31`.
-      * Labels are from `strftime` and weekday numbers are [ISO 8601-standard](https://en.wikipedia.org/wiki/ISO_8601#Week_dates) (different from `cron`).
+      * Label letters are from [`strftime`](http://manpages.ubuntu.com/manpages/xenial/man3/strftime.3.html) and weekday numbers are [ISO 8601-standard](https://en.wikipedia.org/wiki/ISO_8601#Week_dates) (different from `cron`).
 
   * Examples:
   
