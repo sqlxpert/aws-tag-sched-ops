@@ -323,7 +323,7 @@ To upgrade,
 3. Open the Overview tab. Upload the latest version of 
 [`aws_tag_sched_ops_perform.py.zip`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/aws_tag_sched_ops_perform.py.zip) to S3.
 
-4. Click the checkbox to the left of the newly-uploaded file. In the window that pops up, look below the Download button and check that "Latest version" is selected. In the Overview section of the pop-up window, find the Link and copy the text _after_ `versionId=`.
+4. Click the checkbox to the left of the newly-uploaded file. In the window that pops up, look below the Download button and reselect "Latest version". In the Overview section of the pop-up window, find the Link and copy the text _after_ `versionId=`. (The Version ID will not appear unless you expressly select "Latest version".)
 
    _Security Tip:_ Download the file from S3 and verify it. (In some cases, you can simply compare the ETag reported by S3.) <br/>`md5sum aws_tag_sched_ops_perform.py.zip` should yield `95260444a5410b75b48b6d8ef11d9022`
 
