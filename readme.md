@@ -188,9 +188,9 @@ To use the debugging mode,
 
 * The TagSchedOpsAdminister policies authorize turning the function on or off completely.
 
-* After logging in to the [AWS Web Console](https://signin.aws.amazon.com/console), navigate to [Rules](https://console.aws.amazon.com/cloudwatch/home#rules:) in the CloudWatch Events Console. Click the radio button to the left of TagSchedOpsPerform10MinEventRule, then select Enable or Disable from the Actions pop-up menu, next to the blue "Create rule" button.
+* After logging in to the [AWS Web Console](https://signin.aws.amazon.com/console), go to [Rules](https://console.aws.amazon.com/cloudwatch/home#rules:) in the CloudWatch Events Console. Click the radio button to the left of TagSchedOpsPerform10MinEventRule, then select Enable or Disable from the Actions pop-up menu, next to the blue "Create rule" button.
 
-* Operations missed will not occur when the function is turned back on; there is no queue or backlog.
+* Missed operations will not occur when the function is turned back on; there is no queue or backlog.
 
 ## Child Resources
 
