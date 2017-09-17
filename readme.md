@@ -54,9 +54,9 @@ Jump to key information: [Operation Tags](#enabling-operations) &bull; [Schedule
  
  * Weigh the benefits of rebooting against the risks. Rebooting is usually necessary to make software updates take effect, but a system may stop working afterward.
  
- * Be aware of AWS charges, including but not limited to: the costs of running the AWS Lambda function, storing CloudWatch Logs, and storing images and snapshots; the whole-hour cost when you stop an instance; the continued cost of storage for stopped instances; and the costs that accumulate when AWS automatically starts an RDS instance that has been stopped for too many days.
+ * Be aware of AWS charges, including but not limited to: the costs of running the AWS Lambda function, storing CloudWatch logs, and storing images and snapshots; the whole-hour cost when you stop an instance; the continued cost of storage for stopped instances; and the costs that accumulate when AWS automatically starts an RDS instance that has been stopped for too many days.
  
- * Secure your own AWS environment. Test the AWS Lambda function and the IAM policies from end-to-end, to make sure that they work correctly and meet your expectations. To help improve this project, please submit [bug reports and feature requests](https://github.com/sqlxpert/aws-tag-sched-ops/issues), as well as proposed [code changes](https://github.com/sqlxpert/aws-tag-sched-ops/pulls).
+ * Secure your own AWS environment. Test the function and the IAM policies from end-to-end, to make sure that they work correctly and meet your expectations. To help improve this project, please submit [bug reports and feature requests](https://github.com/sqlxpert/aws-tag-sched-ops/issues), as well as proposed [code changes](https://github.com/sqlxpert/aws-tag-sched-ops/pulls).
 
 ## Enabling Operations
 
@@ -235,9 +235,8 @@ If two or more operations on the same resource are scheduled for the same 10-min
 
 |Resource|Simultaneous Operations|Effect|
 |--|--|--|
-|EC2 instance|Stop + Reboot|Stop|
 |EC2 instance|Create Image + Reboot|Reboot then Create Image|
-|RDS instance|Stop + Reboot|Stop|
+|EC2 or RDS instance|Stop + Reboot|Stop|
 |RDS instance|Stop + Create Snapshot|Create Snapshot then Stop|
 
 The Create Image + Reboot combination for EC2 instances is useful. For example, you could take hourly backups but reboot only in conjunction with the midnight backup. The midnight backup would be guaranteed to be coherent for all files, but you could safely retrieve static files as of any given hour, from the other backups. To set up this example:
