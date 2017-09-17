@@ -93,7 +93,7 @@ Jump to: [Installation](#quick-start) &bull; [Operation Tags](#enabling-operatio
  * Use a comma (`,`) _without spaces_ to separate components. The order of components within a tag value does not matter.
  * `T` separates day information from time; it is not a variable.
  * [Repetitive (`-periodic`)](#repetitive-schedules) and [one-time (`-once`)](#one-time-schedules) schedule tags are supported. Prefix with the operation.
- * If the corresponding [enabling tag](#operation-enabling-tags) is missing, schedule tags will be ignored, and the operation will never occur.
+ * If the corresponding [enabling tag](#enabling-operations) is missing, schedule tags will be ignored, and the operation will never occur.
 
 ### Repetitive Schedules
 
