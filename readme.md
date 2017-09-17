@@ -16,7 +16,7 @@ Jump to key information: [Operation Tags](#enabling-operations) &bull; [Schedule
 
    _Security Tip:_ To see what you'll be installing, look in the [CloudFormation template](/cloudformation/aws_tag_sched_ops.yaml). <br/>`grep 'Type: "AWS::' aws_tag_sched_ops.yaml | sort | uniq` works well.
    
-2. Navigate to [Instances](https://console.aws.amazon.com/ec2/v2/home#Instances) in the EC2 Console. Right-click the Name or ID of an instance, select Instance Settings, and then select Add/Edit Tags. Add:
+2. Go to [Instances](https://console.aws.amazon.com/ec2/v2/home#Instances) in the EC2 Console. Right-click the Name or ID of an instance, select Instance Settings, and then select Add/Edit Tags. Add:
 
    |Key|Value|Note|
    |--|--|--|
@@ -40,7 +40,7 @@ Jump to key information: [Operation Tags](#enabling-operations) &bull; [Schedule
 
 6. Before deregistering (deleting) the sample image, note its ID, so that you can find and delete the associated [Snapshots](https://console.aws.amazon.com/ec2/v2/home#Snapshots:sort=desc:startTime). Also untag the instance.
 
-7. Navigate to [Users](https://console.aws.amazon.com/iam/home#/users) in the IAM Console. Click your regular (uprivileged) username. Click Add Permissions, then click "Attach existing policies directly". In the Search box, type `TagSchedOpsAdminister`. Add the two matching policies.
+7. Go to [Users](https://console.aws.amazon.com/iam/home#/users) in the IAM Console. Click your regular (uprivileged) username. Click Add Permissions, then click "Attach existing policies directly". In the Search box, type `TagSchedOpsAdminister`. Add the two matching policies.
       
    _Security Tip_: Review EC2 and RDS tagging privileges for all entities.
 
@@ -320,7 +320,7 @@ To upgrade,
 
 1. Log in to the [AWS Web Console](https://signin.aws.amazon.com/console) as a privileged user.
 
-2. Navigate to the [S3 Console](https://console.aws.amazon.com/s3/home). Click the name of the bucket where you keep CloudFormation templates. Open the Properties tab. If Versioning is disabled, click anywhere inside the box, select "Enable versioning", and click Save.
+2. Go to the [S3 Console](https://console.aws.amazon.com/s3/home). Click the name of the bucket where you keep CloudFormation templates. Open the Properties tab. If Versioning is disabled, click anywhere inside the box, select "Enable versioning", and click Save.
 
 3. Open the Overview tab. Upload the latest version of 
 [`aws_tag_sched_ops_perform.py.zip`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/aws_tag_sched_ops_perform.py.zip) to S3.
@@ -329,7 +329,7 @@ To upgrade,
 
    _Security Tip:_ Download the file from S3 and verify it. (In some cases, you can simply compare the ETag reported by S3.) <br/>`md5sum aws_tag_sched_ops_perform.py.zip` should yield `95260444a5410b75b48b6d8ef11d9022`
 
-5. Navigate to [Stacks](https://console.aws.amazon.com/cloudformation/home#/stacks) in the CloudFormation Console. Click the checkbox to the left of `TagSchedOps` (you might have given the stack a different name). From the Actions pop-up next to the blue Create Stack button, select Create Change Set For Current Stack.
+5. Go to [Stacks](https://console.aws.amazon.com/cloudformation/home#/stacks) in the CloudFormation Console. Click the checkbox to the left of `TagSchedOps` (you might have given the stack a different name). From the Actions pop-up next to the blue Create Stack button, select Create Change Set For Current Stack.
 
 6. Click Choose File, immediately below "Upload a template to Amazon S3", and navigate to your locally downloaded copy of the latest version of [`cloudformation/aws_tag_sched_ops.yaml`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
 
@@ -346,7 +346,7 @@ To upgrade,
    
    1. If the resource is for internal use, ignore it.
    
-   2. If, however, it is one of the IAM policies provided for your use, such as TagSchedOpsAdminister, open another Web browser tab or window, navigate to [Policies](https://console.aws.amazon.com/iam/home#/policies) in the IAM Console, click the name of the policy, open the "Attached entities" tab, and detach the policy from all entities. Keep notes!
+   2. If, however, it is one of the IAM policies provided for your use, such as TagSchedOpsAdminister, open another Web browser window, go to [Policies](https://console.aws.amazon.com/iam/home#/policies) in the IAM Console, click the name of the policy, open the "Attached entities" tab, and detach the policy from all entities. Keep notes!
 
 9. Click Execute, below the top-right corner of the CloudFormation Console window.
 
