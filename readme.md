@@ -5,10 +5,10 @@
 * **Save money** by stopping EC2 instances and RDS databases during off-hours
 * **Enhance reliability** by taking frequent backups
 * **Use tags** to schedule operations
-* Secure tagging, and backup deletion, with Identity and Access Management (IAM) policies
+* Secure tags and backups using Identity and Access Management (IAM) policies
 * Install and update easily, with CloudFormation
 
-Jump to: [Operation Tags](#enabling-operations) &bull; [Schedule Tags](#scheduling-operations) &bull; [Logging](#output) &bull; [Master On/Off](#master-onoff-switch) &bull; [Security](#security-model)
+Jump to: [Installation](#quick-start) &bull; [Operation Tags](#enabling-operations) &bull; [Schedule Tags](#scheduling-operations) &bull; [Logging](#output) &bull; [Master On/Off](#master-onoff-switch) &bull; [Security](#security-model)
 
 ## Quick Start
 
@@ -38,7 +38,7 @@ Jump to: [Operation Tags](#enabling-operations) &bull; [Schedule Tags](#scheduli
    
 5. After 20 minutes, check [Images](https://console.aws.amazon.com/ec2/v2/home#Images:sort=desc:creationDate) in the EC2 Console.
 
-6. Before deregistering (deleting) the sample image, note its ID, so that you can find and delete the associated [Snapshots](https://console.aws.amazon.com/ec2/v2/home#Snapshots:sort=desc:startTime). Also untag the instance.
+6. Before deregistering (deleting) the sample image, note its ID, so that you can delete the associated [Snapshots](https://console.aws.amazon.com/ec2/v2/home#Snapshots:sort=desc:startTime). Also untag the instance.
 
 7. Go to [Users](https://console.aws.amazon.com/iam/home#/users) in the IAM Console. Click your regular (uprivileged) username. Click Add Permissions, then click "Attach existing policies directly". In the Search box, type `TagSchedOpsAdminister`. Add the two matching policies.
       
@@ -46,17 +46,17 @@ Jump to: [Operation Tags](#enabling-operations) &bull; [Schedule Tags](#scheduli
 
 8. Log out of the AWS Console. You can now manage relevant tags, view logs, and decode errors, without logging in as a privileged user.
 
-## Advice
+## Warnings
 
- * Use other means to verify that scheduled AWS operations complete successfully. Verification is beyond the scope of this project.
+ * Check that scheduled AWS operations have completed successfully. Verification of completion is beyond the scope of this code.
  
- * Test your backups! No backup is complete until it has been restored successfully.
+ * Test your backups! Can they be restored successfully?
  
  * Weigh the benefits of rebooting against the risks. Rebooting is usually necessary to make software updates take effect, but a system may stop working afterward.
  
- * Be aware of AWS charges, including but not limited to: the costs of running the AWS Lambda function, storing CloudWatch logs, and storing images and snapshots; the whole-hour cost when you stop an instance; the continued cost of storage for stopped instances; and the costs that accumulate when AWS automatically starts an RDS instance that has been stopped for too many days.
+ * Be aware of AWS charges, including but not limited to: the costs of running the AWS Lambda function, storing CloudWatch logs, and storing images and snapshots; the whole-hour cost when you stop an instance; the continuing cost of storage for stopped instances; and  costs that resume when AWS automatically starts an RDS instance that has been stopped for too many days.
  
- * Secure your own AWS environment. Test the function and the IAM policies from end-to-end, to make sure that they work correctly and meet your expectations. To help improve this project, please submit [bug reports and feature requests](https://github.com/sqlxpert/aws-tag-sched-ops/issues), as well as proposed [code changes](https://github.com/sqlxpert/aws-tag-sched-ops/pulls).
+ * Secure your own AWS environment. Test the function and the IAM policies from end-to-end, to make sure that they work correctly and meet your expectations. To help improve this project, please submit [bug reports and feature requests](https://github.com/sqlxpert/aws-tag-sched-ops/issues), as well as [proposed changes](https://github.com/sqlxpert/aws-tag-sched-ops/pulls).
 
 ## Enabling Operations
 
@@ -337,6 +337,8 @@ To upgrade,
    |Change set name|_Type a name of your choice_|
    |TagSchedOpsPerformCodeVersion|_Paste the Version ID, from S3_|
    
+   _A different S3 Version ID makes CloudFormation recognize new AWS Lambda function source code. Once you are familiar with the full upgrade procedure, you may skip Steps 2-5 and leave TagSchedOpsPerformCodeVersion as it was, when you are certain that only the CloudFormation template, not the function source code, is changing._
+   
 7. Click through the remaining steps. Finally, click "Create change set".
 
 8. In the Changes section, check the Replacement column.
@@ -386,3 +388,5 @@ This work is dedicated to [Ernie Salazar](https://github.com/ehsalazar), R&eacut
 |Documentation files (including this readme file)|[GNU Free Documentation License (FDL) 1.3](http://www.gnu.org/licenses/fdl-1.3.html)|[zlicense-doc.txt](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/zlicense-doc.txt)|
 
 Copyright 2017, Paul Marcelin
+
+Contact: `marcelin` at `alumni.CarnegieMellon.edu` or at `cmu.edu` (replace at with `@`)
