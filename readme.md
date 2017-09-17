@@ -12,7 +12,7 @@
 
 1. Log in to the [AWS Web Console](https://signin.aws.amazon.com/console) as a privileged user.
 
-   _Security Tip:_ To see which kinds of resources you'll be installing, look in the [CloudFormation template](/cloudformation/aws_tag_sched_ops.yaml). <br/>`grep 'Type: "AWS::' aws_tag_sched_ops.yaml | sort | uniq --count` works well.
+   _Security Tip:_ To see which kinds of resources you'll be installing, look in the [CloudFormation template](/cloudformation/aws_tag_sched_ops.yaml). <br/>`grep 'Type: "AWS::' aws_tag_sched_ops.yaml | sort | uniq` works well.
    
 2. Navigate to [Instances](https://console.aws.amazon.com/ec2/v2/home#Instances) in the EC2 Console. Right-click the Name or ID of an instance, select Instance Settings, and then select Add/Edit Tags. Add:
 
@@ -25,7 +25,7 @@
 
    _Security Tip:_ Remove public read and write access from the S3 bucket. Carefully limit write access.
 
-   _Security Tip:_ Download the file from S3 and verify it. <br/>`md5sum aws_tag_sched_ops_perform.py.zip` should yield `95260444a5410b75b48b6d8ef11d9022`
+   _Security Tip:_ Download the file from S3 and verify it. (In some cases, you can simply compare the ETag reported by S3.)<br/>`md5sum aws_tag_sched_ops_perform.py.zip` should yield `95260444a5410b75b48b6d8ef11d9022`
 
 4. Navigate to the [CloudFormation Console](https://console.aws.amazon.com/cloudformation/home). Click Create Stack. Click Choose File, immediately below "Upload a template to Amazon S3", and navigate to your locally downloaded copy of [`cloudformation/aws_tag_sched_ops.yaml`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
 
@@ -138,7 +138,7 @@
 
 * After logging in to the [AWS Web Console](https://signin.aws.amazon.com/console), go to the [CloudWatch Log Group for the AWS Lambda function](https://console.aws.amazon.com/cloudwatch/home#logs:prefix=/aws/lambda/TagSchedOps-TagSchedOpsPerformLambdaFn-). If you gave the CloudFormation stack a name other than `TagSchedOps`, the direct link will not work; instead, check the list of [Log Groups for _all_ AWS Lambda functions](https://console.aws.amazon.com/cloudwatch/home#logs:prefix=/aws/lambda/).
 
-* Sample output from one run:
+* Sample output:
 
   |`initiated`|`svc`|`rsrc_type`|`rsrc_id`|`op`|`child_rsrc_type`|`child`|`child_op`|`note`|
   |--|--|--|--|--|--|--|--|--|
@@ -146,9 +146,10 @@
   |`1`|`ec2`|`Instance`|`i-08abefc70375d36e8`|`reboot-image`|`Image`|`zm-my-server-20170912T2040-83xx7`|||
   |`1`|`ec2`|`Instance`|`i-08abefc70375d36e8`|`reboot-image`|`Image`|`ami-bc9fcbc6`|`tag`||
   |`1`|`ec2`|`Instance`|`i-04d2c0140da5bb13e`|`start`|||||
+  |`0`|`ec2`|`Instance`|`i-09cdea279388d35a2`|`start,stop`||||`OPS_UNSUPPORTED`|
   |`0`|`rds`|`DBInstance`|`my-database`|`reboot-failover`||||...`ForceFailover cannot be specified`...|
   
-  _Execution began September 12, 2017 between 20:40 and 20:50 UTC. An EC2 instance is being rebooted and backed up, but the instance may not yet be available again, and the image may not yet be complete; the image is named `zm-my-server-20170912T2040-83xx7`. The image has received ID `ami-bc9fcbc6`, and has been tagged. A different EC2 instance is starting up, but may not yet be available. An RDS database instance could not be rebooted with fail-over. (The full error message goes on to explain that it is not a multi-zone instance.)_
+  _This run began September 12, 2017 between 20:40 and 20:50 UTC. An EC2 instance is being rebooted and backed up, but the instance may not yet be ready again, and the image may not yet be complete; the image is named `zm-my-server-20170912T2040-83xx7`. The image has received ID `ami-bc9fcbc6`, and has been tagged. A different EC2 instance is starting up, but may not yet be ready. A third EC2 instance was tagged for a simultaneous start and stop, a combination that is not supported. An RDS database instance could not be rebooted with fail-over. (The full error message goes on to explain that it is not multi-zone.)_
 
 * There is a header line, an information line, and one line for each operation requested. (Tagging is usually a separate operation.)
 
@@ -180,8 +181,6 @@ To use the debugging mode,
 5. After 10 minutes, find the debugging information in [CloudWatch Logs](#output).
     
 6. Turn off debugging mode right away, because the extra information is lengthy. Back on the Code tab, scroll down and click Remove, to the far right of `DEBUG`. Repeat [Step 4](#debug-step-4) to save.
-
-7. Log out of the AWS Console.
 
 ## Master On/Off Switch
 
@@ -311,9 +310,51 @@ Resources tagged for unsupported combinations of operations are logged (with mes
 
     * In RDS, an entity that can add specific tags can add _any other_ tags in the same request. Limit RDS tagging privileges -- even the provided policies -- to highly-trusted users.
 
-## Future Work
+## Software Updates
 
- * Documentation update: CloudFormation change set instructions, for template and AWS Lambda function source code updates (includes S3 object versioning)
+New versions of the AWS Lambda function source code and the CloudFormation template will be released from time to time.
+
+To upgrade,
+
+1. Log in to the [AWS Web Console](https://signin.aws.amazon.com/console) as a privileged user.
+
+2. Navigate to the [S3 Console](https://console.aws.amazon.com/s3/home). Click the name of the bucket where you keep CloudFormation templates. Open the Properties tab. If Versioning is disabled, click anywhere inside the box, select "Enable versioning", and click Save.
+
+3. Open the Overview tab. Upload the latest version of 
+[`aws_tag_sched_ops_perform.py.zip`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/aws_tag_sched_ops_perform.py.zip) to S3.
+
+4. Click the checkbox to the left of the newly-uploaded file. In the window that pops up, look below the Download button and check that "Latest version" is selected. In the Overview section of the pop-up window, find the Link and copy the text _after_ `versionId=`.
+
+   _Security Tip:_ Download the file from S3 and verify it. (In some cases, you can simply compare the ETag reported by S3.) <br/>`md5sum aws_tag_sched_ops_perform.py.zip` should yield `95260444a5410b75b48b6d8ef11d9022`
+
+5. Navigate to [Stacks](https://console.aws.amazon.com/cloudformation/home#/stacks) in the CloudFormation Console. Click the checkbox to the left of `TagSchedOps` (you might have given the stack a different name). From the Actions pop-up next to the blue Create Stack button, select Create Change Set For Current Stack.
+
+6. Click Choose File, immediately below "Upload a template to Amazon S3", and navigate to your locally downloaded copy of the latest version of [`cloudformation/aws_tag_sched_ops.yaml`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
+
+   |Item|Value|
+   |--|--|
+   |Change set name|_Type a name of your choice_|
+   |TagSchedOpsPerformCodeVersion|_Paste the Version ID, from S3_|
+   
+7. Click through the remaining steps. Finally, click "Create change set".
+
+8. In the Changes section, check the Replacement column.
+
+   If True is shown on any row, check the Logical ID.
+   
+   1. If the resource is for internal use, ignore it.
+   
+   2. If, however, it is one of the IAM policies provided for your use, such as TagSchedOpsAdminister, open another Web browser tab or window, navigate to [Policies](https://console.aws.amazon.com/iam/home#/policies) in the IAM Console, click on the name of the policy, open the "Attached entities" tab, and detach it from all entities. Keep notes!
+
+9. Click Execute, below the top-right corner of the CloudFormation Console window.
+
+10. Refresh until the stack's status shows `UPDATE_COMPLETE`, in green.
+
+11. If you had to detach any IAM policies in Step 9, return to the IAM Console and attach the replacement policies to the original entities.
+
+12. Repeat your usual functional and security tests.
+   
+## Future Work
      
  * Automated testing, consisting of a CloudFormation template to create sample AWS resources, and a program (perhaps another AWS Lambda function!) to check whether the intended operations were performed. An AWS Lambda function would also be ideal for testing security policies, while cycling through different IAM roles.
  
