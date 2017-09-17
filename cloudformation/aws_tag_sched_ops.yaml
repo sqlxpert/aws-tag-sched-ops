@@ -4,6 +4,11 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: "Start, reboot, stop and back up AWS resources using tag-based schedules. Copyright 2017, Paul Marcelin. https://github.com/sqlxpert/aws-tag-sched-ops/"
 
 
+# To check YAML syntax, first complete the setup steps
+# in aws-tag-sched-ops/requirements.txt and then run:
+#   yamllint -c aws-tag-sched-ops/.yamllint aws-tag-sched-ops/cloudformation/aws_tag_sched_ops.yaml
+
+
 # https://github.com/sqlxpert/aws-tag-sched-ops/
 #
 # Copyright 2017, Paul Marcelin
