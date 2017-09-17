@@ -8,6 +8,8 @@
 * Secure tagging, and backup deletion, with Identity and Access Management (IAM) policies
 * Install and update easily, with CloudFormation
 
+Jump to key information: [Operation Tags](#enabling-operations) &bull; [Schedule Tags](#scheduling-operations) &bull; [Logging](#output) &bull; [Master On/Off](#master-onoff-switch) &bull; [Security](#security-model)
+
 ## Quick Start
 
 1. Log in to the [AWS Web Console](https://signin.aws.amazon.com/console) as a privileged user.
