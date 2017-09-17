@@ -73,7 +73,7 @@ Jump to key information: [Operation Tags](#enabling-operations) &bull; [Schedule
 * To temporarily suspend an operation, delete its enabling tag. You may leave its schedule tag(s) in place.
 * Examples (for an EC2 or RDS instance):
 
-  |Tags and Values|Operation?|Comment|
+  |Tags and Values|Works?|Comment|
   |--|--|--|
   |`managed-start` <br/>`managed-start-periodic`=`u=1,H=09,M=05`|Yes|Enabled and scheduled|
   |`managed-start`=`No` <br/>`managed-start-periodic`=`u=1,H=09,M=05`|Yes|Value of enabling tag is always ignored|
@@ -151,7 +151,7 @@ Jump to key information: [Operation Tags](#enabling-operations) &bull; [Schedule
   |`0`|`ec2`|`Instance`|`i-09cdea279388d35a2`|`start,stop`||||`OPS_UNSUPPORTED`|
   |`0`|`rds`|`DBInstance`|`my-database`|`reboot-failover`||||...`ForceFailover cannot be specified`...|
   
-  _This run began September 12, 2017 between 20:40 and 20:50 UTC. An EC2 instance is being rebooted and backed up, but the instance may not yet be ready again, and the image may not yet be complete; the image is named `zm-my-server-20170912T2040-83xx7`. The image has received ID `ami-bc9fcbc6`, and has been tagged. A different EC2 instance is starting up, but may not yet be ready. A third EC2 instance was tagged for a simultaneous start and stop, a combination that is not supported. An RDS database instance could not be rebooted with fail-over. (The full error message goes on to explain that it is not multi-zone.)_
+  _This run began September 12, 2017 between 20:40 and 20:50 UTC. An EC2 instance is being rebooted and backed up, but the instance may not yet be ready again, and the image may not yet be complete; the image is named `zm-my-server-20170912T2040-83xx7`. The image has received ID `ami-bc9fcbc6`, and has been tagged. A different EC2 instance is starting up, but may not yet be ready. A third EC2 instance is tagged for simultaneous start and stop, a combination that is not supported. An RDS database instance could not be rebooted with fail-over. (The full error message goes on to explain that it is not multi-zone.)_
 
 * There is a header line, an information line, and one line for each operation requested. (Tagging is usually a separate operation.)
 
