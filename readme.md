@@ -350,7 +350,7 @@ To upgrade,
 
 10. Refresh until the stack's status shows `UPDATE_COMPLETE`, in green.
 
-11. If you had to detach any IAM policies in Step 9, return to the IAM Console and attach the replacement policies to the original entities.
+11. If you had to detach any IAM policies, return to the IAM Console and attach the replacement policies to the original entities.
 
 12. Repeat your usual functional and security tests.
    
