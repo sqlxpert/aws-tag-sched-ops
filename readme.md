@@ -54,7 +54,7 @@ Jump to: [Installation](#quick-start) &bull; [Operation Tags](#enabling-operatio
  
  * Weigh the benefits of rebooting against the risks. Rebooting is usually necessary to make software updates take effect, but a system may stop working afterward.
  
- * Be aware of AWS charges, including but not limited to: the costs of running the AWS Lambda function, storing CloudWatch logs, and storing images and snapshots; the whole-hour cost when you stop an instance; the continuing cost of storage for stopped instances; and  costs that resume when AWS automatically starts an RDS instance that has been stopped for too many days.
+ * Be aware of AWS charges, including but not limited to: the costs of running the AWS Lambda function, storing CloudWatch logs, and storing images and snapshots; the whole-hour cost when you stop an RDS, EC2 Windows, or EC2 commercial Linux instance (but [most EC2 instances have a 1-minute minimum charge](https://aws.amazon.com/blogs/aws/new-per-second-billing-for-ec2-instances-and-ebs-volumes/), effective October 2, 2017!); the continuing cost of storage for stopped instances; and costs that resume when AWS automatically starts an RDS instance that has been stopped for too many days.
  
  * Secure your own AWS environment. Test the function and the IAM policies from end-to-end, to make sure that they work correctly and meet your expectations. To help improve this project, please submit [bug reports and feature requests](https://github.com/sqlxpert/aws-tag-sched-ops/issues), as well as [proposed changes](https://github.com/sqlxpert/aws-tag-sched-ops/pulls).
 
