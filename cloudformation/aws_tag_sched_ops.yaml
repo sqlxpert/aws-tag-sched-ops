@@ -417,7 +417,7 @@ Resources:
     Type: "AWS::IAM::ManagedPolicy"
     DeletionPolicy: Delete
     Properties:
-      Description: "All EC2 instances, EBS volumes: describe; view tags; add, delete tags for scheduled operations. All EC2 images, EBS snapshots: describe; view tags; add, delete tags for deletion, but cannot delete images or snapshots. All CloudWatch events: describe. Event for TagSchedOps: enable and disable."
+      Description: "All EC2 instances, EBS volumes: describe; view tags; add, delete tags for scheduled operations. All EC2 images, EBS snapshots: describe; view tags; cannot delete images or snapshots, or tag for deletion. All CloudWatch events: describe. Event for TagSchedOps: enable and disable."
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -473,7 +473,9 @@ Resources:
                   # One-time schedule tags:
                   - "managed-snapshot-once"
 
-          - Effect: Allow
+          # Security: an entity that schedules backups cannot tag for deletion
+
+          - Effect: Deny
             Action:
               - "ec2:CreateTags"
               - "ec2:DeleteTags"
@@ -481,7 +483,7 @@ Resources:
               - !Sub "arn:aws:ec2:${AWS::Region}::image/*"
               - !Sub "arn:aws:ec2:${AWS::Region}::snapshot/*"
             Condition:
-              "ForAllValues:StringEquals":
+              "ForAnyValue:StringEquals":
                 "aws:TagKeys":
                   - "managed-delete"
 
@@ -538,7 +540,7 @@ Resources:
     Type: "AWS::IAM::ManagedPolicy"
     DeletionPolicy: Delete
     Properties:
-      Description: "All RDS instances: describe; view tags; add, delete tags for scheduled operations. All RDS snapshots: describe; view tags; add, delete tags for deletion, but cannot delete snapshots.  All CloudWatch events: describe. Event for TagSchedOps: enable and disable. Due to an AWS limitation, ANY tag can be added with an intended tag. Withholding all RDS tagging privileges is safer than relying on this policy."
+      Description: "All RDS instances: describe; view tags; add, delete tags for scheduled operations. All RDS snapshots: describe; view tags; cannot delete snapshots, or tag for deletion.  All CloudWatch events: describe. Event for TagSchedOps: enable and disable. Due to an AWS limitation, ANY tag can be added with an intended tag. Withholding all RDS tagging privileges is safer than relying on this policy."
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -720,7 +722,10 @@ Resources:
               StringLike:
                 "rds:req-tag/managed-snapshot-stop-once": "*"
 
-          - Effect: Allow
+          # Security: An entity that can schedule backups
+          #           cannot delete them, or tag them for deletion.
+
+          - Effect: Deny
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
@@ -728,7 +733,7 @@ Resources:
             Condition:
               StringLike:
                 "rds:req-tag/managed-delete": "*"
-          - Effect: Deny  # Sec: an entity that tags for deletion cannot delete
+          - Effect: Deny
             Action: "rds:DeleteDBSnapshot"
             Resource: !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:snapshot:*"
 
@@ -1123,7 +1128,9 @@ Resources:
           #           cannot delete them, or tag them for deletion.
 
           - Effect: Deny
-            Action: "rds:AddTagsToResource"
+            Action:
+              - "rds:AddTagsToResource"
+              - "rds:RemoveTagsFromResource"
             Resource: !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:snapshot:*"
             Condition:
               StringLike:
@@ -1447,7 +1454,9 @@ Resources:
           #           cannot delete them, or tag them for deletion.
 
           - Effect: Deny
-            Action: "rds:AddTagsToResource"
+            Action:
+              - "rds:AddTagsToResource"
+              - "rds:RemoveTagsFromResource"
             Resource: !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:snapshot:*"
             Condition:
               StringLike:
@@ -1902,7 +1911,9 @@ Resources:
               - !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:db:*"
               - !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:snapshot:*"
           - Effect: Deny  # ...and cannot tag for deletion
-            Action: "rds:AddTagsToResource"
+            Action:
+              - "rds:AddTagsToResource"
+              - "rds:RemoveTagsFromResource"
             Resource: !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:snapshot:*"
             Condition:
               StringLike:
