@@ -279,18 +279,17 @@ Resources tagged for unsupported combinations of operations are logged (with mes
    |Policy Name|Manage Enabling Tags|Manage One-Time Schedule Tags|Manage Repetitive Schedule Tags|Back Up|Manage Deletion Tag|Delete|
    |--|--|--|--|--|--|--|
    |_Scope &rarr;_|_Instances, Volumes_|_Instances, Volumes_|_Instances, Volumes_|_Instances, Volumes_|_Images, Snapshots_|_Images, Snapshots_|
-   |TagSchedOpsAdminister|Allow|Allow|Allow|No effect|Allow [<sup>i</sup>](#policy-footnote-1)|Deny|
-   |TagSchedOpsTagScheduleOnce|Deny [<sup>ii</sup>](#policy-footnote-2)|Allow [<sup>iii</sup>](#policy-footnote-3)|Deny|No effect|Deny|Deny|
-   |TagSchedOpsTagSchedulePeriodic|Deny [<sup>ii</sup>](#policy-footnote-2)|No effect|Allow [<sup>iii</sup>](#policy-footnote-3)|No Effect|Deny|Deny|
+   |TagSchedOpsAdminister|Allow|Allow|Allow|No effect|Deny|Deny|
+   |TagSchedOpsTagScheduleOnce|Deny [<sup>i</sup>](#policy-footnote-1)|Allow [<sup>ii</sup>](#policy-footnote-2)|Deny|No effect|Deny|Deny|
+   |TagSchedOpsTagSchedulePeriodic|Deny [<sup>i</sup>](#policy-footnote-1)|No effect|Allow [<sup>ii</sup>](#policy-footnote-2)|No Effect|Deny|Deny|
    |TagSchedOpsTagForDeletion|Deny|Deny|Deny|Deny|Allow|Deny|
    |TagSchedOpsDelete|Deny|Deny|Deny|Deny|Deny|Allow|
    |TagSchedOpsNoTag|Deny|Deny|Deny|No effect|Deny|Deny|
    
    Footnotes:
    
-     1. <a name="policy-footnote-1"></a>This convenience makes the policy suitable only for highly-trusted users. Never use this policy for any kind of automation.
-     2. <a name="policy-footnote-2"></a>For RDS, No Effect.
-     2. <a name="policy-footnote-3"></a>Enabling tag required. For example, a user could only add `managed-image-once` to an EC2 instance already tagged with `managed-image`.
+     1. <a name="policy-footnote-1"></a>For RDS, No Effect.
+     2. <a name="policy-footnote-2"></a>Enabling tag required. For example, a user could only add `managed-image-once` to an EC2 instance already tagged with `managed-image`.
       
    Because Deny always takes precendence in IAM, some policy combinations conflict.
    
