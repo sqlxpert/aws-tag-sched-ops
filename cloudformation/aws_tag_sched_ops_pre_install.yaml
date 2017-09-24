@@ -1,0 +1,300 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: "Prerequisite for installing TagSchedOps using CloudFormation with an assumed role, or CloudFormation StackSets. Copyright 2017, Paul Marcelin. https://github.com/sqlxpert/aws-tag-sched-ops/"
+
+
+# To check YAML syntax, first complete the setup steps
+# in aws-tag-sched-ops/requirements.txt and then run:
+#   yamllint -c aws-tag-sched-ops/.yamllint aws-tag-sched-ops/cloudformation/aws_tag_sched_ops.yaml
+
+
+# https://github.com/sqlxpert/aws-tag-sched-ops/
+#
+# Copyright 2017, Paul Marcelin
+#
+# This file is part of TagSchedOps.
+#
+# TagSchedOps is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# TagSchedOps is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with TagSchedOps. If not, see http://www.gnu.org/licenses/
+
+
+Parameters:
+  AdministratorAccountId:
+    Type: String
+    Description: "AWS account number for StackSets administration account (where parent StackSets will be created). Does not change the AWS account in AWSCloudFormationStackSetExecutionRoleStatus, if that role already exists."
+    MaxLength: 12
+    MinLength: 12
+  AWSCloudFormationStackSetExecutionRoleStatus:
+    Type: String
+    Description: "Status of the service role for CloudFormation StackSets, AWSCloudFormationStackSetExecutionRole, in current account (a StackSets target account, where child CloudFormation stacks will be created)"
+    AllowedValues:
+      - "Role does not exist"
+      - "Role exists, AdministratorAccess policy attached"
+      - "Role exists, CloudFormationFullAccess and StackSetExecutionMisc attached"
+      - "Role exists, policies above not attached"
+      # In the rare case where the CloudFormationFullAccess and
+      # CloudFormationStackSetExecutionMisc IAM policies exist (from a prior
+      # installation) but are no longer attached to the role, the user should
+      # re-attach them, or simply delete them, before answering this question.
+      # Custom name-related limitations prevent using a CloudFormation
+      # template to attach the pre-existing policies to the pre-existing role.
+    Default: "Role does not exist"
+  LambdaCodeS3Bucket:
+    Type: String
+    Description: "Name (with no prefix of any kind) of the S3 bucket where AWS Lambda function source code is stored"
+  TagSchedOpsCloudFormationStackNamePrefix:
+    Type: String
+    Description: "First part of the name of TagSchedOps CloudFormation stacks. (If you plan to create the TagSchedOps stack in one or more regions, using CloudFormation with an assumed role, and without StackSets, the name of each such stack must start with the prefix that you specify here.)"
+    Default: "TagSchedOps"
+
+Conditions:
+  AWSCloudFormationStackSetExecutionRoleCreate:
+    !Equals [ !Ref AWSCloudFormationStackSetExecutionRoleStatus, "Role does not exist" ]
+  CloudFormationStackSetExecutionPoliciesCreateAttach:
+    # Custom, least-privilege alternative to AdministratorAccess
+    !Equals [ !Ref AWSCloudFormationStackSetExecutionRoleStatus, "Role exists, policies above not attached" ]
+  AdministratorAndTargetSameAccount:
+    !Equals [ !Ref AdministratorAccountId, !Ref "AWS::AccountId" ]
+
+Resources:
+
+
+  AWSCloudFormationStackSetExecutionRole:
+    # Replaces Step 2 in
+    # http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/stacksets-prereqs.html#stacksets-prereqs-accountsetup
+    # Adapted from
+    # https://s3.amazonaws.com/cloudformation-stackset-sample-templates-us-east-1/AWSCloudFormationStackSetExecutionRole.yml
+    Type: AWS::IAM::Role
+    Condition: AWSCloudFormationStackSetExecutionRoleCreate
+    DeletionPolicy: Retain  # For any StackSets other than TagSchedOps
+    Properties:
+      Path: "/"
+      RoleName: "AWSCloudFormationStackSetExecutionRole"
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: { "AWS": !Ref AdministratorAccountId }
+            Action: "sts:AssumeRole"
+
+
+  TagSchedOpsCloudFormation:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Delete
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: { "Service": "cloudformation.amazonaws.com" }
+            Action: "sts:AssumeRole"
+
+
+  CloudFormationFullAccess:
+    Type: "AWS::IAM::ManagedPolicy"
+    Condition: CloudFormationStackSetExecutionPoliciesCreateAttach
+    DeletionPolicy: Retain  # For any StackSets other than TagSchedOps
+    Properties:
+      ManagedPolicyName: "CloudFormationFullAccess"
+      Description: "CloudFormation: perform any action. (Needed for the CloudFormation StackSets service role in target accounts; not currently offered as an AWS-managed policy.)"
+      Roles:
+        # If role is being created by this template: CloudFormation dependency
+        # If role already exists: no dependency (prevents an error)
+        - !If [ AWSCloudFormationStackSetExecutionRoleCreate, !Ref AWSCloudFormationStackSetExecutionRole, "AWSCloudFormationStackSetExecutionRole" ]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: "cloudformation:*"
+            Resource: "*"
+
+
+  CloudFormationStackSetExecutionMisc:
+    Type: "AWS::IAM::ManagedPolicy"
+    Condition: CloudFormationStackSetExecutionPoliciesCreateAttach
+    DeletionPolicy: Retain  # For any StackSets other than TagSchedOps
+    Properties:
+      ManagedPolicyName: "CloudFormationStackSetExecutionMisc"
+      Description: "S3: read from executor-templates-* buckets. SNS: publish to StackSet-* topics. (Needed for the CloudFormation StackSets service role in target accounts.)"
+      Roles:
+        # If role is being created by this template: CloudFormation dependency
+        # If role already exists: no dependency (prevents an error)
+        - !If [ AWSCloudFormationStackSetExecutionRoleCreate, !Ref AWSCloudFormationStackSetExecutionRole, "AWSCloudFormationStackSetExecutionRole" ]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "sns:Publish"
+            # Requirement discovered through StackSets Console error:
+            #   User: arn:aws:sts::ACCOUNT1:assumed-role/
+            #   AWSCloudFormationStackSetExecutionRole/UUID1 is
+            #   not authorized to perform: SNS:Publish on resource:
+            #   arn:aws:sns:REGION:ACCOUNT2:StackSet-UUID2
+            Resource: !Sub "arn:aws:sns:*:*:StackSet-*"
+          - Effect: Allow
+            Action:
+              - "s3:GetObject*"
+            # Requirement discovered through StackSets Console error:
+            #   TemplateURL must reference a valid
+            #   S3 object to which you have access.
+            # Bucket name discovered through CloudTrail trail:
+            #   Trail settings: Apply trail to all regions
+            #   Data events: Select all S3 buckets in your account, Read
+            Resource: "arn:aws:s3:::executor-templates-*/*"
+
+
+  TagSchedOpsInstall:
+    Type: "AWS::IAM::ManagedPolicy"
+    DeletionPolicy: Delete
+    Properties:
+      Description: "TagSchedOps: create, update, delete CloudFormation stack."
+      Roles:
+        - !Ref TagSchedOpsCloudFormation
+
+        # If role is being created by this template: CloudFormation dependency
+        # If role already exists: no dependency (prevents an error)
+        - !If [ AWSCloudFormationStackSetExecutionRoleCreate, !Ref AWSCloudFormationStackSetExecutionRole, "AWSCloudFormationStackSetExecutionRole" ]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+
+          - Effect: Allow
+            Action:
+              - "s3:GetObject"
+              - "s3:GetObjectVersion"
+            # Sufficient only for the most basic scenario: single-account,
+            # multi-region. For a multi-account scenario, the user should
+            # instead attach a bucket policy to the bucket for each region,
+            # allowing access by all StackSets taget accounts. Use of
+            # S3 ACLs, let alone public read access, is discouraged.
+            # (CloudFormation allows the Condition key in resource blocks,
+            # but not inside property, like this IAM policy statement.
+            # Work-around: conditionally set Resource to a nonsense ARN.)
+            Resource: !If [ AdministratorAndTargetSameAccount, !Sub "arn:aws:s3:::${LambdaCodeS3Bucket}-*/*", "arn:aws:s3:::NO-SUCH-BUCKET" ]
+
+          - Effect: Allow
+            Action:
+              - "lambda:CreateFunction"
+              - "lambda:GetFunction"
+              - "lambda:DeleteFunction"
+              - "lambda:UpdateFunctionCode"
+              - "lambda:GetFunctionConfiguration"
+              - "lambda:UpdateFunctionConfiguration"
+              - "lambda:AddPermission"
+              - "lambda:RemovePermission"
+            Resource:
+              # CloudFormation StackSets installation:
+              - !Sub "arn:aws:lambda:*:${AWS::AccountId}:function:StackSet-*TagSchedOps*"
+              # CloudFormation installation (assumed role, no StackSets):
+              - !Sub "arn:aws:lambda:*:${AWS::AccountId}:function:${TagSchedOpsCloudFormationStackNamePrefix}*"
+
+          - Effect: Allow
+            Action:
+              - "lambda:CreateEventSourceMapping"
+              - "lambda:UpdateEventSourceMapping"
+              - "lambda:DeleteEventSourceMapping"
+            Resource: "*"
+            Condition:
+              StringLike:
+                "lambda:FunctionArn":
+                  # CloudFormation StackSets installation:
+                  - !Sub "arn:aws:lambda:*:${AWS::AccountId}:function:StackSet-*TagSchedOps*"
+                  # CloudFormation installation (assumed role, no StackSets):
+                  - !Sub "arn:aws:lambda:*:${AWS::AccountId}:function:${TagSchedOpsCloudFormationStackNamePrefix}*"
+
+          - Effect: Allow
+            Action:
+              - "logs:CreateLogGroup"
+              - "logs:PutRetentionPolicy"
+              - "logs:DeleteRetentionPolicy"
+            Resource:
+              # CloudFormation StackSets installation:
+              - !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group:/aws/lambda/StackSet-*TagSchedOps*"
+              # CloudFormation installation (assumed role, no StackSets):
+              - !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group:/aws/lambda/${TagSchedOpsCloudFormationStackNamePrefix}*"
+
+          - Effect: Allow
+            Action:
+              - "logs:DescribeLogGroups"
+            Resource: "*"
+
+          - Effect: Allow
+            Action:
+              - "events:PutRule"
+              - "events:DescribeRule"
+              - "events:EnableRule"
+              - "events:DisableRule"
+              - "events:DeleteRule"
+              - "events:PutTargets"
+              - "events:ListTargetsByRule"
+              - "events:RemoveTargets"
+            Resource:
+              # CloudFormation StackSets installation:
+              - !Sub "arn:aws:events:*:${AWS::AccountId}:rule/StackSet-*TagSchedOps*"
+              # CloudFormation installation (assumed role, no StackSets):
+              - !Sub "arn:aws:events:*:${AWS::AccountId}:rule/${TagSchedOpsCloudFormationStackNamePrefix}*"
+
+          - Effect: Allow
+            Action: "iam:PassRole"
+            Resource:
+              # ARNs below MUST agree with role's CloudFormation
+              # logical name in cloudformation/aws_tag_sched_ops.yaml
+              # (NB: StackSets seems to truncate role names)
+
+              # CloudFormation StackSets installation:
+              - !Sub "arn:aws:iam::${AWS::AccountId}:role/StackSet-*TagSchedOps*"
+              # CloudFormation installation (assumed role, no StackSets):
+              - !Sub "arn:aws:iam::${AWS::AccountId}:role/${TagSchedOpsCloudFormationStackNamePrefix}*-TagSchedOpsPerformLambdaRole-*"
+
+          - Effect: Allow
+            Action:
+              - "iam:CreatePolicy"
+              - "iam:GetPolicy"
+              - "iam:DeletePolicy"
+              - "iam:CreatePolicyVersion"
+              - "iam:ListPolicyVersions"
+              - "iam:GetPolicyVersion"
+              - "iam:DeletePolicyVersion"
+            Resource:
+              # CloudFormation StackSets installation:
+              - !Sub "arn:aws:iam::${AWS::AccountId}:policy/StackSet-*TagSchedOps*"
+              # CloudFormation installation (assumed role, no StackSets):
+              - !Sub "arn:aws:iam::${AWS::AccountId}:policy/${TagSchedOpsCloudFormationStackNamePrefix}*"
+
+          - Effect: Allow
+            Action:
+              - "iam:CreateRole"
+              - "iam:GetRole"
+              - "iam:DeleteRole"
+              - "iam:UpdateAssumeRolePolicy"
+              - "iam:ListRolePolicies"
+              - "iam:GetRolePolicy"
+              - "iam:AttachRolePolicy"
+              - "iam:DetachRolePolicy"
+              - "iam:ListEntitiesForPolicy"
+              # - "iam:PutRolePolicy"
+              # - "iam:DeleteRolePolicy"
+            Resource:
+              # CloudFormation StackSets installation:
+              - !Sub "arn:aws:iam::${AWS::AccountId}:role/StackSet-*TagSchedOps*"
+              - !Sub "arn:aws:iam::${AWS::AccountId}:policy/StackSet-*TagSchedOps*"
+              # CloudFormation installation (assumed role, no StackSets):
+              - !Sub "arn:aws:iam::${AWS::AccountId}:role/${TagSchedOpsCloudFormationStackNamePrefix}*"
+              - !Sub "arn:aws:iam::${AWS::AccountId}:policy/${TagSchedOpsCloudFormationStackNamePrefix}*"
+
+          - Effect: Allow
+            Action:
+              - "iam:ListAttachedRolePolicies"
+            Resource: "*"
