@@ -52,7 +52,7 @@ Parameters:
     Default: "Role does not exist"
   LambdaCodeS3Bucket:
     Type: String
-    Description: "Name (with no prefix of any kind) of the S3 bucket where AWS Lambda function source code is stored"
+    Description: "Name of the S3 bucket where AWS Lambda function source code is stored. (For multi-region or CloudFormation StackSets scenarios, an S3 bucket with this name PLUS a region suffix, e.g., my-bucket-us-east-1, must exist in EACH target region, and must contain the SAME source code file, readable by EVERY target AWS account.)"
   TagSchedOpsCloudFormationStackNamePrefix:
     Type: String
     Description: "First part of the name of TagSchedOps CloudFormation stacks. (If you plan to create the TagSchedOps stack in one or more regions, using CloudFormation with an assumed role, and without StackSets, the name of each such stack must start with the prefix that you specify here.)"
