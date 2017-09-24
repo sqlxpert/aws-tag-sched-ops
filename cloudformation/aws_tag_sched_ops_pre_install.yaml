@@ -63,7 +63,9 @@ Conditions:
     !Equals [ !Ref AWSCloudFormationStackSetExecutionRoleStatus, "Role does not exist" ]
   CloudFormationStackSetExecutionPoliciesCreateAttach:
     # Custom, least-privilege alternative to AdministratorAccess
-    !Equals [ !Ref AWSCloudFormationStackSetExecutionRoleStatus, "Role exists, policies above not attached" ]
+    !Or
+      - !Equals [ !Ref AWSCloudFormationStackSetExecutionRoleStatus, "Role does not exist" ]
+      - !Equals [ !Ref AWSCloudFormationStackSetExecutionRoleStatus, "Role exists, policies above not attached" ]
   AdministratorAndTargetSameAccount:
     !Equals [ !Ref AdministratorAccountId, !Ref "AWS::AccountId" ]
 
