@@ -326,13 +326,15 @@ If you intend to install TagSchedOps in multiple regions,
  * Set the StackSetsOrMultiRegion parameter to `Yes`.
  
  * Create S3 buckets in all [regions](http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region) where you intend to install TagSchedOps. The bucket names must have a common prefix, followed by a hyphen (`-`) and a suffix for the region. Set the LambdaCodeS3Bucket parameter to the common prefix. For example, if you create `my-bucket-us-east-1` and `my-bucket-us-west-2`, set LambdaCodeS3Bucket to `my-bucket`. The region in which each bucket is created _must_ match the suffix in the bucket name.
-
- * If you intend to install TagSchedOps in multiple AWS accounts, create a bucket policy for each bucket, allowing `"s3:GetObject"` and `"s3:GetObjectVersion"` from each AWS account number. Using S3 Access Control Lists (ACLs), let alone public access, is discouraged. No special policies are needed in a single-account, multi-region scenario.
  
  * Upload [`aws_tag_sched_ops_perform.py.zip`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/aws_tag_sched_ops_perform.py.zip) to each bucket. The need for copies in multiple regions is an AWS Lambda limitation.
  
  * Choose a main region and set the MainRegion parameter accordingly. If you install TagSchedOps in multiple regions using CloudFormation _without StackSets_, set the MainRegion parameter to the same value every time. This prevents the creation of duplicate sets of policies for users. (Those policies are not region-specific.)
 
+### Configuring for Multiple Accounts
+
+ * If you intend to install TagSchedOps in multiple AWS accounts, create a bucket policy for each bucket, allowing `"s3:GetObject"` and `"s3:GetObjectVersion"` from each AWS account number. Using S3 Access Control Lists (ACLs), let alone public access, is discouraged. No special policies are needed in a single-account, multi-region scenario.
+ 
 ### Installing with CloudFormation StackSets
 
 [Forthcoming]
