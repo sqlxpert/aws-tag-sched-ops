@@ -309,7 +309,7 @@ Resources tagged for unsupported combinations of operations are logged (with mes
 
  * You may have to [decode authorization errors](http://docs.aws.amazon.com/cli/latest/reference/sts/decode-authorization-message.html). The TagSchedOpsAdminister and TagSchedOpsTag policies grant the necessary privilege.
  
- * Note AWS technical limitations/oversights:
+ * Note these AWS technical limitations/oversights:
  
     * An entity that can create an image of an EC2 instance can force a reboot by omitting the `NoReboot` option. (Explicitly denying the reboot privilege does not help.) The unavoidable pairing of a harmless privilege, taking a backup, with a risky one, rebooting, is unfortunate.
 
@@ -325,7 +325,7 @@ If you intend to install TagSchedOps in multiple regions,
 
  * Set the StackSetsOrMultiRegion parameter to `Yes`.
  
- * Create S3 buckets in all [regions](http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region) where you intend to install TagSchedOps. The bucket names must have the same prefix, followed by a hyphen (`-`) and a suffix for the region. Set the LambdaCodeS3Bucket parameter to the prefix. For example, if you create `my-bucket-us-east-1` and `my-bucket-us-west-2`, set LambdaCodeS3Bucket to `my-bucket`. The region in which each bucket is created _must_ match the suffix in the bucket name.
+ * Create S3 buckets in all [regions](http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region) where you intend to install TagSchedOps. The bucket names must have the same prefix, followed by a hyphen (`-`) and a suffix for the region. Set the LambdaCodeS3Bucket parameter to the shared prefix. For example, if you create `my-bucket-us-east-1` and `my-bucket-us-west-2`, set LambdaCodeS3Bucket to `my-bucket`. The region in which each bucket is created _must_ match the suffix in the bucket name.
  
  * Upload [`aws_tag_sched_ops_perform.py.zip`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/aws_tag_sched_ops_perform.py.zip) to each bucket. The need for copies in multiple regions is an AWS Lambda limitation.
  
@@ -338,10 +338,43 @@ If you intend to install TagSchedOps in multiple regions,
 If you intend to install TagSchedOps in multiple AWS accounts,
 
  * Create a bucket policy for each bucket, allowing `"s3:GetObject"` and `"s3:GetObjectVersion"` from each AWS account number. Using S3 Access Control Lists (ACLs), let alone public access, is discouraged. No special policies are needed in a single-account, multi-region scenario.
- 
-### Installing with CloudFormation StackSets
 
-[Forthcoming]
+### Manual Installation
+
+Simply repeat the [Quick Start](#quick-start) installation steps in each target region and/or target AWS account.
+
+Manual repetition is adequate if the number of installations is small, but keeping more than one installation up-to-date could be difficult.
+
+### CloudFormation StackSets Installation
+
+1. If TagSchedOps has been installed manually in any region, in any of your AWS accounts -- for example, based on the Quick Start instructions -- delete all existing TagSchedOps CloudFormation stacks.
+
+2. Follow the [multi-*region* rules](#multi-account-configuration), if applicable.
+
+3. Follow the [multi-*account* rules](#multi-region-configuration), if applicable.
+
+4. If [StackSets](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/stacksets-concepts.html) has never been used, create [AWSCloudFormationStackSet*Admin*istrationRole](https://s3.anazonaws.com/cloudformation-stackset-sample-templates-us-east-1/AWSCloudFormationStackSetAdministrationRole.yml). Do this one time, in your main (multi-account scenario) or only (single-account scenario) AWS account. There is no need to create AWSCloudFormationStackSet*Exec*utionRole anywhere, using Amazon's template; instead, see the next step.
+
+5. In every target AWS account, create [`cloudformation/tag-sched-ops-install.yaml`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops-install.yaml). Set:
+
+|Item|Value|
+|--|--|
+|Stack name|`TagSchedOpsPreInstall`|
+|AdministratorAccountId|AWS account number of main account (from step 4)|
+|AWSCloudFormationStackSet*Exec*utionRoleStatus|_Choose carefully!_|
+|LambdaCodeS3Bucket|_Name of AWS Lambda function source code bucket (shared prefix, in a multi-region scenario)_|
+
+6. (Back) in the AWS account with the AWSCloudFormationStackSet*Admin*istrationRole, go to the [StackSets Console]().
+
+7. Create [`cloudformation/aws_tag_sched_ops.yaml`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). Set:
+
+|Item|Value|
+|--|--|
+|Stack name|`TagSchedOps`|
+|MainRegion|_In a multi-account scenario, this must be a target region in every target AWS account_|
+|StackSetsOrMultiRegion|Yes|
+|TagSchedOpsPerformCodeS3VersionID|_In a multi-region scenario, leave blank_|
+|LambdaCodeS3Bucket|_From Step 5_|
 
 ## Software Updates
 
@@ -405,8 +438,6 @@ The proces is similar, but:
  
  * Archival policy syntax, and automatic application of `managed-delete` to expired backups. A correct archival policy is not strictly age-based. For example, you might preserve the last 30 daily backups, and beyond 30 days, the first backup of every month. Consider the flaw in the snapshot retention property of RDS database instances: the daily automatic snapshots created when that property is set can never be kept longer than 35 days.
  
- * Evaluation of CloudFormation YAML template preprocessors
- 
  * Further modularization of [aws_tag_sched_ops_perform.py](/aws_tag_sched_ops_perform.py)
  
  * Additional AWS Lambda function, to automatically delete backups tagged `managed-delete`
@@ -414,8 +445,6 @@ The proces is similar, but:
  * Makefile
  
  * Tags and reference dictionary updates to support scheduled restoration of images and snapshots
- 
- * Generalization of reference dictionaries to support more AWS services and resource types. (Which ones?)
 
 ## Dedication
 
