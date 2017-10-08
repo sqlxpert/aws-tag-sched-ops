@@ -34,8 +34,8 @@ Jump to: [Installation](#quick-start) &bull; [Operation Tags](#enabling-operatio
    |Item|Value|
    |--|--|
    |Stack name|`TagSchedOps`|
-   |LambdaCodeS3Bucket|_Name of your S3 bucket_|
-   |MainRegion|_Current region, if other than_ `us-east-1`|
+   |LambdaCodeS3Bucket|Name of your S3 bucket|
+   |MainRegion|Current region, if other than `us-east-1`|
 
    For all other paramters, keep the default values.
    
@@ -360,7 +360,7 @@ Manual repetition is adequate if the number of installations is small, but keepi
 |Item|Value|
 |--|--|
 |Stack name|`TagSchedOpsPreInstall`|
-|AdministratorAccountId|AWS account number of main account (from step 4)|
+|AdministratorAccountId|AWS account number of main account (from step 4); does *not* update a pre-existing AWSCloudFormationStackSet*Exec*utionRole|
 |AWSCloudFormationStackSet*Exec*utionRoleStatus|_Choose carefully!_|
 |LambdaCodeS3Bucket|_Name of AWS Lambda function source code bucket (shared prefix, in a multi-region scenario)_|
 
@@ -372,9 +372,11 @@ Manual repetition is adequate if the number of installations is small, but keepi
 |--|--|
 |StackSet name|`TagSchedOps`|
 |LambdaCodeS3Bucket|_From Step 5_|
-|MainRegion|_In a multi-account scenario, this must be a target region in every target AWS account_|
+|MainRegion|_Must be a target region in every target AWS account_|
 |StackSetsOrMultiRegion|Yes|
 |TagSchedOpsPerformCodeS3VersionID|_In a multi-region scenario, leave blank_|
+
+8. On the next page, specify the target AWS accounts, typically by entering account numbers below "Deploy stacks in accounts". Then, move the target region(s) from "Available regions" to "Deployment order". It is a good idea to put the main region (from Step 7) first.
 
 ## Software Updates
 
@@ -412,7 +414,7 @@ New versions of the AWS Lambda function source code and the CloudFormation templ
    
    1. If the resource is for internal use, ignore it.
    
-   2. If, however, it is one of the IAM policies provided for users, such as TagSchedOpsAdminister, open another Web browser window, go to [Policies](https://console.aws.amazon.com/iam/home#/policies) in the IAM Console, click the name of the policy, open the "Attached entities" tab, and detach the policy from all entities. Keep notes!
+   2. If, however, it an IAM policy provided *for users*, such as TagSchedOpsAdminister, open another Web browser window, go to [Policies](https://console.aws.amazon.com/iam/home#/policies) in the IAM Console, click the name of the policy, open the "Attached entities" tab, and detach the policy from all entities. Keep notes!
 
 9. Click Execute, below the top-right corner of the CloudFormation Console window.
 
@@ -426,11 +428,13 @@ New versions of the AWS Lambda function source code and the CloudFormation templ
 
 The proces is similar, but:
 
- * Change Sets are not supported. There is no feedback about the scope of changes.
+ * StackSets does not support Change Sets. There is no feedback about the scope of changes.
  
  * A single update covers all target regions and/or AWS target accounts.
+ 
+ * Click the radio button to the left of TagSchedOps, in the [list of StackSets](https://console.aws.amazon.com/cloudformation/stacksets/home#/stacksets). From the Actions pop-up menu (to the right of the blue Create StackSet button), select "Manage stacks in StackSet". Then, select "Edit stacks". On the next page, select "Upload a template to Amazon S3" and upload the latest version of [`cloudformation/aws_tag_sched_ops.yaml`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml).
 
- * The TagSchedOpsPerformCodeS3VersionID parameter must remain blank because the value would differ in every region. So that CloudFormation will recognize new source code for the AWS Lambda function, rename `aws_tag_sched_ops_perform.py.zip` to `aws_tag_sched_ops_perform_20170924.py.zip` (substitute current date) before uploading the file to the regional S3 bucket(s). Change the TagSchedOpsPerformCodeName parameter accordingly.
+ * The TagSchedOpsPerformCodeS3VersionID parameter must remain blank. So that CloudFormation will recognize new source code for the AWS Lambda function, rename `aws_tag_sched_ops_perform.py.zip` to `aws_tag_sched_ops_perform_20170924.py.zip` (substitute current date) before uploading the file to the regional S3 bucket(s). Change the TagSchedOpsPerformCodeName parameter accordingly.
 
 ## Future Work
      
