@@ -47,7 +47,7 @@ Parameters:
       # CloudFormationStackSetExecutionMisc IAM policies exist (from a prior
       # installation) but are no longer attached to the role, the user should
       # re-attach them, or simply delete them, before answering this question.
-      # Custom name-related limitations prevent using a CloudFormation
+      # Custom-name-related limitations prevent using a CloudFormation
       # template to attach the pre-existing policies to the pre-existing role.
     Default: "Role does not exist"
   LambdaCodeS3Bucket:
@@ -66,8 +66,6 @@ Conditions:
     !Or
       - !Equals [ !Ref AWSCloudFormationStackSetExecutionRoleStatus, "Role does not exist" ]
       - !Equals [ !Ref AWSCloudFormationStackSetExecutionRoleStatus, "Role exists, policies above not attached" ]
-  AdministratorAndTargetSameAccount:
-    !Equals [ !Ref AdministratorAccountId, !Ref "AWS::AccountId" ]
 
 Resources:
 
@@ -181,10 +179,7 @@ Resources:
             # instead attach a bucket policy to the bucket for each region,
             # allowing access by all StackSets taget accounts. Use of
             # S3 ACLs, let alone public read access, is discouraged.
-            # (CloudFormation allows the Condition key in resource blocks,
-            # but not inside property, like this IAM policy statement.
-            # Work-around: conditionally set Resource to a nonsense ARN.)
-            Resource: !If [ AdministratorAndTargetSameAccount, !Sub "arn:aws:s3:::${LambdaCodeS3Bucket}-*/*", "arn:aws:s3:::NO-SUCH-BUCKET" ]
+            Resource: !Sub "arn:aws:s3:::${LambdaCodeS3Bucket}*/*"
 
           - Effect: Allow
             Action:
