@@ -3,12 +3,12 @@
 ## Benefits
 
 * **Save money** by stopping EC2 instances and RDS databases during off-hours
-* **Enhance reliability** by taking frequent backups
+* **Take backups** more frequently
 * **Use tags** to schedule operations
 * Secure tags and backups using Identity and Access Management (IAM) policies
-* Install and update easily, with CloudFormation (and StackSets for multiple regions or AWS accounts)
+* Install and update easily, with CloudFormation (and StackSets, for multiple regions or AWS accounts)
 
-Jump to: [Installation](#quick-start) &bull; [Operation Tags](#enabling-operations) &bull; [Schedule Tags](#scheduling-operations) &bull; [Logging](#output) &bull; [Master On/Off](#master-onoff-switch) &bull; [Security](#security-model)
+Jump to: [Installation](#quick-start) &bull; [Operation Tags](#enabling-operations) &bull; [Schedule Tags](#scheduling-operations) &bull; [Logging](#output) &bull; [Master On/Off](#master-onoff-switch) &bull; [Security](#security-model) &bull; [Multi-region/mutli-account](#advanced-installation)
 
 ## Quick Start
 
@@ -23,7 +23,7 @@ Jump to: [Installation](#quick-start) &bull; [Operation Tags](#enabling-operatio
    |`managed-image`||Leave value blank|
    |`managed-image-periodic`|`d=*,H:M=11:30`|Replace `11:30` with [current UTC time](https://www.timeanddate.com/worldclock/timezone/utc) + 15 minutes|
 
-3. Go to the [S3 Console](https://console.aws.amazon.com/s3/home). Click the name of the bucket where you keep CloudFormation templates and their dependencies, or create the bucket, if necessary. Upload the compressed source code of the AWS Lambda function, [`aws_tag_sched_ops_perform.py.zip`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/aws_tag_sched_ops_perform.py.zip)
+3. Go to the [S3 Console](https://console.aws.amazon.com/s3/home). Click the name of the bucket where you keep AWS Lambda function source code. (This may be the same bucket where you keep CloudFormation templates.) Crreate such a bucket, if necessary. Upload the compressed source code of the AWS Lambda function, [`aws_tag_sched_ops_perform.py.zip`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/aws_tag_sched_ops_perform.py.zip)
 
    _Security Tip:_ Remove public read and write access from the S3 bucket. Carefully limit write access.
 
@@ -319,21 +319,25 @@ Resources tagged for unsupported combinations of operations are logged (with mes
 
 ## Advanced Installation
 
-### Configuring for Multiple Regions
+### Multi-Region Configuration
 
 If you intend to install TagSchedOps in multiple regions,
 
  * Set the StackSetsOrMultiRegion parameter to `Yes`.
  
- * Create S3 buckets in all [regions](http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region) where you intend to install TagSchedOps. The bucket names must have a common prefix, followed by a hyphen (`-`) and a suffix for the region. Set the LambdaCodeS3Bucket parameter to the common prefix. For example, if you create `my-bucket-us-east-1` and `my-bucket-us-west-2`, set LambdaCodeS3Bucket to `my-bucket`. The region in which each bucket is created _must_ match the suffix in the bucket name.
+ * Create S3 buckets in all [regions](http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region) where you intend to install TagSchedOps. The bucket names must have the same prefix, followed by a hyphen (`-`) and a suffix for the region. Set the LambdaCodeS3Bucket parameter to the prefix. For example, if you create `my-bucket-us-east-1` and `my-bucket-us-west-2`, set LambdaCodeS3Bucket to `my-bucket`. The region in which each bucket is created _must_ match the suffix in the bucket name.
  
  * Upload [`aws_tag_sched_ops_perform.py.zip`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/aws_tag_sched_ops_perform.py.zip) to each bucket. The need for copies in multiple regions is an AWS Lambda limitation.
  
+ * Leave the TagSchedOpsPerformCodeS3VersionID parameter blank, because the value would differ in every region. Only the latest version of the source code file in each region's S3 bucket can be used.
+ 
  * Choose a main region and set the MainRegion parameter accordingly. If you install TagSchedOps in multiple regions using CloudFormation _without StackSets_, set the MainRegion parameter to the same value every time. This prevents the creation of duplicate sets of policies for users. (Those policies are not region-specific.)
 
-### Configuring for Multiple Accounts
+### Multi-Account Configuration
 
- * If you intend to install TagSchedOps in multiple AWS accounts, create a bucket policy for each bucket, allowing `"s3:GetObject"` and `"s3:GetObjectVersion"` from each AWS account number. Using S3 Access Control Lists (ACLs), let alone public access, is discouraged. No special policies are needed in a single-account, multi-region scenario.
+If you intend to install TagSchedOps in multiple AWS accounts,
+
+ * Create a bucket policy for each bucket, allowing `"s3:GetObject"` and `"s3:GetObjectVersion"` from each AWS account number. Using S3 Access Control Lists (ACLs), let alone public access, is discouraged. No special policies are needed in a single-account, multi-region scenario.
  
 ### Installing with CloudFormation StackSets
 
@@ -365,7 +369,7 @@ New versions of the AWS Lambda function source code and the CloudFormation templ
    |Change set name|_Type a name of your choice_|
    |TagSchedOpsPerformCodeS3VersionID|_Paste the Version ID, from S3_|
    
-   _A different S3 Version ID makes CloudFormation recognize new AWS Lambda function source code. Once you are familiar with the full update procedure, you may skip Steps 2-5 and leave TagSchedOpsPerformCodeVersion as it was, when you are certain that only the CloudFormation template, not the function source code, is changing._
+   _A different S3 Version ID makes CloudFormation recognize new AWS Lambda function source code. Once you are familiar with the full update procedure, you may skip Steps 2-5 and leave TagSchedOpsPerformCodeS3VersionID as it was, when you are certain that only the CloudFormation template, not the function source code, is changing._
    
 7. Click through the remaining steps. Finally, click "Create change set".
 
@@ -391,9 +395,9 @@ The proces is similar, but:
 
  * Change Sets are not supported. There is no feedback about the scope of changes.
  
- * A single update covers all regions and/or AWS accounts.
+ * A single update covers all target regions and/or AWS target accounts.
 
- * The TagSchedOpsPerformCodeS3VersionID parameter must be left blank because the value would differ in every region. So that CloudFormation will recognize new source code for the AWS Lambda function, rename `aws_tag_sched_ops_perform.py.zip` to `aws_tag_sched_ops_perform_20170924.py.zip` (substitute current date) before uploading the file to the regional S3 bucket(s). Change the TagSchedOpsPerformCodeName parameter accordingly.
+ * The TagSchedOpsPerformCodeS3VersionID parameter must remain blank because the value would differ in every region. So that CloudFormation will recognize new source code for the AWS Lambda function, rename `aws_tag_sched_ops_perform.py.zip` to `aws_tag_sched_ops_perform_20170924.py.zip` (substitute current date) before uploading the file to the regional S3 bucket(s). Change the TagSchedOpsPerformCodeName parameter accordingly.
 
 ## Future Work
      
