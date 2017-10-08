@@ -6,9 +6,9 @@
 * **Take backups** more frequently
 * **Use tags** to schedule operations
 * Secure tags and backups using Identity and Access Management (IAM) policies
-* Install and update easily, with CloudFormation (and StackSets, for multiple regions or AWS accounts)
+* Install and update easily, with CloudFormation (and optionally, StackSets)
 
-Jump to: [Installation](#quick-start) &bull; [Operation Tags](#enabling-operations) &bull; [Schedule Tags](#scheduling-operations) &bull; [Logging](#output) &bull; [Security](#security-model) &bull; [Multi-region/mutli-account](#advanced-installation)
+Jump to: [Installation](#quick-start) &bull; [Operation Tags](#enabling-operations) &bull; [Schedule Tags](#scheduling-operations) &bull; [Logging](#output) &bull; [Security](#security-model) &bull; [Multi-region/multi-account](#advanced-installation)
 
 ## Quick Start
 
@@ -345,7 +345,7 @@ Manual installation is adequate if the number of installations is small, but kee
 
  * Repeat the [Quick Start](#quick-start) installation steps in each target region and/or target AWS account.
 
-### CloudFormation StackSets Installation
+### CloudFormation Stack*Set* Installation
 
 1. If TagSchedOps has been installed manually in any region, in any of your AWS accounts -- for example, based on the Quick Start instructions -- delete all existing TagSchedOps CloudFormation stacks.
 
