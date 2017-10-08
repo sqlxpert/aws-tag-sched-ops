@@ -349,11 +349,11 @@ Manual repetition is adequate if the number of installations is small, but keepi
 
 1. If TagSchedOps has been installed manually in any region, in any of your AWS accounts -- for example, based on the Quick Start instructions -- delete all existing TagSchedOps CloudFormation stacks.
 
-2. Follow the [multi-*region* rules](#multi-account-configuration), if applicable.
+2. Follow the [multi-*region* rules](#multi-region-configuration), if applicable.
 
-3. Follow the [multi-*account* rules](#multi-region-configuration), if applicable.
+3. Follow the [multi-*account* rules](#multi-account-configuration), if applicable.
 
-4. If [StackSets](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/stacksets-concepts.html) has never been used, create [AWSCloudFormationStackSet*Admin*istrationRole](https://s3.anazonaws.com/cloudformation-stackset-sample-templates-us-east-1/AWSCloudFormationStackSetAdministrationRole.yml). Do this one time, in your main (multi-account scenario) or only (single-account scenario) AWS account. There is no need to create AWSCloudFormationStackSet*Exec*utionRole anywhere, using Amazon's template; instead, see the next step.
+4. If [StackSets](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/stacksets-concepts.html) has never been used, create [AWSCloudFormationStackSet*Admin*istrationRole](https://s3.amazonaws.com/cloudformation-stackset-sample-templates-us-east-1/AWSCloudFormationStackSetAdministrationRole.yml). Do this one time, in your main (multi-account scenario) or only (single-account scenario) AWS account. There is no need to create AWSCloudFormationStackSet*Exec*utionRole anywhere, using Amazon's template; instead, see the next step.
 
 5. In every target AWS account, create [`cloudformation/tag-sched-ops-install.yaml`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops-install.yaml). Set:
 
@@ -364,17 +364,17 @@ Manual repetition is adequate if the number of installations is small, but keepi
 |AWSCloudFormationStackSet*Exec*utionRoleStatus|_Choose carefully!_|
 |LambdaCodeS3Bucket|_Name of AWS Lambda function source code bucket (shared prefix, in a multi-region scenario)_|
 
-6. (Back) in the AWS account with the AWSCloudFormationStackSet*Admin*istrationRole, go to the [StackSets Console]().
+6. (Back) in the AWS account with the AWSCloudFormationStackSet*Admin*istrationRole, go to the [StackSets Console](https://console.aws.amazon.com/cloudformation/stacksets/home#/stacksets).
 
-7. Create [`cloudformation/aws_tag_sched_ops.yaml`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). Set:
+7. Click Create StackSet, then select "Upload a template to Amazon S3", then click Browse and select your locally downloaded copy of [`cloudformation/aws_tag_sched_ops.yaml`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
 
 |Item|Value|
 |--|--|
-|Stack name|`TagSchedOps`|
+|StackSet name|`TagSchedOps`|
+|LambdaCodeS3Bucket|_From Step 5_|
 |MainRegion|_In a multi-account scenario, this must be a target region in every target AWS account_|
 |StackSetsOrMultiRegion|Yes|
 |TagSchedOpsPerformCodeS3VersionID|_In a multi-region scenario, leave blank_|
-|LambdaCodeS3Bucket|_From Step 5_|
 
 ## Software Updates
 
