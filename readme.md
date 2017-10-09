@@ -404,7 +404,7 @@ Manual installation is adequate if the number of installations is small, but kee
 |Item|Value|
 |--|--|
 |StackSet name|`TagSchedOps`|
-|LambdaCodeS3Bucket|_Use the shared prefix; for examplex, if you created_ `my-bucket-us-east-1` _, use use_ `my-bucket`|
+|LambdaCodeS3Bucket|_Use the shared prefix; for example, if you created_ `my-bucket-us-east-1` _, use use_ `my-bucket`|
 |MainRegion|_Must be a StackSet target region_|
 |StackSetsOrMultiRegion|Yes|
 |TagSchedOpsPerformCodeS3VersionID|_In a multi-region scenario, leave blank_|
