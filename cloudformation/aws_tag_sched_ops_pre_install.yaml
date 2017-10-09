@@ -32,9 +32,9 @@ Description: "Prerequisite for installing TagSchedOps using CloudFormation with 
 Parameters:
   AdministratorAccountId:
     Type: String
-    Description: "AWS account number for StackSets administration account (where parent StackSets will be created). Does not change the AWS account in AWSCloudFormationStackSetExecutionRoleStatus, if that role already exists."
+    Description: "AWS account number for StackSets administration account (where parent StackSets will be created). Leave blank if using ordinary CloudFormation instead of StackSets, or if AWSCloudFormationStackSetExecutionRole existed before this stack was created."
+    MinLength: 0
     MaxLength: 12
-    MinLength: 12
   AWSCloudFormationStackSetExecutionRoleStatus:
     Type: String
     Description: "Status of the service role for CloudFormation StackSets, AWSCloudFormationStackSetExecutionRole, in current account (a StackSets target account, where child CloudFormation stacks will be created)"
@@ -43,13 +43,14 @@ Parameters:
       - "Role exists, AdministratorAccess policy attached"
       - "Role exists, CloudFormationFullAccess and StackSetExecutionMisc attached"
       - "Role exists, policies above not attached"
+      - "Role irrelevant; using ordinary CloudFormation, not StackSets"
       # In the rare case where the CloudFormationFullAccess and
       # CloudFormationStackSetExecutionMisc IAM policies exist (from a prior
       # installation) but are no longer attached to the role, the user should
       # re-attach them, or simply delete them, before answering this question.
       # Custom-name-related limitations prevent using a CloudFormation
       # template to attach the pre-existing policies to the pre-existing role.
-    Default: "Role does not exist"
+    Default: "Role irrelevant; using ordinary CloudFormation, not StackSets"
   LambdaCodeS3Bucket:
     Type: String
     Description: "Name of the S3 bucket where AWS Lambda function source code is stored. (For multi-region or CloudFormation StackSets scenarios, an S3 bucket with this name PLUS a region suffix, e.g., my-bucket-us-east-1, must exist in EACH target region, and must contain the SAME source code file, readable by EVERY target AWS account.)"
