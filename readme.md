@@ -383,13 +383,17 @@ If you intend to install TagSchedOps in multiple AWS accounts,
 
 Manual installation is adequate if the number of installations is small, but keeping more than one installation up-to-date could be difficult.
 
- * Follow the [Quick Start](#quick-start) installation steps in each target region and/or target AWS account. In a multi-account scenario, selecting an IAM Role during the CloudFormation Create Stack process is recommended. The TagSchedOpsCloudFormation role is provided for this purpose; a non-administrator will need the "iam:PassRole" privilege to pass it to CloudFormation.
+1. Follow the [multi-region steps](#multi-region-configuration), if applicable.
+
+2. Follow the [multi-account steps](#multi-account-configuration), if applicable.
+
+3. Follow the [Quick Start](#quick-start) installation steps in each target region and/or target AWS account. Set parameters based on the multi-region and/or multi-account rules. In a multi-account scenario, selecting an IAM Role during the CloudFormation Create Stack process is recommended. The TagSchedOpsCloudFormation role is provided for this purpose; a non-administrator will need the `"iam:PassRole"` privilege to pass it to CloudFormation.
 
 ### CloudFormation Stack*Set* Installation
 
-1. Follow the [multi-*region* rules](#multi-region-configuration) steps, even for a multi-account, single-region scenario.
+1. Follow the [multi-region steps](#multi-region-configuration), even for a multi-account, single-region scenario.
 
-2. Follow the [multi-*account* rules](#multi-account-configuration) steps. In a single-account, multi-region scenario, no S3 bucket policy is needed.
+2. Follow the [multi-account steps](#multi-account-configuration). In a single-account, multi-region scenario, no S3 bucket policy is needed.
 
 3. If [StackSets](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/stacksets-concepts.html) has never been used, create [AWSCloudFormationStackSet*Admin*istrationRole](https://s3.amazonaws.com/cloudformation-stackset-sample-templates-us-east-1/AWSCloudFormationStackSetAdministrationRole.yml). Do this one time, in your main (multi-account scenario) or only (single-account scenario) AWS account. There is no need to create AWSCloudFormationStackSet*Exec*utionRole anywhere, using Amazon's template; instead, see the next step.
 
