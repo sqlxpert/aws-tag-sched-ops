@@ -170,16 +170,17 @@ Resources:
         Version: "2012-10-17"
         Statement:
 
+            # Sufficient only for a single AWS account. For multi-
+            # account, the user must also attach an S3 bucket policy
+            # allowing access by all StackSets taget accounts. Use of
+            # S3 ACLs, let alone public read access, is discouraged.
           - Effect: Allow
             Action:
               - "s3:GetObject"
               - "s3:GetObjectVersion"
-            # Sufficient only for the most basic scenario: single-account,
-            # multi-region. For a multi-account scenario, the user should
-            # instead attach a bucket policy to the bucket for each region,
-            # allowing access by all StackSets taget accounts. Use of
-            # S3 ACLs, let alone public read access, is discouraged.
-            Resource: !Sub "arn:aws:s3:::${LambdaCodeS3Bucket}*/*"
+            Resource:
+              - !Sub "arn:aws:s3:::${LambdaCodeS3Bucket}/*"
+              - !Sub "arn:aws:s3:::${LambdaCodeS3Bucket}-${AWS::Region}/*"
 
           - Effect: Allow
             Action:
