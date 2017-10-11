@@ -102,6 +102,19 @@ Resources:
             Action: "sts:AssumeRole"
 
 
+  TagSchedOpsCloudFormationRolePass:
+    Type: "AWS::IAM::ManagedPolicy"
+    DeletionPolicy: Delete
+    Properties:
+      Description: "TagSchedOpsCloudFormation role: pass to CloudFormation. (If the IAM user who will install TagSchedOps manually (as an ordinary CloudFormation stack, not a StackSet) is not an administrator, attach this policy."
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: "iam:PassRole"
+            Resource: !GetAtt TagSchedOpsCloudFormation.Arn
+
+
   CloudFormationFullAccess:
     Type: "AWS::IAM::ManagedPolicy"
     Condition: CloudFormationStackSetExecutionPoliciesCreateAttach
@@ -180,8 +193,8 @@ Resources:
               - "s3:GetObject"
               - "s3:GetObjectVersion"
             Resource:
-              - !Sub "arn:aws:s3:::${LambdaCodeS3Bucket}/*"
-              - !Sub "arn:aws:s3:::${LambdaCodeS3Bucket}-${AWS::Region}/*"
+              - !Sub "arn:aws:s3:::${LambdaCodeS3Bucket}/*"  # single-region
+              - !Sub "arn:aws:s3:::${LambdaCodeS3Bucket}-*/*"  # multi-region/StackSet
 
           - Effect: Allow
             Action:
