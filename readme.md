@@ -187,7 +187,7 @@ To use the debugging mode,
     
 6. Turn off debugging mode right away, because the extra information is lengthy. Back on the Code tab, scroll down and click Remove, to the far right of `DEBUG`. Repeat [Step 4](#debug-step-4) to save.
 
-## Master On/Off Switch
+## On/Off Switch
 
 * The TagSchedOpsAdminister policies authorize turning the function on or off completely.
 
@@ -387,8 +387,22 @@ Manual installation is adequate if the number of installations is small, but kee
 
 2. Follow the [multi-account steps](#multi-account-configuration), if applicable.
 
-3. Follow the [Quick Start](#quick-start) installation steps in each target region and/or target AWS account. Set parameters based on the multi-region and/or multi-account rules. In a multi-account scenario, selecting an IAM Role during the CloudFormation Create Stack process is recommended. The TagSchedOpsCloudFormation role is provided for this purpose; a non-administrator will need the `"iam:PassRole"` privilege to pass it to CloudFormation.
+3. Follow the [Quick Start](#quick-start) installation steps in each target region and/or target AWS account. Set parameters based on the multi-region and/or multi-account rules.
 
+    * In a multi-account scenario, select the TagSchedOpsCloudFormation IAM Role during this step; CloudFormation may not be able to create the stack without assuming this role.
+    
+      If the user invoking CloudFormation is not an administrator, attach the following policies to the user beforhand:
+      
+      |Policy|Source|
+      |--|--|
+      |[AmazonS3FullAccess](https://console.aws.amazon.com/iam/home?#/policies/arn:aws:iam::aws:policy/AmazonS3FullAccess)|AWS|
+      |[AmazonSNSReadOnlyAccess](https://console.aws.amazon.com/iam/home?#/policies/arn:aws:iam::aws:policy/AmazonSNSReadOnlyAccess)|AWS|
+      |[IAMReadOnlyAccess](https://console.aws.amazon.com/iam/home?#/policies/arn:aws:iam::aws:policy/IAMReadOnlyAccess)|AWS|
+      |TagSchedOpsCloudFormationRolePass|TagSchedOpsInstall stack|
+      |CloudFormationFullAccess|TagSchedOpsInstall stack|
+      
+      Detach these policies -- particularly AmazonS3FullAccess and CloudFormationFullAccess -- after the stack has been created. AWS does not publish the _minimum_ privileges needed to create a stack. Full S3 access is obviously risky, and full CloudFormation access allows a non-administrator to modify or delete _any_ stack with an IAM Role.
+      
 ### CloudFormation Stack*Set* Installation
 
 1. Follow the [multi-region steps](#multi-region-configuration), even for a multi-account, single-region scenario.
