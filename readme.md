@@ -379,6 +379,28 @@ If you intend to install TagSchedOps in multiple AWS accounts,
    }
    ```
 
+### CloudFormation Stack*Set* Installation
+
+1. Follow the [multi-region steps](#multi-region-configuration), even for a multi-account, single-region scenario.
+
+2. Follow the [multi-account steps](#multi-account-configuration). In a single-account, multi-region scenario, no S3 bucket policy is needed.
+
+3. If [StackSets](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/stacksets-concepts.html) has never been used, create [AWSCloudFormationStackSet*Admin*istrationRole](https://s3.amazonaws.com/cloudformation-stackset-sample-templates-us-east-1/AWSCloudFormationStackSetAdministrationRole.yml). Do this one time, in your main (multi-account scenario) or only (single-account scenario) AWS account. There is no need to create AWSCloudFormationStackSet*Exec*utionRole using Amazon's template; the TagSchedOps*Install* stack provides it, when necessary.
+
+4. In the AWS account with the AWSCloudFormationStackSet*Admin*istrationRole, go to the [StackSets Console](https://console.aws.amazon.com/cloudformation/stacksets/home#/stacksets).
+
+5. Click Create StackSet, then select "Upload a template to Amazon S3", then click Browse and select your locally downloaded copy of [`cloudformation/aws_tag_sched_ops.yaml`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
+
+|Item|Value|
+|--|--|
+|StackSet name|`TagSchedOps`|
+|LambdaCodeS3Bucket|_Use the shared prefix; for example, if you created_ `my-bucket-us-east-1` _, use use_ `my-bucket`|
+|MainRegion|_Must be a StackSet target region_|
+|StackSetsOrMultiRegion|Yes|
+|TagSchedOpsPerformCodeS3VersionID|_In a multi-region scenario, leave blank_|
+
+6. On the next page, specify the target AWS accounts, typically by entering account numbers below "Deploy stacks in accounts". Then, move the target region(s) from "Available regions" to "Deployment order". It is a good idea to put the main region first.
+
 ### Manual Installation
 
 Manual installation is adequate if the number of installations is small, but keeping more than one installation up-to-date could be difficult.
@@ -402,28 +424,6 @@ Manual installation is adequate if the number of installations is small, but kee
       |CloudFormationFullAccess|TagSchedOpsInstall stack|
       
       Detach these policies -- particularly AmazonS3FullAccess and CloudFormationFullAccess -- after the stack has been created. AWS does not publish the _minimum_ privileges needed to create a stack. Full S3 access is obviously risky, and full CloudFormation access allows a non-administrator to modify or delete _any_ stack with an IAM Role.
-      
-### CloudFormation Stack*Set* Installation
-
-1. Follow the [multi-region steps](#multi-region-configuration), even for a multi-account, single-region scenario.
-
-2. Follow the [multi-account steps](#multi-account-configuration). In a single-account, multi-region scenario, no S3 bucket policy is needed.
-
-3. If [StackSets](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/stacksets-concepts.html) has never been used, create [AWSCloudFormationStackSet*Admin*istrationRole](https://s3.amazonaws.com/cloudformation-stackset-sample-templates-us-east-1/AWSCloudFormationStackSetAdministrationRole.yml). Do this one time, in your main (multi-account scenario) or only (single-account scenario) AWS account. There is no need to create AWSCloudFormationStackSet*Exec*utionRole using Amazon's template; the TagSchedOps*Install* stack provides it, when necessary.
-
-4. In the AWS account with the AWSCloudFormationStackSet*Admin*istrationRole, go to the [StackSets Console](https://console.aws.amazon.com/cloudformation/stacksets/home#/stacksets).
-
-5. Click Create StackSet, then select "Upload a template to Amazon S3", then click Browse and select your locally downloaded copy of [`cloudformation/aws_tag_sched_ops.yaml`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
-
-|Item|Value|
-|--|--|
-|StackSet name|`TagSchedOps`|
-|LambdaCodeS3Bucket|_Use the shared prefix; for example, if you created_ `my-bucket-us-east-1` _, use use_ `my-bucket`|
-|MainRegion|_Must be a StackSet target region_|
-|StackSetsOrMultiRegion|Yes|
-|TagSchedOpsPerformCodeS3VersionID|_In a multi-region scenario, leave blank_|
-
-6. On the next page, specify the target AWS accounts, typically by entering account numbers below "Deploy stacks in accounts". Then, move the target region(s) from "Available regions" to "Deployment order". It is a good idea to put the main region first.
 
 ## Software Updates
 
