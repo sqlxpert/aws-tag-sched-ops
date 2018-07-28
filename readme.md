@@ -10,6 +10,18 @@
 
 Jump to: [Installation](#quick-start) &bull; [Operation Tags](#enabling-operations) &bull; [Schedule Tags](#scheduling-operations) &bull; [Logging](#output) &bull; [Security](#security-model) &bull; [Multi-region/multi-account](#advanced-installation)
 
+## Comparison with Lifecycle Manager
+
+In July, 2018, Amazon [introduced Data Lifecycle Manager](https://aws.amazon.com/blogs/aws/new-lifecycle-management-for-amazon-ebs-snapshots/). It's an excellent start for backing up EBS volumes, but it has some limitations:
+
+ * Tags determine _which_ volumes will be backed up, not _when_. There is a new, single-purpose API for scheduling.
+ * You may only choose a 12- or 24-hour backup frequency.
+ * Retention rules tell the system _how many_ snapshots to keep (as in RDS), which is not sufficient for an archival policy (e.g., keep daily snapshots for a month and keep one monthly snapshot forever).
+ * You can create snapshots of single volumes, but not images covering all of an EC2 instance's volumes; also missing is an option to reboot first.
+ * One IAM role confers the authority to create _and_ delete backups. This is a security risk, especially in light of the data loss prevention provisions in the European Union General Data Protection Regulation.
+ 
+By all means, set up Data Lifecycle Manager immediately if you have no other automation in place, but please consider this project for more flexibility -- and sign up as a contributor if you would like to help develop the [backup retention part](#backup-retention-feature)!
+
 ## Quick Start
 
 1. Log in to the [AWS Web Console](https://signin.aws.amazon.com/console) as a privileged user.
@@ -487,7 +499,7 @@ Differences when updating a StackSet instead of an ordinary stack:
      
  * Automated testing, consisting of a CloudFormation template to create sample AWS resources, and a program (perhaps another AWS Lambda function!) to check whether the intended operations were performed. An AWS Lambda function would also be ideal for testing security policies, while cycling through different IAM roles.
  
- * Archival policy syntax, and automatic application of `managed-delete` to expired backups. A correct archival policy is not strictly age-based. For example, you might preserve the last 30 daily backups, and beyond 30 days, the first backup of every month. Consider the flaw in the snapshot retention property of RDS database instances: the daily automatic snapshots created when that property is set can never be kept longer than 35 days.
+ * <a name="backup-retention-feature">Archival policy</a> syntax, and automatic application of `managed-delete` to expired backups. A correct archival policy is not strictly age-based. For example, you might preserve the last 30 daily backups, and beyond 30 days, the first backup of every month. Consider the flaw in the snapshot retention property of RDS database instances: the daily automatic snapshots created when that property is set can never be kept longer than 35 days.
  
  * Further modularization of [aws_tag_sched_ops_perform.py](/aws_tag_sched_ops_perform.py)
  
