@@ -15,12 +15,12 @@ Jump to: [Installation](#quick-start) &bull; [Operation Tags](#enabling-operatio
 In July, 2018, Amazon [introduced Data Lifecycle Manager](https://aws.amazon.com/blogs/aws/new-lifecycle-management-for-amazon-ebs-snapshots/). It's an excellent start for backing up EBS volumes, but it has some limitations:
 
  * Tags determine _which_ volumes will be backed up, not _when_. There is a new, single-purpose API for scheduling.
- * You may only choose a 12- or 24-hour backup frequency.
- * Retention rules tell the system _how many_ snapshots to keep (as in RDS), which is not sufficient for an archival policy (e.g., keep daily snapshots for a month and keep one monthly snapshot forever).
- * You can create snapshots of single volumes, but not images covering all of an EC2 instance's volumes; also missing is an option to reboot first.
- * One IAM role confers the authority to create _and_ delete backups. This is a security risk, especially in light of the data loss prevention provisions in the European Union General Data Protection Regulation.
+ * You may only choose a 12- or 24-hour snapshot frequency.
+ * You may only keep a fixed number of snapshots (as in RDS). Retention based strictly on age is not flexible enough for archiving (e.g., keep daily snapshots for a month, plus monthly snapshots for a year, plus yearly snapshots forever).
+ * You can create snapshots of single volumes, but not images covering all of an EC2 instance's volumes. Also missing is an option to reboot first.
+ * [The same IAM role](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/snapshot-lifecycle.html#dlm-permissions) confers authority to create _and_ delete backups, and [anyone who can update a lifecycle policy](https://docs.aws.amazon.com/IAM/latest/UserGuide/list_amazondatalifecyclemanager.html#amazondatalifecyclemanager-UpdateLifecyclePolicy) can reduce the retention period to delete snapshots. These are significant risks, especially in light of the data loss prevention provisions in the European Union General Data Protection Regulation.
  
-By all means, set up Data Lifecycle Manager immediately if you have no other automation in place, but please consider this project for more flexibility -- and sign up as a contributor if you would like to help develop the [backup retention part](#backup-retention-feature)!
+By all means, set up Data Lifecycle Manager immediately if you have no automation in place, but please consider this project for more flexibility -- and sign up as a contributor if you would like to help develop the [backup retention part](#backup-retention-feature)!
 
 ## Quick Start
 
@@ -149,7 +149,7 @@ By all means, set up Data Lifecycle Manager immediately if you have no other aut
   * Values: one or more [ISO 8601 combined date and time strings](https://en.wikipedia.org/wiki/ISO_8601#Combined_date_and_time_representations), of the form `2017-03-21T22:40` (March 21, 2017, in this example)
       * Remember, the code runs once every 10 minutes and the last digit of the minute is ignored
       * Omit seconds and fractions of seconds
-      * Omit time zone
+      * Omit time zone; UTC is always used
 
 ## Output
 
