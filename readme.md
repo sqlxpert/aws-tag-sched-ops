@@ -177,7 +177,7 @@ By all means, set up Data Lifecycle Manager immediately if you have no other aut
   |`initiated`|`rsrc_id`|`op`|`child_rsrc_type`|`child`|`child_op`|`note`|
   |--|--|--|--|--|--|--|
   |Operation initiated?|Resource ID|Operation|Child type|Pointer to child|Child operation|Message|
-  |`0`&nbsp;No <br/>`1`&nbsp;Yes <br/>`9`&nbsp;_Info._|`i-` EC2 instance ID <br/>`vol` EBS volume ID<br/> RDS database instance name|_See_ [_table_](#enabling-operations)|`Image` <br/>`Snapshot`|_Name, ID, or ARN, as available_|`tag`||
+  |`0`&nbsp;No <br/>`1`&nbsp;Yes <br/>`9`&nbsp;_Info._|`i-`&nbsp;EC2&nbsp;instance&nbsp;ID, <br/>`vol-`&nbsp;EBS&nbsp;volume&nbsp;ID,&nbsp;or <br/>RDS&nbsp;instance&nbsp;name|_See_ [_table_](#enabling-operations)|`Image` <br/>`Snapshot`|_Name, ID, or ARN, as available_|`tag`||
 
 * Although the TagSchedOpsAdminister and TagSchedOpsTagSchedule policies authorize read-only access to the logs via the AWS API, and seem to be sufficient for using the links provided above, users who are not AWS administrators may also want [additional privileges for the CloudWatch Console](http://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/iam-identity-based-access-control-cwl.html#console-permissions-cwl).
 
@@ -221,7 +221,7 @@ Some operations create a child resource (image or snapshot) from a parent resour
   |--|--|--|--|
   |1|Prefix|`zm`|Identifies and groups children created by this project, for interfaces that do not expose tags. `z` will sort after most manually-created images and snapshots. `m` stands for "managed".|
   |2|Parent name or identifier|`webserver`|Conveniently indicates the parent. Derived from the `Name` tag (if not blank), the logical name (if supported), or the physical identifier (as a last resort). Multiple children of the same parent will sort together, by creation date (see next row).|
-  |3|Date/time|`20171231T1400`|Indicates when the child was created. The last digit of the minute is normalized to 0. The `-` and `:` separators are removed for brevity, and because AWS does not allow `:` in resource names. (The [`managed-date-time` tag](#tag-managed-date-time) preserves the separators.)|
+  |3|Date/time|`20171231T1400Z`|Indicates when the child was created. Always includes the `Z` suffix to indicate UTC. The last digit of the minute is normalized to 0. The `-` and `:` separators are removed for brevity, and because AWS does not allow `:` in resource names. (The [`managed-date-time` tag](#tag-managed-date-time) preserves the separators.)|
   |4|Random string|`g3a8a`|Guarantees unique names. Five characters are chosen from a small set of unambiguous letters and numbers.|
 
 * If parsing is ever necessary, keep in mind that the second part may contain internal hyphens.
@@ -238,7 +238,7 @@ Some operations create a child resource (image or snapshot) from a parent resour
   |`managed-parent-name`|The `Name` tag value from the parent. May be blank.|
   |`managed-parent-id`|The identifier of the parent instance or volume. AWS stores this in metadata for some but not all resource types, and the retrieval key differs for each resource type.|
   |`managed-origin`|The operation (for example, `snapshot`) that created the child. Identifies resources created by this project. Also distinguishes special cases, such as whether an EC2 instance was or was not rebooted before an image was created.|
-  |<a name="tag-managed-date-time">`managed-date-time`</a>|Groups resources created during the same 10-minute interval. The last digit of the minute is normalized to 0, and "Z" is always appended, to indicate UTC. AWS stores the _exact_ time (too specific) in metadata, and the retrieval key and the format differ for each resource type!|
+  |<a name="tag-managed-date-time">`managed-date-time`</a>|Groups resources created during the same 10-minute interval. The last digit of the minute is normalized to 0, and `Z` is always appended, to indicate UTC. AWS stores the _exact_ time (too specific for grouping) in metadata, and the retrieval key and the format differ for each resource type!|
 
 * Tags other than operation-enabling tags, schedule tags, and the `Name` tag, are copied from parent to child. (The deletion tag, `managed-delete`, would not make sense on instances and volumes, but if it is present, it is not copied to images and snapshots.)
 
