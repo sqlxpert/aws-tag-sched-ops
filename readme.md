@@ -183,7 +183,7 @@ By all means, set up Data Lifecycle Manager immediately if you have no other aut
 
 ### Debugging Mode
 
-If the `DEBUG` environment variable is set, the function outputs internal `parent_params` reference data, including the regular expressions used to match schedule tags.
+If the `DEBUG` environment variable is set, the function outputs internal `params` reference data, including the regular expressions used to match schedule tags.
     
 To use the debugging mode,
 
