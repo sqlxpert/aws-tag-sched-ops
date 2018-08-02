@@ -68,11 +68,6 @@ To execute directly, for development purposes ONLY:
 """
 
 
-#######
-# Post-filter create-snapshot for RDS DB unavail
-# Check GitHub issues
-
-
 import os
 import datetime
 import re
