@@ -15,12 +15,12 @@ Jump to: [Installation](#quick-start) &bull; [Operation Tags](#enabling-operatio
 In July, 2018, Amazon [introduced Data Lifecycle Manager](https://aws.amazon.com/blogs/aws/new-lifecycle-management-for-amazon-ebs-snapshots/). It's an excellent start for backing up EBS volumes, but it has some limitations:
 
  * Tags determine _which_ volumes will be backed up, not _when_. There is a new, single-purpose API for scheduling.
- * You may only choose a 12- or 24-hour backup frequency.
- * Retention rules tell the system _how many_ snapshots to keep (as in RDS), which is not sufficient for an archival policy (e.g., keep daily snapshots for a month and keep one monthly snapshot forever).
- * You can create snapshots of single volumes, but not images covering all of an EC2 instance's volumes; also missing is an option to reboot first.
- * One IAM role confers the authority to create _and_ delete backups. This is a security risk, especially in light of the data loss prevention provisions in the European Union General Data Protection Regulation.
+ * You may only choose a 12- or 24-hour snapshot frequency.
+ * You may only keep a fixed number of snapshots (as in RDS). Retention based strictly on age is not flexible enough for archiving (e.g., keep daily snapshots for a month, plus monthly snapshots for a year, plus yearly snapshots forever).
+ * You can create snapshots of single volumes, but not images covering all of an EC2 instance's volumes. Also missing is an option to reboot first.
+ * [The same IAM role](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/snapshot-lifecycle.html#dlm-permissions) confers authority to create _and_ delete backups, and [anyone who can update a lifecycle policy](https://docs.aws.amazon.com/IAM/latest/UserGuide/list_amazondatalifecyclemanager.html#amazondatalifecyclemanager-UpdateLifecyclePolicy) can reduce the retention period to delete snapshots. These are significant risks, especially in light of the data loss prevention provisions in the European Union General Data Protection Regulation.
  
-By all means, set up Data Lifecycle Manager immediately if you have no other automation in place, but please consider this project for more flexibility -- and sign up as a contributor if you would like to help develop the [backup retention part](#backup-retention-feature)!
+By all means, set up Data Lifecycle Manager immediately if you have no automation in place, but please consider this project for more flexibility -- and sign up as a contributor if you would like to help develop the [backup retention part](#backup-retention-feature)!
 
 ## Quick Start
 
@@ -39,7 +39,7 @@ By all means, set up Data Lifecycle Manager immediately if you have no other aut
 
    _Security Tip:_ Remove public read and write access from the S3 bucket. Carefully limit write access.
 
-   _Security Tip:_ Download the file from S3 and verify it. (In some cases, you can simply compare the ETag reported by S3.)<br/>`md5sum aws_tag_sched_ops_perform.py.zip` should yield `63743f89e05b89b4f6eb14ca7eedecc1`
+   _Security Tip:_ Download the file from S3 and verify it. (In some cases, you can simply compare the ETag reported by S3.)<br/>`md5sum aws_tag_sched_ops_perform.py.zip` should yield `ebdafc23a3aa85c832293f9e4884e652`
 
 4. Go to the [CloudFormation Console](https://console.aws.amazon.com/cloudformation/home). Click Create Stack. Click Choose File, immediately below "Upload a template to Amazon S3", and navigate to your locally downloaded copy of [`cloudformation/aws_tag_sched_ops.yaml`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
 
@@ -149,7 +149,7 @@ By all means, set up Data Lifecycle Manager immediately if you have no other aut
   * Values: one or more [ISO 8601 combined date and time strings](https://en.wikipedia.org/wiki/ISO_8601#Combined_date_and_time_representations), of the form `2017-03-21T22:40` (March 21, 2017, in this example)
       * Remember, the code runs once every 10 minutes and the last digit of the minute is ignored
       * Omit seconds and fractions of seconds
-      * Omit time zone
+      * Omit time zone; UTC is always used
 
 ## Output
 
@@ -157,16 +157,16 @@ By all means, set up Data Lifecycle Manager immediately if you have no other aut
 
 * Sample output:
 
-  |`initiated`|`svc`|`rsrc_type`|`rsrc_id`|`op`|`child_rsrc_type`|`child`|`child_op`|`note`|
-  |--|--|--|--|--|--|--|--|--|
-  |`9`||||||||`2017-09-12T20:40`|
-  |`1`|`ec2`|`Instance`|`i-08abefc70375d36e8`|`reboot-image`|`Image`|`zm-my-server-20170912T2040-83xx7`|||
-  |`1`|`ec2`|`Instance`|`i-08abefc70375d36e8`|`reboot-image`|`Image`|`ami-bc9fcbc6`|`tag`||
-  |`1`|`ec2`|`Instance`|`i-04d2c0140da5bb13e`|`start`|||||
-  |`0`|`ec2`|`Instance`|`i-09cdea279388d35a2`|`start,stop`||||`OPS_UNSUPPORTED`|
-  |`0`|`rds`|`DBInstance`|`my-database`|`reboot-failover`||||...`ForceFailover cannot be specified`...|
+  |`initiated`|`rsrc_id`|`op`|`child_rsrc_type`|`child`|`child_op`|`note`|
+  |--|--|--|--|--|--|--|
+  |`9`||||||`2017-09-12T20:40`|
+  |`1`|`i-08abefc70375d36e8`|`reboot-image`|`Image`|`zm-my-server-20170912T2040-83xx7`|||
+  |`1`|`i-08abefc70375d36e8`|`reboot-image`|`Image`|`ami-bc9fcbc6`|`tag`||
+  |`1`|`i-04d2c0140da5bb13e`|`start`|||||
+  |`0`|`i-09cdea279388d35a2`|`start,stop`||||`OPS_UNSUPPORTED`|
+  |`0`|`my-database`|`reboot-failover`||||...`ForceFailover cannot be specified`...|
   
-  _This run began September 12, 2017 between 20:40 and 20:50 UTC. An EC2 instance is being rebooted and backed up, but the instance may not yet be ready again, and the image may not yet be complete; the image is named `zm-my-server-20170912T2040-83xx7`. The image has received ID `ami-bc9fcbc6`, and has been tagged. A different EC2 instance is starting up, but may not yet be ready. A third EC2 instance is tagged for simultaneous start and stop, a combination that is not supported. An RDS database instance could not be rebooted with fail-over. (The full error message goes on to explain that it is not multi-zone.)_
+  _This run began September 12, 2017 between 20:40 and 20:50 UTC. An EC2 instance (ID prefix `i-`) is being rebooted and backed up, but the instance may not yet be ready again, and the image may not yet be complete; the image is named `zm-my-server-20170912T2040-83xx7`. The image has received ID `ami-bc9fcbc6`, and has been tagged. A different EC2 instance is starting up, but may not yet be ready. A third EC2 instance is tagged for simultaneous start and stop, a combination that is not supported. An RDS database instance (no `i-` or `vol-` ID prefix) could not be rebooted with fail-over. (The full error message goes on to explain that it is not multi-zone.)_
 
 * There is a header line, an information line, and one line for each operation requested. (Tagging is usually a separate operation.)
 
@@ -174,16 +174,16 @@ By all means, set up Data Lifecycle Manager immediately if you have no other aut
 
 * Columns and standard values:
 
-  |`initiated`|`svc`|`rsrc_type`|`rsrc_id`|`op`|`child_rsrc_type`|`child`|`child_op`|`note`|
-  |--|--|--|--|--|--|--|--|--|
-  |Operation initiated?|Service|Resource type|Resource ID|Operation|Child type|Pointer to child|Child operation|Message|
-  |`0`&nbsp;No <br/>`1`&nbsp;Yes <br/>`9`&nbsp;_Info._|`ec2` <br/>`rds`|`Instance` <br/>`Volume` <br/>`DBInstance`||_See_ [_table_](#enabling-operations)|`Image` <br/>`Snapshot`|_Name, ID, or ARN, as available_|`tag`||
+  |`initiated`|`rsrc_id`|`op`|`child_rsrc_type`|`child`|`child_op`|`note`|
+  |--|--|--|--|--|--|--|
+  |Operation initiated?|Resource ID|Operation|Child type|Pointer to child|Child operation|Message|
+  |`0`&nbsp;No <br/>`1`&nbsp;Yes <br/>`9`&nbsp;_Info._|`i-`&nbsp;EC2&nbsp;instance&nbsp;ID, <br/>`vol-`&nbsp;EBS&nbsp;volume&nbsp;ID,&nbsp;or <br/>RDS&nbsp;instance&nbsp;name|_See_ [_table_](#enabling-operations)|`Image` <br/>`Snapshot`|_Name, ID, or ARN, as available_|`tag`||
 
 * Although the TagSchedOpsAdminister and TagSchedOpsTagSchedule policies authorize read-only access to the logs via the AWS API, and seem to be sufficient for using the links provided above, users who are not AWS administrators may also want [additional privileges for the CloudWatch Console](http://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/iam-identity-based-access-control-cwl.html#console-permissions-cwl).
 
 ### Debugging Mode
 
-If the `DEBUG` environment variable is set, the function outputs internal `parent_params` reference data, including the regular expressions used to match schedule tags.
+If the `DEBUG` environment variable is set, the function outputs internal `params` reference data, including the regular expressions used to match schedule tags.
     
 To use the debugging mode,
 
@@ -221,7 +221,7 @@ Some operations create a child resource (image or snapshot) from a parent resour
   |--|--|--|--|
   |1|Prefix|`zm`|Identifies and groups children created by this project, for interfaces that do not expose tags. `z` will sort after most manually-created images and snapshots. `m` stands for "managed".|
   |2|Parent name or identifier|`webserver`|Conveniently indicates the parent. Derived from the `Name` tag (if not blank), the logical name (if supported), or the physical identifier (as a last resort). Multiple children of the same parent will sort together, by creation date (see next row).|
-  |3|Date/time|`20171231T1400`|Indicates when the child was created. The last digit of the minute is normalized to 0. The `-` and `:` separators are removed for brevity, and because AWS does not allow `:` in resource names. (The [`managed-date-time` tag](#tag-managed-date-time) preserves the separators.)|
+  |3|Date/time|`20171231T1400Z`|Indicates when the child was created. Always includes the `Z` suffix to indicate UTC. The last digit of the minute is normalized to 0. The `-` and `:` separators are removed for brevity, and because AWS does not allow `:` in resource names. (The [`managed-date-time` tag](#tag-managed-date-time) preserves the separators.)|
   |4|Random string|`g3a8a`|Guarantees unique names. Five characters are chosen from a small set of unambiguous letters and numbers.|
 
 * If parsing is ever necessary, keep in mind that the second part may contain internal hyphens.
@@ -235,10 +235,10 @@ Some operations create a child resource (image or snapshot) from a parent resour
   |Tag(s)|Purpose|
   |--|--|
   |`Name`|Supplements EC2 resource identifier. The key is renamed `managed-parent-name` when the value is passed from parent to child, because the child has a `Name` tag of its own. The code handles `Name` specially for both EC2 and RDS, in case AWS someday extends EC2-style tag semantics to RDS.|
-  |`managed-parent-name`|The `Name` tag value from the parent. Not added if blank.|
-  |`managed-parent-id`|The identifier of the parent instance or volume. AWS metadata captures this (for example, as `VolumeId`, for EC2 EBS volume snapshots), but the interface differs for each resource type.|
+  |`managed-parent-name`|The `Name` tag value from the parent. May be blank.|
+  |`managed-parent-id`|The identifier of the parent instance or volume. AWS stores this in metadata for some but not all resource types, and the retrieval key differs for each resource type.|
   |`managed-origin`|The operation (for example, `snapshot`) that created the child. Identifies resources created by this project. Also distinguishes special cases, such as whether an EC2 instance was or was not rebooted before an image was created.|
-  |<a name="tag-managed-date-time">`managed-date-time`</a>|Groups resources created during the same 10-minute interval. The last digit of the minute is normalized to 0. AWS metadata captures the _exact_ time, and the interface differs for each resource type.|
+  |<a name="tag-managed-date-time">`managed-date-time`</a>|Groups resources created during the same 10-minute interval. The last digit of the minute is normalized to 0, and `Z` is always appended, to indicate UTC. AWS stores the _exact_ time (too specific for grouping) in metadata, and the retrieval key and the format differ for each resource type!|
 
 * Tags other than operation-enabling tags, schedule tags, and the `Name` tag, are copied from parent to child. (The deletion tag, `managed-delete`, would not make sense on instances and volumes, but if it is present, it is not copied to images and snapshots.)
 
@@ -452,7 +452,7 @@ New versions of the AWS Lambda function source code and the CloudFormation templ
 
 4. Click the checkbox to the left of the newly-uploaded file. In the window that pops up, look below the Download button and reselect "Latest version". In the Overview section of the pop-up window, find the Link and copy the text _after_ `versionId=`. (The Version ID will not appear unless you expressly select "Latest version".)
 
-   _Security Tip:_ Download the file from S3 and verify it. (In some cases, you can simply compare the ETag reported by S3.) <br/>`md5sum aws_tag_sched_ops_perform.py.zip` should yield `63743f89e05b89b4f6eb14ca7eedecc1`
+   _Security Tip:_ Download the file from S3 and verify it. (In some cases, you can simply compare the ETag reported by S3.) <br/>`md5sum aws_tag_sched_ops_perform.py.zip` should yield `ebdafc23a3aa85c832293f9e4884e652`
 
 5. Go to [Stacks](https://console.aws.amazon.com/cloudformation/home#/stacks) in the CloudFormation Console. Click the checkbox to the left of `TagSchedOps` (you might have given the stack a different name). From the Actions pop-up menu next to the blue Create Stack button, select Create Change Set For Current Stack.
 
