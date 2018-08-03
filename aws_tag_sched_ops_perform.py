@@ -603,7 +603,6 @@ def rsrcs_get(
   return rsrcs
 
 
-# pylint: disable=too-many-arguments
 def ops_perform(
   ops_rsrcs,
   date_time_norm_str,
@@ -611,7 +610,7 @@ def ops_perform(
   rsrc_type,
   ops_method,
   child_tags_set_fn
-):
+):  # pylint: disable=too-many-arguments,too-many-locals
   """Perform operations on resources of a given type.
   """
 
@@ -655,11 +654,6 @@ def ops_perform(
           tag_encode(tag_key_join("date-time"), date_time_norm_str),
           tag_encode("Name", child_name),
         ])
-        # if (svc, rsrc_type) == ("rds", "DBInstance"):
-        #   rsrc["child_tags"].append(
-        #     tag_encode(tag_key_join("parent-arn"), rsrc["DBInstanceArn"])
-        #   )
-
         if not two_step_tag:
           kwargs["Tags"] = rsrc["child_tags"]
 
@@ -811,7 +805,6 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
         },
       }
       child_tags_set_method = aws_client.add_tags_to_resource
-    tags_get_fn = tags_get_simple
 
     for (rsrc_type, params_rsrc_type) in (
       params_svc["rsrc_types"].items()
@@ -865,6 +858,8 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
             params_svc["tags_get_key"]
           )
         )
+      else:
+        tags_get_fn = tags_get_simple
 
       ops_rsrcs = rsrcs_get(
         params_rsrc_type,
