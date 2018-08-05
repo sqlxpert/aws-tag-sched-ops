@@ -12,15 +12,15 @@ Jump to: [Installation](#quick-start) &bull; [Operation Tags](#enabling-operatio
 
 ## Comparison with Lifecycle Manager
 
-In July, 2018, Amazon [introduced Data Lifecycle Manager](https://aws.amazon.com/blogs/aws/new-lifecycle-management-for-amazon-ebs-snapshots/). It's an excellent start for backing up EBS volumes, but it has some limitations:
+In July, 2018, Amazon [introduced Data Lifecycle Manager](https://aws.amazon.com/blogs/aws/new-lifecycle-management-for-amazon-ebs-snapshots/). It's a start, but it has limitations:
 
  * Tags determine _which_ volumes will be backed up, not _when_. There is a new, single-purpose API for scheduling.
- * You may only choose a 12- or 24-hour snapshot frequency.
- * You may only keep a fixed number of snapshots (as in RDS). Retention based strictly on age is not flexible enough for archiving (e.g., keep daily snapshots for a month, plus monthly snapshots for a year, plus yearly snapshots forever).
+ * Snapshots are taken only every 12 or 24 hours.
+ * A fixed number of snapshots are kept (as in RDS). "Last _x_" retention is not flexible enough for archiving (e.g., keep daily snapshots for a month, plus monthly snapshots for a year).
  * You can create snapshots of single volumes, but not images covering all of an EC2 instance's volumes. Also missing is an option to reboot first.
- * [The same IAM role](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/snapshot-lifecycle.html#dlm-permissions) confers authority to create _and_ delete backups, and [anyone who can update a lifecycle policy](https://docs.aws.amazon.com/IAM/latest/UserGuide/list_amazondatalifecyclemanager.html#amazondatalifecyclemanager-UpdateLifecyclePolicy) can reduce the retention period to delete snapshots. These are significant risks, especially in light of the data loss prevention provisions in the European Union General Data Protection Regulation.
+ * [The same IAM role](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/snapshot-lifecycle.html#dlm-permissions) confers authority to create _and_ delete snapshots, and [anyone who can update a lifecycle policy](https://docs.aws.amazon.com/IAM/latest/UserGuide/list_amazondatalifecyclemanager.html#amazondatalifecyclemanager-UpdateLifecyclePolicy) can reduce the retention period to delete snapshots. These are significant risks, especially in light of the data loss prevention provisions in the European Union General Data Protection Regulation.
  
-By all means, set up Data Lifecycle Manager immediately if you have no automation in place, but please consider this project for more flexibility -- and sign up as a contributor if you would like to help develop the [backup retention part](#backup-retention-feature)!
+By all means, set up Data Lifecycle Manager if you have no automation in place, but consider this project for more flexibility -- and sign up as a contributor if you would like to help develop the [backup retention part](#backup-retention-feature)!
 
 ## Quick Start
 
@@ -33,13 +33,13 @@ By all means, set up Data Lifecycle Manager immediately if you have no automatio
    |Key|Value|Note|
    |--|--|--|
    |`managed-image`||Leave value blank|
-   |`managed-image-periodic`|`d=*,H:M=11:30`|Replace `11:30` with [current UTC time](https://www.timeanddate.com/worldclock/timezone/utc) + 15 minutes|
+   |`managed-image-periodic`|`d=*,H:M=11:30`|Replace `11:30` with [current UTC time](https://www.timeanddate.com/worldclock/timezone/utc) + 20 minutes|
 
 3. Go to the [S3 Console](https://console.aws.amazon.com/s3/home). Click the name of the bucket where you keep AWS Lambda function source code. (This may be the same bucket where you keep CloudFormation templates.) If you are creating the bucket now, be sure to create it in the region where you intend to install TagSchedOps; appending the region to the bucket name (for example, `my-bucket-us-east-1`) is recommended. Upload the compressed source code of the AWS Lambda function, [`aws_tag_sched_ops_perform.py.zip`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/aws_tag_sched_ops_perform.py.zip)
 
    _Security Tip:_ Remove public read and write access from the S3 bucket. Carefully limit write access.
 
-   _Security Tip:_ Download the file from S3 and verify it. (In some cases, you can simply compare the ETag reported by S3.)<br/>`md5sum aws_tag_sched_ops_perform.py.zip` should yield `ca88c16f26b46e124b9837cc7c9a511d`
+   _Security Tip:_ Download the file from S3 and verify it. (In some cases, you can simply compare the ETag reported by S3.)<br/>`md5sum aws_tag_sched_ops_perform.py.zip` should yield `92ff0f262316ff212a4fec0e389115ce`
 
 4. Go to the [CloudFormation Console](https://console.aws.amazon.com/cloudformation/home). Click Create Stack. Click Choose File, immediately below "Upload a template to Amazon S3", and navigate to your locally downloaded copy of [`cloudformation/aws_tag_sched_ops.yaml`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
 
@@ -57,7 +57,7 @@ By all means, set up Data Lifecycle Manager immediately if you have no automatio
 
 7. Go to [Users](https://console.aws.amazon.com/iam/home#/users) in the IAM Console. Click your regular (uprivileged) username. Click Add Permissions, then click "Attach existing policies directly". In the Search box, type `TagSchedOpsAdminister`. Add the two matching policies.
       
-   _Security Tip_: Review EC2 and RDS tagging privileges for all entities.
+   _Security Tip_: Review everyone's EC2 and RDS tagging privileges!
 
 8. Log out of the AWS Console. You can now manage relevant tags, view logs, and decode errors, without logging in as a privileged user.
 
@@ -79,9 +79,9 @@ By all means, set up Data Lifecycle Manager immediately if you have no automatio
 
   | |Start|Create Image|Reboot then Create Image|Reboot then Fail Over|Reboot|Create Snapshot|Create Snapshot then Stop|Stop|
   |--|--|--|--|--|--|--|--|--|
-  |EC2 compute instance|`managed-start`|`managed-image`|`managed-reboot-image`| |`managed-reboot`| | |`managed-stop`|
-  |EC2 EBS disk volume| | | | | |`managed-snapshot`| | |
-  |RDS database instance|`managed-start`| | |`managed-reboot-failover`|`managed-reboot`|`managed-snapshot`|`managed-snapshot-stop`|`managed-stop`|
+  |[EC2 compute instance](https://console.aws.amazon.com/ec2/v2/home#Instances)|`managed-start`|`managed-image`|`managed-reboot-image`| |`managed-reboot`| | |`managed-stop`|
+  |[EC2 EBS disk volume](https://console.aws.amazon.com/ec2/v2/home#Volumes)| | | | | |`managed-snapshot`| | |
+  |[RDS database instance](https://console.aws.amazon.com/rds/home#dbinstances:)|`managed-start`| | |`managed-reboot-failover`|`managed-reboot`|`managed-snapshot`|`managed-snapshot-stop`|`managed-stop`|
 
 * Also add tags for [repetitive (`-periodic`)](#repetitive-schedules) and/or [one-time (`-once`)](#one-time-schedules) schedules. Prefix with the operation.
 * If there are no corresponding schedule tags, an enabling tag will be ignored, and the operation will never occur.
@@ -177,7 +177,7 @@ By all means, set up Data Lifecycle Manager immediately if you have no automatio
   |`initiated`|`rsrc_id`|`op`|`child_rsrc_type`|`child`|`child_op`|`note`|
   |--|--|--|--|--|--|--|
   |Operation initiated?|Resource ID|Operation|Child type|Pointer to child|Child operation|Message|
-  |`0`&nbsp;No <br/>`1`&nbsp;Yes <br/>`9`&nbsp;_Info._|`i-`&nbsp;EC2&nbsp;instance&nbsp;ID, <br/>`vol-`&nbsp;EBS&nbsp;volume&nbsp;ID,&nbsp;or <br/>RDS&nbsp;instance&nbsp;name|_See_ [_table_](#enabling-operations)|`Image` <br/>`Snapshot`|_Name, ID, or ARN, as available_|`tag`||
+  |`0`&nbsp;No <br/>`1`&nbsp;Yes <br/>`9`&nbsp;_Info._|`i-`&nbsp;EC2&nbsp;instance&nbsp;ID <br/>`vol-`&nbsp;EBS&nbsp;volume&nbsp;ID <br/>RDS&nbsp;instance&nbsp;name|_See_ [_table_](#enabling-operations)|`Image` <br/>`Snapshot` <br/>`DBSnapshot`|_Name, ID, or ARN, as available_|`tag`||
 
 * Although the TagSchedOpsAdminister and TagSchedOpsTagSchedule policies authorize read-only access to the logs via the AWS API, and seem to be sufficient for using the links provided above, users who are not AWS administrators may also want [additional privileges for the CloudWatch Console](http://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/iam-identity-based-access-control-cwl.html#console-permissions-cwl).
 
@@ -273,7 +273,7 @@ Resources tagged for unsupported combinations of operations are logged (with mes
 
 |Bad Combination|Reason|Example|
 |--|--|--|
-|Mutually exclusive operations|The operations conflict with each other.|Start + Stop|
+|Mutually exclusive operations|The operations conflict.|Start + Stop|
 |Choice of operation depends on current state of instance|The state of the instance could change between the status query and the operation request.|Start + Reboot|
 |Sequential or dependent operations|The logical order cannot always be inferred. Also, operations proceed asynchronously; one might not complete in time for another to begin. Note that Reboot then Create Image (EC2 instance) and Create Snapshot then Stop (RDS instance) are _single_ AWS operations.|Start + Create Image|
 
@@ -287,7 +287,7 @@ Resources tagged for unsupported combinations of operations are logged (with mes
  
  * Allow only a few trusted users to tag EC2 and RDS resources, because tags determine which resources are started, backed up, rebooted, and stopped.
 
- * Tag backups for deletion, but let a special user or entity actually delete them. To mark images and snapshots for (manual) deletion, add the `managed-delete` tag.
+ * Tag backups for deletion, but let a special IAM user or role actually delete them. To mark images and snapshots for (manual) deletion, add the `managed-delete` tag.
  
  * Do not allow the same entities that create backups to delete backups (or even to tag them for deletion).
  
@@ -323,11 +323,11 @@ Resources tagged for unsupported combinations of operations are logged (with mes
  
  * Note these AWS technical limitations/oversights:
  
-    * An entity that can create an image of an EC2 instance can force a reboot by omitting the `NoReboot` option. (Explicitly denying the reboot privilege does not help.) The unavoidable pairing of a harmless privilege, taking a backup, with a risky one, rebooting, is unfortunate.
+    * An IAM user or role that can create an image of an EC2 instance can force a reboot by omitting the `NoReboot` option. (Explicitly denying the reboot privilege does not help.) The unavoidable pairing of a harmless privilege, taking a backup, with a risky one, rebooting, is unfortunate.
 
     * Tags are ignored when deleting EC2 images and snapshots. Limit EC2 image and snapshot deletion privileges -- even Ec2TagSchedOpsDelete -- to highly-trusted entities.
 
-    * In RDS, an entity that can add specific tags can add _any other_ tags in the same request. Limit RDS tagging privileges -- even the provided policies -- to highly-trusted users.
+    * In RDS, an IAM user or role that can add specific tags can add _any other_ tags in the same request. Limit RDS tagging privileges -- even the provided policies -- to highly-trusted users.
 
 ## Advanced Installation
 
@@ -452,7 +452,7 @@ New versions of the AWS Lambda function source code and the CloudFormation templ
 
 4. Click the checkbox to the left of the newly-uploaded file. In the window that pops up, look below the Download button and reselect "Latest version". In the Overview section of the pop-up window, find the Link and copy the text _after_ `versionId=`. (The Version ID will not appear unless you expressly select "Latest version".)
 
-   _Security Tip:_ Download the file from S3 and verify it. (In some cases, you can simply compare the ETag reported by S3.) <br/>`md5sum aws_tag_sched_ops_perform.py.zip` should yield `ca88c16f26b46e124b9837cc7c9a511d`
+   _Security Tip:_ Download the file from S3 and verify it. (In some cases, you can simply compare the ETag reported by S3.) <br/>`md5sum aws_tag_sched_ops_perform.py.zip` should yield `92ff0f262316ff212a4fec0e389115ce`
 
 5. Go to [Stacks](https://console.aws.amazon.com/cloudformation/home#/stacks) in the CloudFormation Console. Click the checkbox to the left of `TagSchedOps` (you might have given the stack a different name). From the Actions pop-up menu next to the blue Create Stack button, select Create Change Set For Current Stack.
 

@@ -1,6 +1,6 @@
 # Suggested setup steps:
 #
-#   virtualenv --python=python3 VIRTUALENV_PATH
+#   python3 -m venv VIRTUALENV_PATH
 #   source VIRTUALENV_PATH/bin/activate
 #   pip3 install --upgrade --requirement requirements.txt
 #

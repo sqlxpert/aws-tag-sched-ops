@@ -189,8 +189,8 @@ def kwargs_one_rsrc(
   """Take the resource ID parameter name (key) and return a kwargs lambda fn.
 
   The lambda function produces the keyword argument dictionary for boto3
-  methods that are called with with either a single resource ID (default)
-  or a list of resource IDs (set rsrc_id_process=list). Even in the latter
+  methods that are called with either a single resource ID (default) or a
+  list of resource IDs (set rsrc_id_process=singleton_list). Even in the latter
   case, it accepts one resource ID only, because one-at-a-time processing
   prevents all-or-nothing failures and permits more specific error reporting.
   """
@@ -207,9 +207,9 @@ def kwargs_tags_set(
 ):
   """Take the resource ID parameter name (key) and return a kwargs lambda fn.
 
-  The lambda function produces the keyword argument dictionary for boto3
-  tagging methods, which are called with a list of tags and, generally, a list
-  of resource IDs (so, set rsrc_id_process=list). See also kwargs_one_rsrc.
+  The lambda function produces the keyword argument dictionary for boto3 tagging
+  methods, which are called with a list of tags and, generally, a list of
+  resource IDs (set rsrc_id_process=singleton_list). See also kwargs_one_rsrc.
   """
 
   return lambda rsrc_id, tags: {
@@ -511,7 +511,7 @@ def boto3_success(resp):
   Success, throughout this code, means that an AWS operation
   has been initiated, not necessarily that it has completed.
 
-  It may take hours for image or snapshot to become available, and checking
+  It may take hours for an image or snapshot to become available, and checking
   for completion is an audit function, to be performed by other code or tools.
   """
 
@@ -551,7 +551,7 @@ def rsrc_process(rsrc, params_rsrc_type, tags_get_fn):
         # Operation-enabling tag: ignore value. Empty list accomplishes
         #   this by triggering else clause of for...else loop.
         for regexp in regexps:
-          if not regexp.match(tag_val):
+          if not regexp.search(tag_val):
             break
         else:
           tags_match.add(tag_key)
