@@ -105,8 +105,8 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
  * All times are UTC, on a 24-hour clock.
  * The function runs once every 10 minutes. The last digit of the minute is always ignored. For example, `M=47` means _one time, between 40 and 50 minutes after the hour_.
  * Month and minute values must have two digits. Use a leading zero if necessary. (Weekday numbers have only one digit.)
- * Use a comma (`,`) _without spaces_ to separate components. The order of components within a tag value does not matter.
- * `T` separates day information from time; it is not a variable.
+ * Use a comma (`,`) or a space (` `) to separate components. **(RDS does not allow commas in tag values.)** The order of components within a tag value does not matter.
+ * `T` separates day information from time; it is invariable.
  * [Repetitive (`-periodic`)](#repetitive-schedules) and [one-time (`-once`)](#one-time-schedules) schedule tags are supported. Prefix with the operation.
  * If the corresponding [enabling tag](#enabling-operations) is missing, schedule tags will be ignored, and the operation will never occur.
 
@@ -141,6 +141,8 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
     |`d=*,H=*,M=15,M=45,H:M=08:50`|Extra event in the day|Between 10 and 20 minutes after the hour and 40 to 50 minutes after the hour, every hour of every day, _and also_ every day between 08:50 and 09:00.|
     |`d=*,H=11,M=00,uTH:M=2T03:30,uTH:M=5T07:20`|Extra weekly events|Between 11:00 and 11:10 every day, _and also_ every Tuesday between 03:30 and 03:40 and every Friday between 07:20 and 7:30.|
     |`u=3,H=22,M=15,dTH:M=01T05:20`|Extra monthly event|Between 22:10 and 22:20 every Wednesday, _and also_ on the first day of every month between 05:20 and 05:30.|
+    
+    Remember to use spaces (` `) instead of commas (`,`) in RDS! (Either separator character is fine in EC2.)
     
 ### One-Time Schedules
  
