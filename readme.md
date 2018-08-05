@@ -523,6 +523,6 @@ This work is dedicated to [Ernie Salazar](https://github.com/ehsalazar), R&eacut
 |Source code within documentation files|[GNU General Public License (GPL) 3.0](http://www.gnu.org/licenses/gpl-3.0.html)|[zlicense-code.txt](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/zlicense-code.txt)|
 |Documentation files (including this readme file)|[GNU Free Documentation License (FDL) 1.3](http://www.gnu.org/licenses/fdl-1.3.html)|[zlicense-doc.txt](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/zlicense-doc.txt)|
 
-Copyright 2017, Paul Marcelin
+Copyright 2018, Paul Marcelin
 
 Contact: `marcelin` at `cmu.edu` (replace at with `@`)
