@@ -64,7 +64,7 @@ To execute directly, for development purposes ONLY:
 8. Package for upload to S3, for use with AWS Lambda:
      rm     aws_tag_sched_ops_perform.py.zip
      zip    aws_tag_sched_ops_perform.py.zip aws_tag_sched_ops_perform.py
-     md5sum aws_tag_sched_ops_perform.py.zip
+     md5sum aws_tag_sched_ops_perform.py.zip > aws_tag_sched_ops_perform.py.zip.md5.txt
 """
 
 
@@ -312,12 +312,13 @@ PARAMS_CHILD = {
 # (This is a global variable, not a constant)
 params = {
   "ec2": {
+    "tags_set_method_name": "create_tags",
     "tags_set_kwargs": kwargs_tags_set("Resources",
                                        rsrc_id_process=singleton_list),
     "rsrc_types": {
 
       "Instance": {
-        "pager": "describe_instances",
+        "pager_name": "describe_instances",
         "describe_kwargs": {
           "Filters": [
             filter_encode("instance-state-name",
@@ -332,32 +333,37 @@ params = {
         "id_key": "InstanceId",
         "ops": {
           "start": {
+            "op_method_name": "start_instances",
             "op_kwargs": kwargs_one_rsrc("InstanceIds",
                                          rsrc_id_process=singleton_list),
           },
           "reboot": {
+            "op_method_name": "reboot_instances",
             "op_kwargs": kwargs_one_rsrc("InstanceIds",
                                          rsrc_id_process=singleton_list),
           },
           "stop": {
+            "op_method_name": "stop_instances",
             "op_kwargs": kwargs_one_rsrc("InstanceIds",
                                          rsrc_id_process=singleton_list),
           },
           "image": {
-            "child_rsrc_type": "Image",
-            "params_child_rsrc_type": PARAMS_CHILD["ec2"]["Image"],
+            "op_method_name": "create_image",
             "op_kwargs": lambda rsrc_id: {
               "InstanceId": rsrc_id,
               "NoReboot": True,
             },
-          },
-          "reboot-image": {
             "child_rsrc_type": "Image",
             "params_child_rsrc_type": PARAMS_CHILD["ec2"]["Image"],
+          },
+          "reboot-image": {
+            "op_method_name": "create_image",
             "op_kwargs": lambda rsrc_id: {
               "InstanceId": rsrc_id,
               "NoReboot": False,
             },
+            "child_rsrc_type": "Image",
+            "params_child_rsrc_type": PARAMS_CHILD["ec2"]["Image"],
           },
         },
         "ops_to_op": {  # How to interpret combinations of operations
@@ -368,9 +374,8 @@ params = {
           frozenset(["reboot", "stop"]): "stop",  # Next start includes boot
         },
       },
-
       "Volume": {
-        "pager": "describe_volumes",
+        "pager_name": "describe_volumes",
         "describe_kwargs": {
           "Filters": [
             filter_encode("status", ["available", "in-use"]),
@@ -380,9 +385,10 @@ params = {
         "id_key": "VolumeId",
         "ops": {
           "snapshot": {
+            "op_method_name": "create_snapshot",
+            "op_kwargs": kwargs_one_rsrc("VolumeId"),
             "child_rsrc_type": "Snapshot",
             "params_child_rsrc_type": PARAMS_CHILD["ec2"]["Snapshot"],
-            "op_kwargs": kwargs_one_rsrc("VolumeId"),
           },
         },
         "ops_to_op": {},
@@ -391,46 +397,56 @@ params = {
     },
   },
   "rds": {
-    "tags_get_rsrc_id_key": "ResourceName",
-    "tags_get_key": "TagList",
+    "tags_get_method_name": "list_tags_for_resource",
+    "tags_get_rsrc_id_kwarg": "ResourceName",
+    "tags_key": "TagList",
+
+    "tags_set_method_name": "add_tags_to_resource",
     "tags_set_kwargs": kwargs_tags_set("ResourceName"),
+
     "rsrc_types": {
 
       "DBInstance": {
-        "pager": "describe_db_instances",
+        "pager_name": "describe_db_instances",
         "describe_kwargs": {},  # RDS supports very few Filters
         "rsrcs_get_fn": lambda resp: resp["DBInstances"],
-        "tags_get_rsrc_rsrc_id_key": "DBInstanceArn",
         "id_key": "DBInstanceIdentifier",
+        "rsrc_tags_get_id_key": "DBInstanceArn",
         "ops": {
           "start": {
+            "op_method_name": "start_db_instance",
             "op_kwargs": kwargs_one_rsrc("DBInstanceIdentifier"),
           },
           "reboot": {
+            "op_method_name": "reboot_db_instance",
             "op_kwargs": lambda rsrc_id: {
               "DBInstanceIdentifier": rsrc_id,
               "ForceFailover": False,
             },
           },
           "reboot-failover": {
+            "op_method_name": "reboot_db_instance",
             "op_kwargs": lambda rsrc_id: {
               "DBInstanceIdentifier": rsrc_id,
               "ForceFailover": True,
             },
           },
           "stop": {
+            "op_method_name": "stop_db_instance",
             "op_kwargs": kwargs_one_rsrc("DBInstanceIdentifier"),
           },
           "snapshot": {
+            "op_method_name": "create_db_snapshot",
+            "op_kwargs": kwargs_one_rsrc("DBInstanceIdentifier"),
             "child_rsrc_type": "DBSnapshot",
             "params_child_rsrc_type": PARAMS_CHILD["rds"]["DBSnapshot"],
-            "op_kwargs": kwargs_one_rsrc("DBInstanceIdentifier"),
           },
           "snapshot-stop": {
+            "op_method_name": "stop_db_instance",
+            "op_kwargs": kwargs_one_rsrc("DBInstanceIdentifier"),
             "child_rsrc_type": "DBSnapshot",
             "params_child_rsrc_type": PARAMS_CHILD["rds"]["DBSnapshot"],
             "child_tag_default_override": True,
-            "op_kwargs": kwargs_one_rsrc("DBInstanceIdentifier"),
           },
         },
         "ops_to_op": {
@@ -606,11 +622,11 @@ def rsrcs_get(
 def ops_perform(
   ops_rsrcs,
   date_time_norm_str,
-  svc,
-  rsrc_type,
-  ops_method,
-  child_tags_set_fn
-):  # pylint: disable=too-many-arguments,too-many-locals
+  params_svc,
+  params_rsrc_type,
+  aws_client,
+  tags_set_method
+):  # pylint: disable=too-many-arguments
   """Perform operations on resources of a given type.
   """
 
@@ -619,11 +635,10 @@ def ops_perform(
     date_time_norm_str
   )
 
-  params_svc = params[svc]
   for (op, rsrcs) in ops_rsrcs.items():
 
-    params_op = params_svc["rsrc_types"][rsrc_type]["ops"][op]
-    op_method = ops_method[op]
+    params_op = params_rsrc_type["ops"][op]
+    op_method = getattr(aws_client, params_op["op_method_name"])
     two_step_tag = False
 
     child_rsrc_type = params_op.get("child_rsrc_type", "")
@@ -682,7 +697,7 @@ def ops_perform(
         err_print = ""
         if child_id:
           try:
-            resp = child_tags_set_fn(
+            resp = tags_set_method(
               **child_tag_kwargs(child_id, rsrc["child_tags"])
             )
           except botocore.exceptions.ClientError as err:
@@ -699,19 +714,11 @@ def ops_perform(
         ))
 
 
-def tags_get_simple(rsrc, tags_key="Tags"):
-  """
-  Take a resource description and return the tags.
-  """
-
-  return rsrc[tags_key]
-
-
 def tags_get_two_step(
   rsrc,
-  rsrc_rsrc_id_key,
+  rsrc_tags_get_id_key,
   tags_get_method,
-  tags_get_rsrc_id_key,
+  tags_get_rsrc_id_kwarg,
   tags_key
 ):
   """
@@ -721,12 +728,12 @@ def tags_get_two_step(
   means that reasources with scheduled operations might be missed.
   """
 
-  rsrc_id = rsrc[rsrc_rsrc_id_key]
+  rsrc_id = rsrc[rsrc_tags_get_id_key]
   resp = {}
   err_print = ""
   try:
     resp = tags_get_method(**{
-      tags_get_rsrc_id_key: rsrc_id,
+      tags_get_rsrc_id_kwarg: rsrc_id,
     })
   except botocore.exceptions.ClientError as err:
     err_print = str(err)
@@ -743,6 +750,27 @@ def tags_get_two_step(
     ))
 
   return resp.get(tags_key, [])
+
+
+def tags_get_get(params_svc, params_rsrc_type, aws_client):
+  """Returns a lambda function to get tags for a resouce.
+  """
+
+  rsrc_tags_get_id_key = params_rsrc_type.get("rsrc_tags_get_id_key", "")
+
+  return lambda rsrc: (
+    tags_get_two_step(
+      rsrc,
+      rsrc_tags_get_id_key,
+      getattr(aws_client, params_svc["tags_get_method_name"]),
+      params_svc["tags_get_rsrc_id_kwarg"],
+      params_svc["tags_key"]
+    )
+
+    if rsrc_tags_get_id_key else
+
+    rsrc["Tags"]
+  )
 
 
 def lambda_handler(event, context):  # pylint: disable=unused-argument
@@ -773,42 +801,19 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
   # Perform each operation on the intended resources.
 
   for (svc, params_svc) in params.items():
-
     aws_client = boto3.client(svc)
+
     # boto3 method references can only be resolved at run-time,
     # against an instance of an AWS service's Client class.
     # http://boto3.readthedocs.io/en/latest/guide/events.html#extensibility-guide
-    if svc == "ec2":
-      ops_methods = {
-        "Instance": {
-          "start": aws_client.start_instances,
-          "reboot": aws_client.reboot_instances,
-          "stop": aws_client.stop_instances,
-          "image": aws_client.create_image,
-          "reboot-image": aws_client.create_image,
-        },
-        "Volume": {
-          "snapshot": aws_client.create_snapshot,
-        },
-      }
-      child_tags_set_method = aws_client.create_tags
-    elif svc == "rds":
-      tags_get_method = aws_client.list_tags_for_resource
-      ops_methods = {
-        "DBInstance": {
-          "snapshot": aws_client.create_db_snapshot,
-          "start": aws_client.start_db_instance,
-          "reboot": aws_client.reboot_db_instance,
-          "reboot-failover": aws_client.reboot_db_instance,
-          "stop": aws_client.stop_db_instance,
-          "snapshot-stop": aws_client.stop_db_instance,
-        },
-      }
-      child_tags_set_method = aws_client.add_tags_to_resource
 
-    for (rsrc_type, params_rsrc_type) in (
-      params_svc["rsrc_types"].items()
-    ):
+    tags_set_method = getattr(
+      aws_client,
+      params_svc["tags_set_method_name"]
+    )
+
+    for params_rsrc_type in params_svc["rsrc_types"].values():
+      tags_get_fn = tags_get_get(params_svc, params_rsrc_type, aws_client)
 
       tags_op_enable = []
       params_rsrc_type.update({
@@ -841,39 +846,19 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
           filter_encode("tag-key", tags_op_enable)
         )
 
-      if "tags_get_rsrc_rsrc_id_key" in params_rsrc_type:
-        # This resource type requires a separate request for tags
-        tags_get_fn = (
-          lambda rsrc,
-          # Without defaults, these would be retrieved whenever the lambda
-          # function was called, leading to errors if actual values differed
-          # from initial ones (see pylint's cell-var-from-loop warning):
-          tags_get_method=tags_get_method,
-          params_svc=params_svc,
-          params_rsrc_type=params_rsrc_type: tags_get_two_step(
-            rsrc,
-            params_rsrc_type["tags_get_rsrc_rsrc_id_key"],
-            tags_get_method,
-            params_svc["tags_get_rsrc_id_key"],
-            params_svc["tags_get_key"]
-          )
-        )
-      else:
-        tags_get_fn = tags_get_simple
-
       ops_rsrcs = rsrcs_get(
         params_rsrc_type,
-        aws_client.get_paginator(params_rsrc_type["pager"]),
+        aws_client.get_paginator(params_rsrc_type["pager_name"]),
         tags_get_fn
       )
 
       ops_perform(
         ops_rsrcs,
         date_time_norm_str,
-        svc,
-        rsrc_type,
-        ops_methods[rsrc_type],
-        child_tags_set_method
+        params_svc,
+        params_rsrc_type,
+        aws_client,
+        tags_set_method
       )
 
   if DEBUG:
