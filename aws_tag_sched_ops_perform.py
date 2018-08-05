@@ -391,17 +391,20 @@ params = {
     },
   },
   "rds": {
-    "tags_get_rsrc_id_key": "ResourceName",
-    "tags_get_key": "TagList",
+    "tags_get_method_name": "list_tags_for_resource",
+    "tags_get_rsrc_id_kwarg": "ResourceName",
+    "tags_key": "TagList",
+
     "tags_set_kwargs": kwargs_tags_set("ResourceName"),
+
     "rsrc_types": {
 
       "DBInstance": {
         "pager": "describe_db_instances",
         "describe_kwargs": {},  # RDS supports very few Filters
         "rsrcs_get_fn": lambda resp: resp["DBInstances"],
-        "tags_get_rsrc_rsrc_id_key": "DBInstanceArn",
         "id_key": "DBInstanceIdentifier",
+        "rsrc_tags_get_id_key": "DBInstanceArn",
         "ops": {
           "start": {
             "op_kwargs": kwargs_one_rsrc("DBInstanceIdentifier"),
@@ -699,19 +702,11 @@ def ops_perform(
         ))
 
 
-def tags_get_simple(rsrc, tags_key="Tags"):
-  """
-  Take a resource description and return the tags.
-  """
-
-  return rsrc[tags_key]
-
-
 def tags_get_two_step(
   rsrc,
-  rsrc_rsrc_id_key,
+  rsrc_tags_get_id_key,
   tags_get_method,
-  tags_get_rsrc_id_key,
+  tags_get_rsrc_id_kwarg,
   tags_key
 ):
   """
@@ -721,12 +716,12 @@ def tags_get_two_step(
   means that reasources with scheduled operations might be missed.
   """
 
-  rsrc_id = rsrc[rsrc_rsrc_id_key]
+  rsrc_id = rsrc[rsrc_tags_get_id_key]
   resp = {}
   err_print = ""
   try:
     resp = tags_get_method(**{
-      tags_get_rsrc_id_key: rsrc_id,
+      tags_get_rsrc_id_kwarg: rsrc_id,
     })
   except botocore.exceptions.ClientError as err:
     err_print = str(err)
@@ -743,6 +738,27 @@ def tags_get_two_step(
     ))
 
   return resp.get(tags_key, [])
+
+
+def tags_get_get(params_svc, params_rsrc_type, aws_client):
+  """Returns a lambda function to get tags for a resouce.
+  """
+
+  rsrc_tags_get_id_key = params_rsrc_type.get("rsrc_tags_get_id_key", "")
+
+  return lambda rsrc: (
+    tags_get_two_step(
+      rsrc,
+      rsrc_tags_get_id_key,
+      getattr(aws_client, params_svc["tags_get_method_name"]),
+      params_svc["tags_get_rsrc_id_kwarg"],
+      params_svc["tags_key"]
+    )
+
+    if rsrc_tags_get_id_key else
+
+    rsrc["Tags"]
+  )
 
 
 def lambda_handler(event, context):  # pylint: disable=unused-argument
@@ -793,7 +809,6 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
       }
       child_tags_set_method = aws_client.create_tags
     elif svc == "rds":
-      tags_get_method = aws_client.list_tags_for_resource
       ops_methods = {
         "DBInstance": {
           "snapshot": aws_client.create_db_snapshot,
@@ -809,6 +824,7 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
     for (rsrc_type, params_rsrc_type) in (
       params_svc["rsrc_types"].items()
     ):
+      tags_get_fn = tags_get_get(params_svc, params_rsrc_type, aws_client)
 
       tags_op_enable = []
       params_rsrc_type.update({
@@ -840,26 +856,6 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
         params_rsrc_type["describe_kwargs"]["Filters"].append(
           filter_encode("tag-key", tags_op_enable)
         )
-
-      if "tags_get_rsrc_rsrc_id_key" in params_rsrc_type:
-        # This resource type requires a separate request for tags
-        tags_get_fn = (
-          lambda rsrc,
-          # Without defaults, these would be retrieved whenever the lambda
-          # function was called, leading to errors if actual values differed
-          # from initial ones (see pylint's cell-var-from-loop warning):
-          tags_get_method=tags_get_method,
-          params_svc=params_svc,
-          params_rsrc_type=params_rsrc_type: tags_get_two_step(
-            rsrc,
-            params_rsrc_type["tags_get_rsrc_rsrc_id_key"],
-            tags_get_method,
-            params_svc["tags_get_rsrc_id_key"],
-            params_svc["tags_get_key"]
-          )
-        )
-      else:
-        tags_get_fn = tags_get_simple
 
       ops_rsrcs = rsrcs_get(
         params_rsrc_type,
