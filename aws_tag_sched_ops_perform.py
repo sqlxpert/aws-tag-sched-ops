@@ -23,6 +23,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with TagSchedOps. If not, see http://www.gnu.org/licenses/
 
+# pylint: disable=line-too-long
+
 To execute directly, for development purposes ONLY:
 
 0. Have a separate AWS account number, with no production resources.
@@ -111,6 +113,8 @@ SCHED_TAG_STRFTIME_FMTS = {
               r"dTH:M=%dT%H:%M~|uTH:M=%uT%H:%M~|H:M=%H:%M~|H=%H|H=\*&"
               r"dTH:M=%dT%H:%M~|uTH:M=%uT%H:%M~|H:M=%H:%M~|M=%M~",
 }
+# Delimeter between schedule parts (no commas allowed in RDS tag values!):
+SCHED_DELIMS = r"[, ]"
 # Child resources (images and snapshots) receive a date/time tracking
 # tag and the date/time string is also embedded in their names:
 TRACK_TAG_STRFTIME_FMT = "%Y-%m-%dT%H:%MZ"
@@ -130,7 +134,7 @@ def date_time_process(date_time):
 
   sched_regexp_lists = {
     freq: [
-      re.compile(r"(^|,)(" + tag_val_part + r")(,|$)")
+      re.compile(fr"(^|{SCHED_DELIMS})({tag_val_part})({SCHED_DELIMS}|$)")
       for tag_val_part in MINUTE_NORM_REGEXP.sub(
         r"\d",
         date_time.strftime(strftime_fmt)
