@@ -499,7 +499,7 @@ LOG_LINE_FMT = "\t".join([
 
 # Never pass such tags to child resources:
 TAG_KEYS_UNSAFE_REGEXP = re.compile(r"^((aws|ec2|rds):|managed-delete)")
-TAG_VALS_UNSAFE_REGEXP = re.compile(r"^((aws|ec2|rds):")
+TAG_VALS_UNSAFE_REGEXP = re.compile(r"^(aws|ec2|rds):")
 # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Tags.html#tag-restrictions
 
 
