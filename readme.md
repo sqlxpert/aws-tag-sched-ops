@@ -106,7 +106,7 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
  * The function runs once every 10 minutes. The last digit of the minute is always ignored. For example, `M=47` means _one time, between 40 and 50 minutes after the hour_.
  * Month and minute values must have two digits. Use a leading zero if necessary. (Weekday numbers have only one digit.)
  * Use a comma (`,`) or a space (` `) to separate components. **(RDS does not allow commas in tag values.)** The order of components within a tag value does not matter.
- * `T` separates day information from time; it is invariable.
+ * `T` separates date from time; it is invariable.
  * [Repetitive (`-periodic`)](#repetitive-schedules) and [one-time (`-once`)](#one-time-schedules) schedule tags are supported. Prefix with the operation.
  * If the corresponding [enabling tag](#enabling-operations) is missing, schedule tags will be ignored, and the operation will never occur.
 
@@ -130,7 +130,7 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
       * Repeat a whole component to specify multiple values. For example, `d=01,d=11,d=21` means the 1st, 11th and 21st days of the month.
       * The `*` wildcard is allowed for day (_every day of the month_) and hour (_every hour of the day_).
       * For consistent one-day-a-month scheduling, avoid `d=29` through `d=31`.
-      * Label letters are from [`strftime`](http://manpages.ubuntu.com/manpages/xenial/man3/strftime.3.html) and weekday numbers are [ISO 8601-standard](https://en.wikipedia.org/wiki/ISO_8601#Week_dates) (different from `cron`).
+      * Label letters match [`strftime`](http://manpages.ubuntu.com/manpages/xenial/man3/strftime.3.html) and weekday numbers are [ISO 8601-standard](https://en.wikipedia.org/wiki/ISO_8601#Week_dates) (different from `cron`).
 
   * Examples:
   
@@ -179,13 +179,13 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
   |`initiated`|`rsrc_id`|`op`|`child_rsrc_type`|`child`|`child_op`|`note`|
   |--|--|--|--|--|--|--|
   |Operation initiated?|Resource ID|Operation|Child type|Pointer to child|Child operation|Message|
-  |`0`&nbsp;No <br/>`1`&nbsp;Yes <br/>`9`&nbsp;_Info._|`i-`&nbsp;EC2&nbsp;instance&nbsp;ID <br/>`vol-`&nbsp;EBS&nbsp;volume&nbsp;ID <br/>RDS&nbsp;instance&nbsp;name|_See_ [_table_](#enabling-operations)|`Image` <br/>`Snapshot` <br/>`DBSnapshot`|_Name, ID, or ARN, as available_|`tag`||
+  |`0`&nbsp;No <br/>`1`&nbsp;Yes <br/>`9`&nbsp;_Info.&nbsp;only_|`i-`&nbsp;EC2&nbsp;instance&nbsp;ID <br/>`vol-`&nbsp;EBS&nbsp;volume&nbsp;ID <br/>RDS&nbsp;instance&nbsp;name|_See_ [_table_](#enabling-operations)|`Image` <br/>`Snapshot` <br/>`DBSnapshot`|_Name, ID, or ARN, as available_|`tag`||
 
 * Although the TagSchedOpsAdminister and TagSchedOpsTagSchedule policies authorize read-only access to the logs via the AWS API, and seem to be sufficient for using the links provided above, users who are not AWS administrators may also want [additional privileges for the CloudWatch Console](http://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/iam-identity-based-access-control-cwl.html#console-permissions-cwl).
 
 ### Debugging Mode
 
-If the `DEBUG` environment variable is set, the function outputs internal `params` reference data, including the regular expressions used to match schedule tags.
+If the `DEBUG` environment variable is set, the function outputs internal reference data, including the regular expressions used to match schedule tags.
     
 To use the debugging mode,
 

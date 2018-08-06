@@ -58,7 +58,7 @@ To execute directly, for development purposes ONLY:
 6. Run the code:
      python3 aws_tag_sched_ops_perform.py
 
-7. Check Python syntax and style (must use Python 3 PyLint and PyCodStyle!):
+7. Check Python syntax and style (must use Python 3 PyLint and PyCodeStyle!):
      cd aws-tag-sched-ops  # Home of pylintrc and PyCodeStyle setup.cfg
      pylint      aws_tag_sched_ops_perform.py
      pycodestyle aws_tag_sched_ops_perform.py
@@ -113,13 +113,13 @@ SCHED_TAG_STRFTIME_FMTS = {
               r"dTH:M=%dT%H:%M~|uTH:M=%uT%H:%M~|H:M=%H:%M~|H=%H|H=\*&"
               r"dTH:M=%dT%H:%M~|uTH:M=%uT%H:%M~|H:M=%H:%M~|M=%M~",
 }
-# Delimeter between schedule parts (no commas allowed in RDS tag values!):
+# Delimiter between schedule parts (no commas allowed in RDS tag values!):
 SCHED_DELIMS = r"[, ]"
 # Child resources (images and snapshots) receive a date/time tracking
 # tag and the date/time string is also embedded in their names:
 TRACK_TAG_STRFTIME_FMT = "%Y-%m-%dT%H:%MZ"
 # Separators are desirable and safe within tag values, not resource names:
-TRACK_TAG_CHARS_UNSAFE_REGEXP = re.compile(r"[-:]")
+DATE_CHARS_UNSAFE_REGEXP = re.compile(r"[-:]")
 
 
 def date_time_process(date_time):
@@ -147,13 +147,6 @@ def date_time_process(date_time):
   date_time_norm_str = date_time.strftime(TRACK_TAG_STRFTIME_FMT)
 
   return (sched_regexp_lists, date_time_norm_str)
-
-
-def filter_encode(filter_name, filter_vals):
-  """Return a Filter dictionary for a boto3 describe_ method
-  """
-
-  return {"Name": filter_name, "Values": filter_vals}
 
 
 def tag_key_join(*args, tag_prefix="managed", tag_delim="-"):
@@ -233,7 +226,10 @@ def kwargs_describe(filter_pairs):
   return (
     {
       "Filters": [
-        filter_encode(filter_name, filter_vals)
+        {
+          "Name": filter_name,
+          "Values": filter_vals
+        }
         for (filter_name, filter_vals) in filter_pairs
       ],
     }
@@ -298,7 +294,6 @@ PARAMS_CHILD = {
         # Set both, because some AWS interfaces expose only one!
       },
       # http://boto3.readthedocs.io/en/latest/reference/services/ec2.html#EC2.Client.create_image
-      "name_chars_unsafe_regexp_use": True,  # Check it for unsafe characters?
       "name_chars_unsafe_regexp": (
         re.compile(r"[^a-zA-Z0-9\(\)\[\] \./\-'@_]")
       ),
@@ -313,9 +308,7 @@ PARAMS_CHILD = {
         "Description": child_name,
       },
       # http://boto3.readthedocs.io/en/latest/reference/services/ec2.html#EC2.Client.create_snapshot
-      "name_chars_unsafe_regexp_use": False,  # No rules in documentation!
-      "name_chars_unsafe_regexp": None,
-      "name_char_fill": "X",
+      # No unsafe characters documented for snapshot description
       "name_len_max": 255,
       "child_id_get": lambda resp, child_name: resp.get("SnapshotId", ""),
       "child_tag_default": True,
@@ -330,7 +323,6 @@ PARAMS_CHILD = {
       },
       # http://boto3.readthedocs.io/en/latest/reference/services/rds.html#RDS.Client.add_tags_to_resource
       # http://boto3.readthedocs.io/en/latest/reference/services/rds.html#RDS.Client.create_db_snapshot
-      "name_chars_unsafe_regexp_use": True,
       # Standard re module seems not to support Unicode character categories:
       # "name_chars_unsafe_regexp": re.compile(r"[^\p{L}\p{Z}\p{N}_.:/=+\-]"),
       # Simplification (may give unexpected results with Unicode characters):
@@ -505,8 +497,10 @@ LOG_LINE_FMT = "\t".join([
 ])
 
 
-# Never pass these tags to child resources:
-TAGS_UNSAFE_REGEXP = re.compile(r"^((aws|ec2|rds):|managed-delete)")
+# Never pass such tags to child resources:
+TAG_KEYS_UNSAFE_REGEXP = re.compile(r"^((aws|ec2|rds):|managed-delete)")
+TAG_VALS_UNSAFE_REGEXP = re.compile(r"^((aws|ec2|rds):")
+# https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Tags.html#tag-restrictions
 
 
 def unique_suffix(
@@ -542,8 +536,12 @@ def child_name_get(
     date_time_str,
     unique_suffix()
   ])
-  if params_child_rsrc_type["name_chars_unsafe_regexp_use"]:
-    child_name = params_child_rsrc_type["name_chars_unsafe_regexp"].sub(
+  name_chars_unsafe_regexp = params_child_rsrc_type.get(
+    "name_chars_unsafe_regexp",
+    None
+  )
+  if name_chars_unsafe_regexp:
+    child_name = name_chars_unsafe_regexp.sub(
       params_child_rsrc_type["name_char_fill"],
       child_name_tentative
     )
@@ -590,7 +588,10 @@ def rsrc_process(rsrc, params_tags, tags_get_fn):
     else:
       regexps = params_tags["tag_regexps"].get(tag_key, None)
       if regexps is None:
-        if not TAGS_UNSAFE_REGEXP.match(tag_key):
+        if not (
+          TAG_KEYS_UNSAFE_REGEXP.match(tag_key)
+          or TAG_VALS_UNSAFE_REGEXP.match(tag_val)
+        ):
           # Pass miscellaneous tag, but only if user-created
           result["child_tags"].append(tag_pair)
       else:
@@ -647,6 +648,11 @@ def rsrcs_get(
     # Single-operation identity:
     params_tags["op_set_to_op"][frozenset([op])] = op
 
+  if DEBUG:
+    print()
+    pprint.pprint(params_tags)
+    print()
+
   id_key = params_rsrc_type["id_key"]
   rsrcs = collections.defaultdict(dict)
   for resp in pager.paginate(**kwargs_describe(
@@ -683,7 +689,7 @@ def ops_perform(
   """Perform operations on resources of a given type.
   """
 
-  date_time_norm_str_safe = TRACK_TAG_CHARS_UNSAFE_REGEXP.sub(
+  date_time_norm_str_safe = DATE_CHARS_UNSAFE_REGEXP.sub(
     "",
     date_time_norm_str
   )
@@ -830,9 +836,13 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
   """Perform scheduled operations on AWS resources, based on tags
   """
 
+  if DEBUG:
+    pprint.pprint(PARAMS)
+    print()
+
   now = datetime.datetime.utcnow()
   (sched_regexp_lists, date_time_norm_str) = date_time_process(now.replace(
-    minute=now.minute // 10 * 10,  # Truncate ones digit of minute
+    minute=now.minute // 10 * 10,  # DOWN to :00, :10, :20, :30, :40 or :50
     second=0,
     microsecond=0,
   ))
@@ -848,7 +858,6 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
   ))
 
   # Iterate over supported AWS services and resource types.
-  # Augment params, the data-driven basis of this code.
   # Find resources based on tags.
   # Perform each operation on the intended resources.
 
@@ -879,10 +888,6 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
         aws_client,
         tags_set_method
       )
-
-  if DEBUG:
-    pprint.pprint(PARAMS)
-    print()
 
 
 if __name__ == "__main__":
