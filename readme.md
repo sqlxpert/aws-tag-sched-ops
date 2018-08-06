@@ -405,13 +405,13 @@ If you intend to install TagSchedOps in multiple AWS accounts,
 
 5. Click Create StackSet, then select "Upload a template to Amazon S3", then click Browse and select your locally downloaded copy of [`cloudformation/aws_tag_sched_ops.yaml`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
 
-|Item|Value|
-|--|--|
-|StackSet name|`TagSchedOps`|
-|LambdaCodeS3Bucket|_Use the shared prefix; for example, if you created_ `my-bucket-us-east-1` _, use use_ `my-bucket`|
-|MainRegion|_Must be a StackSet target region_|
-|StackSetsOrMultiRegion|Yes|
-|TagSchedOpsPerformCodeS3VersionID|_In a multi-region scenario, leave blank_|
+   |Item|Value|
+   |--|--|
+   |StackSet name|`TagSchedOps`|
+   |LambdaCodeS3Bucket|_Use the shared prefix; for example, if you created_ `my-bucket-us-east-1` _, use use_ `my-bucket`|
+   |MainRegion|_Must be a StackSet target region_|
+   |StackSetsOrMultiRegion|Yes|
+   |TagSchedOpsPerformCodeS3VersionID|_In a multi-region scenario, leave blank_|
 
 6. On the next page, specify the target AWS accounts, typically by entering account numbers below "Deploy stacks in accounts". Then, move the target region(s) from "Available regions" to "Deployment order". It is a good idea to put the main region first.
 
@@ -501,15 +501,13 @@ Differences when updating a StackSet instead of an ordinary stack:
      
  * Automated testing, consisting of a CloudFormation template to create sample AWS resources, and a program (perhaps another AWS Lambda function!) to check whether the intended operations were performed. An AWS Lambda function would also be ideal for testing security policies, while cycling through different IAM roles.
  
- * <a name="backup-retention-feature">Archival policy</a> syntax, and automatic application of `managed-delete` to expired backups. A correct archival policy is not strictly age-based. For example, you might preserve the last 30 daily backups, and beyond 30 days, the first backup of every month. Consider the flaw in the snapshot retention property of RDS database instances: the daily automatic snapshots created when that property is set can never be kept longer than 35 days.
- 
- * Further modularization of [aws_tag_sched_ops_perform.py](/aws_tag_sched_ops_perform.py)
+ * <a name="backup-retention-feature">Archival policy</a> system ([ISO 8601 standard duration/interval syntax](https://en.wikipedia.org/wiki/ISO_8601#Durations) will be used), and automatic application of `managed-delete` to expired backups. A correct archival policy is not strictly age-based. For example, you might preserve the last 30 daily backups, and beyond 30 days, the first backup of every month. Consider the flaw in the snapshot retention property of RDS database instances: the daily automatic snapshots created when that property is set can never be kept longer than 35 days.
  
  * Additional AWS Lambda function, to automatically delete backups tagged `managed-delete`
  
  * Makefile
  
- * Tags and reference dictionary updates to support scheduled restoration of images and snapshots
+ * Tags and reference dictionary updates to support scheduled restoration of images and snapshots (for backup testing?)
 
 ## Dedication
 
