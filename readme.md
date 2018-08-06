@@ -106,7 +106,7 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
  * The function runs once every 10 minutes. The last digit of the minute is always ignored. For example, `M=47` means _one time, between 40 and 50 minutes after the hour_.
  * Month and minute values must have two digits. Use a leading zero if necessary. (Weekday numbers have only one digit.)
  * Use a comma (`,`) or a space (` `) to separate components. **(RDS does not allow commas in tag values.)** The order of components within a tag value does not matter.
- * `T` separates day information from time; it is invariable.
+ * `T` separates date from time; it is invariable.
  * [Repetitive (`-periodic`)](#repetitive-schedules) and [one-time (`-once`)](#one-time-schedules) schedule tags are supported. Prefix with the operation.
  * If the corresponding [enabling tag](#enabling-operations) is missing, schedule tags will be ignored, and the operation will never occur.
 
@@ -130,7 +130,7 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
       * Repeat a whole component to specify multiple values. For example, `d=01,d=11,d=21` means the 1st, 11th and 21st days of the month.
       * The `*` wildcard is allowed for day (_every day of the month_) and hour (_every hour of the day_).
       * For consistent one-day-a-month scheduling, avoid `d=29` through `d=31`.
-      * Label letters are from [`strftime`](http://manpages.ubuntu.com/manpages/xenial/man3/strftime.3.html) and weekday numbers are [ISO 8601-standard](https://en.wikipedia.org/wiki/ISO_8601#Week_dates) (different from `cron`).
+      * Label letters match [`strftime`](http://manpages.ubuntu.com/manpages/xenial/man3/strftime.3.html) and weekday numbers are [ISO 8601-standard](https://en.wikipedia.org/wiki/ISO_8601#Week_dates) (different from `cron`).
 
   * Examples:
   
@@ -179,13 +179,13 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
   |`initiated`|`rsrc_id`|`op`|`child_rsrc_type`|`child`|`child_op`|`note`|
   |--|--|--|--|--|--|--|
   |Operation initiated?|Resource ID|Operation|Child type|Pointer to child|Child operation|Message|
-  |`0`&nbsp;No <br/>`1`&nbsp;Yes <br/>`9`&nbsp;_Info._|`i-`&nbsp;EC2&nbsp;instance&nbsp;ID <br/>`vol-`&nbsp;EBS&nbsp;volume&nbsp;ID <br/>RDS&nbsp;instance&nbsp;name|_See_ [_table_](#enabling-operations)|`Image` <br/>`Snapshot` <br/>`DBSnapshot`|_Name, ID, or ARN, as available_|`tag`||
+  |`0`&nbsp;No <br/>`1`&nbsp;Yes <br/>`9`&nbsp;_Info.&nbsp;only_|`i-`&nbsp;EC2&nbsp;instance&nbsp;ID <br/>`vol-`&nbsp;EBS&nbsp;volume&nbsp;ID <br/>RDS&nbsp;instance&nbsp;name|_See_ [_table_](#enabling-operations)|`Image` <br/>`Snapshot` <br/>`DBSnapshot`|_Name, ID, or ARN, as available_|`tag`||
 
 * Although the TagSchedOpsAdminister and TagSchedOpsTagSchedule policies authorize read-only access to the logs via the AWS API, and seem to be sufficient for using the links provided above, users who are not AWS administrators may also want [additional privileges for the CloudWatch Console](http://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/iam-identity-based-access-control-cwl.html#console-permissions-cwl).
 
 ### Debugging Mode
 
-If the `DEBUG` environment variable is set, the function outputs internal `params` reference data, including the regular expressions used to match schedule tags.
+If the `DEBUG` environment variable is set, the function outputs internal reference data, including the regular expressions used to match schedule tags.
     
 To use the debugging mode,
 
@@ -405,13 +405,13 @@ If you intend to install TagSchedOps in multiple AWS accounts,
 
 5. Click Create StackSet, then select "Upload a template to Amazon S3", then click Browse and select your locally downloaded copy of [`cloudformation/aws_tag_sched_ops.yaml`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
 
-|Item|Value|
-|--|--|
-|StackSet name|`TagSchedOps`|
-|LambdaCodeS3Bucket|_Use the shared prefix; for example, if you created_ `my-bucket-us-east-1` _, use use_ `my-bucket`|
-|MainRegion|_Must be a StackSet target region_|
-|StackSetsOrMultiRegion|Yes|
-|TagSchedOpsPerformCodeS3VersionID|_In a multi-region scenario, leave blank_|
+   |Item|Value|
+   |--|--|
+   |StackSet name|`TagSchedOps`|
+   |LambdaCodeS3Bucket|_Use the shared prefix; for example, if you created_ `my-bucket-us-east-1` _, use use_ `my-bucket`|
+   |MainRegion|_Must be a StackSet target region_|
+   |StackSetsOrMultiRegion|Yes|
+   |TagSchedOpsPerformCodeS3VersionID|_In a multi-region scenario, leave blank_|
 
 6. On the next page, specify the target AWS accounts, typically by entering account numbers below "Deploy stacks in accounts". Then, move the target region(s) from "Available regions" to "Deployment order". It is a good idea to put the main region first.
 
@@ -501,15 +501,13 @@ Differences when updating a StackSet instead of an ordinary stack:
      
  * Automated testing, consisting of a CloudFormation template to create sample AWS resources, and a program (perhaps another AWS Lambda function!) to check whether the intended operations were performed. An AWS Lambda function would also be ideal for testing security policies, while cycling through different IAM roles.
  
- * <a name="backup-retention-feature">Archival policy</a> syntax, and automatic application of `managed-delete` to expired backups. A correct archival policy is not strictly age-based. For example, you might preserve the last 30 daily backups, and beyond 30 days, the first backup of every month. Consider the flaw in the snapshot retention property of RDS database instances: the daily automatic snapshots created when that property is set can never be kept longer than 35 days.
- 
- * Further modularization of [aws_tag_sched_ops_perform.py](/aws_tag_sched_ops_perform.py)
+ * <a name="backup-retention-feature">Archival policy</a> system ([ISO 8601 standard duration/interval syntax](https://en.wikipedia.org/wiki/ISO_8601#Durations) will be used), and automatic application of `managed-delete` to expired backups. A correct archival policy is not strictly age-based. For example, you might preserve the last 30 daily backups, and beyond 30 days, the first backup of every month. Consider the flaw in the snapshot retention property of RDS database instances: the daily automatic snapshots created when that property is set can never be kept longer than 35 days.
  
  * Additional AWS Lambda function, to automatically delete backups tagged `managed-delete`
  
  * Makefile
  
- * Tags and reference dictionary updates to support scheduled restoration of images and snapshots
+ * Tags and reference dictionary updates to support scheduled restoration of images and snapshots (for backup testing?)
 
 ## Dedication
 

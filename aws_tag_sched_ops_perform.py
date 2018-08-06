@@ -58,7 +58,7 @@ To execute directly, for development purposes ONLY:
 6. Run the code:
      python3 aws_tag_sched_ops_perform.py
 
-7. Check Python syntax and style (must use Python 3 PyLint and PyCodStyle!):
+7. Check Python syntax and style (must use Python 3 PyLint and PyCodeStyle!):
      cd aws-tag-sched-ops  # Home of pylintrc and PyCodeStyle setup.cfg
      pylint      aws_tag_sched_ops_perform.py
      pycodestyle aws_tag_sched_ops_perform.py
@@ -113,13 +113,13 @@ SCHED_TAG_STRFTIME_FMTS = {
               r"dTH:M=%dT%H:%M~|uTH:M=%uT%H:%M~|H:M=%H:%M~|H=%H|H=\*&"
               r"dTH:M=%dT%H:%M~|uTH:M=%uT%H:%M~|H:M=%H:%M~|M=%M~",
 }
-# Delimeter between schedule parts (no commas allowed in RDS tag values!):
+# Delimiter between schedule parts (no commas allowed in RDS tag values!):
 SCHED_DELIMS = r"[, ]"
 # Child resources (images and snapshots) receive a date/time tracking
 # tag and the date/time string is also embedded in their names:
 TRACK_TAG_STRFTIME_FMT = "%Y-%m-%dT%H:%MZ"
 # Separators are desirable and safe within tag values, not resource names:
-TRACK_TAG_CHARS_UNSAFE_REGEXP = re.compile(r"[-:]")
+DATE_CHARS_UNSAFE_REGEXP = re.compile(r"[-:]")
 
 
 def date_time_process(date_time):
@@ -135,6 +135,7 @@ def date_time_process(date_time):
   sched_regexp_lists = {
     freq: [
       re.compile(fr"(^|{SCHED_DELIMS})({tag_val_part})({SCHED_DELIMS}|$)")
+      # Harmlessly permissive (mix/match/repeat delimiters)
       for tag_val_part in MINUTE_NORM_REGEXP.sub(
         r"\d",
         date_time.strftime(strftime_fmt)
@@ -146,13 +147,6 @@ def date_time_process(date_time):
   date_time_norm_str = date_time.strftime(TRACK_TAG_STRFTIME_FMT)
 
   return (sched_regexp_lists, date_time_norm_str)
-
-
-def filter_encode(filter_name, filter_vals):
-  """Return a Filter dictionary for a boto3 describe_ method
-  """
-
-  return {"Name": filter_name, "Values": filter_vals}
 
 
 def tag_key_join(*args, tag_prefix="managed", tag_delim="-"):
@@ -222,6 +216,40 @@ def kwargs_tags_set(
   }
 
 
+def kwargs_describe(filter_pairs):
+  """Take filter pairs and return kwargs for a boto3 describe_ method.
+
+  Only supports Filters, so far the only describe_ parameter
+  that this code uses (and used only for EC2, at that).
+  """
+
+  return (
+    {
+      "Filters": [
+        {
+          "Name": filter_name,
+          "Values": filter_vals
+        }
+        for (filter_name, filter_vals) in filter_pairs
+      ],
+    }
+    if filter_pairs else
+    {}
+  )
+
+
+def op_tags_filters(params_rsrc_type):
+  """Returns filter pairs for operation tags on a particular resource type.
+
+  Only useful for EC2, because boto3 and the underlying
+  AWS REST API do not yet support tag-based filters for RDS.
+  """
+
+  return [
+    ("tag-key", [tag_key_join(op) for op in params_rsrc_type["ops"]])
+  ]
+
+
 def child_id_get_rds_snapshot(resp, child_name):
   """Take a boto3 rds.stop_db_instance response and return the snapshot ID.
 
@@ -266,7 +294,6 @@ PARAMS_CHILD = {
         # Set both, because some AWS interfaces expose only one!
       },
       # http://boto3.readthedocs.io/en/latest/reference/services/ec2.html#EC2.Client.create_image
-      "name_chars_unsafe_regexp_use": True,  # Check it for unsafe characters?
       "name_chars_unsafe_regexp": (
         re.compile(r"[^a-zA-Z0-9\(\)\[\] \./\-'@_]")
       ),
@@ -281,9 +308,7 @@ PARAMS_CHILD = {
         "Description": child_name,
       },
       # http://boto3.readthedocs.io/en/latest/reference/services/ec2.html#EC2.Client.create_snapshot
-      "name_chars_unsafe_regexp_use": False,  # No rules in documentation!
-      "name_chars_unsafe_regexp": None,
-      "name_char_fill": "X",
+      # No unsafe characters documented for snapshot description
       "name_len_max": 255,
       "child_id_get": lambda resp, child_name: resp.get("SnapshotId", ""),
       "child_tag_default": True,
@@ -298,7 +323,6 @@ PARAMS_CHILD = {
       },
       # http://boto3.readthedocs.io/en/latest/reference/services/rds.html#RDS.Client.add_tags_to_resource
       # http://boto3.readthedocs.io/en/latest/reference/services/rds.html#RDS.Client.create_db_snapshot
-      "name_chars_unsafe_regexp_use": True,
       # Standard re module seems not to support Unicode character categories:
       # "name_chars_unsafe_regexp": re.compile(r"[^\p{L}\p{Z}\p{N}_.:/=+\-]"),
       # Simplification (may give unexpected results with Unicode characters):
@@ -312,9 +336,7 @@ PARAMS_CHILD = {
 
 }
 
-# pylint: disable=invalid-name
-# (This is a global variable, not a constant)
-params = {
+PARAMS = {
   "ec2": {
     "tags_set_method_name": "create_tags",
     "tags_set_kwargs": kwargs_tags_set("Resources",
@@ -323,12 +345,10 @@ params = {
 
       "Instance": {
         "pager_name": "describe_instances",
-        "describe_kwargs": {
-          "Filters": [
-            filter_encode("instance-state-name",
-                          ["running", "stopping", "stopped"]),
-          ],
-        },
+        "filter_pairs": [
+          ("instance-state-name", ["running", "stopping", "stopped"]),
+        ],
+        "extra_filter_pairs": op_tags_filters,
         "rsrcs_get_fn": lambda resp: (
           instance
           for reservation in resp["Reservations"]
@@ -370,7 +390,7 @@ params = {
             "params_child_rsrc_type": PARAMS_CHILD["ec2"]["Image"],
           },
         },
-        "ops_to_op": {  # How to interpret combinations of operations
+        "op_set_to_op": {  # How to interpret combinations of operations
           frozenset(["reboot", "image"]): "reboot-image",
           frozenset(["reboot-image", "image"]): "reboot-image",
           frozenset(["reboot-image", "reboot"]): "reboot-image",
@@ -380,11 +400,10 @@ params = {
       },
       "Volume": {
         "pager_name": "describe_volumes",
-        "describe_kwargs": {
-          "Filters": [
-            filter_encode("status", ["available", "in-use"]),
-          ],
-        },
+        "filter_pairs": [
+          ("status", ["available", "in-use"]),
+        ],
+        "extra_filter_pairs": op_tags_filters,
         "rsrcs_get_fn": lambda resp: resp["Volumes"],
         "id_key": "VolumeId",
         "ops": {
@@ -395,7 +414,6 @@ params = {
             "params_child_rsrc_type": PARAMS_CHILD["ec2"]["Snapshot"],
           },
         },
-        "ops_to_op": {},
       },
 
     },
@@ -412,7 +430,8 @@ params = {
 
       "DBInstance": {
         "pager_name": "describe_db_instances",
-        "describe_kwargs": {},  # RDS supports very few Filters
+        "filter_pairs": [],  # RDS supports very few Filters
+        "extra_filter_pairs": lambda params_rsrc_type: [],
         "rsrcs_get_fn": lambda resp: resp["DBInstances"],
         "id_key": "DBInstanceIdentifier",
         "rsrc_tags_get_id_key": "DBInstanceArn",
@@ -453,7 +472,7 @@ params = {
             "child_tag_default_override": True,
           },
         },
-        "ops_to_op": {
+        "op_set_to_op": {
           frozenset(["snapshot", "stop"]): "snapshot-stop",
           frozenset(["snapshot-stop", "stop"]): "snapshot-stop",
           frozenset(["snapshot-stop", "snapshot"]): "snapshot-stop",
@@ -478,8 +497,10 @@ LOG_LINE_FMT = "\t".join([
 ])
 
 
-# Never pass these tags to child resources:
-TAGS_UNSAFE_REGEXP = re.compile(r"^((aws|ec2|rds):|managed-delete)")
+# Never pass such tags to child resources:
+TAG_KEYS_UNSAFE_REGEXP = re.compile(r"^((aws|ec2|rds):|managed-delete)")
+TAG_VALS_UNSAFE_REGEXP = re.compile(r"^(aws|ec2|rds):")
+# https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Tags.html#tag-restrictions
 
 
 def unique_suffix(
@@ -515,8 +536,12 @@ def child_name_get(
     date_time_str,
     unique_suffix()
   ])
-  if params_child_rsrc_type["name_chars_unsafe_regexp_use"]:
-    child_name = params_child_rsrc_type["name_chars_unsafe_regexp"].sub(
+  name_chars_unsafe_regexp = params_child_rsrc_type.get(
+    "name_chars_unsafe_regexp",
+    None
+  )
+  if name_chars_unsafe_regexp:
+    child_name = name_chars_unsafe_regexp.sub(
       params_child_rsrc_type["name_char_fill"],
       child_name_tentative
     )
@@ -541,7 +566,7 @@ def boto3_success(resp):
   )
 
 
-def rsrc_process(rsrc, params_rsrc_type, tags_get_fn):
+def rsrc_process(rsrc, params_tags, tags_get_fn):
   """Process tags for one parent resource (instance or volume).
 
   Determines which operation to perform and which tags to
@@ -561,11 +586,14 @@ def rsrc_process(rsrc, params_rsrc_type, tags_get_fn):
       # Save (EC2) instance or volume name but do not pass to image or snapshot
       result["name_from_tag"] = tag_val
     else:
-      regexps = params_rsrc_type["sched_regexps"].get(tag_key, None)
+      regexps = params_tags["tag_regexps"].get(tag_key, None)
       if regexps is None:
-        if not TAGS_UNSAFE_REGEXP.match(tag_key):
+        if not (
+          TAG_KEYS_UNSAFE_REGEXP.match(tag_key)
+          or TAG_VALS_UNSAFE_REGEXP.match(tag_val)
+        ):
           # Pass miscellaneous tag, but only if user-created
-          result["child_tags"].append(tag_encode(tag_key, tag_val))
+          result["child_tags"].append(tag_pair)
       else:
         # Schedule tag: check whether value matches current date/time.
         # Operation-enabling tag: ignore value. Empty list accomplishes
@@ -576,10 +604,10 @@ def rsrc_process(rsrc, params_rsrc_type, tags_get_fn):
         else:
           tags_match.add(tag_key)
 
-  for (tags_req, op) in params_rsrc_type["tags_to_op"].items():
+  for (tags_req, op) in params_tags["tag_set_to_op"].items():
     if tags_req <= tags_match:
       result["ops_tentative"].add(op)
-  result["op"] = params_rsrc_type["ops_to_op"].get(
+  result["op"] = params_tags["op_set_to_op"].get(
     frozenset(result["ops_tentative"]),
     None
   )
@@ -588,6 +616,7 @@ def rsrc_process(rsrc, params_rsrc_type, tags_get_fn):
 
 
 def rsrcs_get(
+  sched_regexp_lists,
   params_rsrc_type,
   pager,
   tags_get_fn
@@ -601,11 +630,37 @@ def rsrcs_get(
   if any error occurs while building the resource list.
   """
 
+  params_tags = {
+    "tag_regexps": {},
+    "tag_set_to_op": {},
+    "op_set_to_op": dict(params_rsrc_type.get("op_set_to_op", {})),  # Copy!
+  }
+  for op in params_rsrc_type["ops"]:
+    tag_op = tag_key_join(op)
+    # Operation-enabling tag: ignore value (see rsrc_process):
+    params_tags["tag_regexps"][tag_op] = []
+    # Schedule tag: regexp match on value:
+    for (freq, regexps) in sched_regexp_lists.items():
+      tag_op_freq = tag_key_join(op, freq)
+      params_tags["tag_regexps"][tag_op_freq] = regexps
+      # Require operation-enabling tag AND one schedule tag:
+      params_tags["tag_set_to_op"][frozenset([tag_op, tag_op_freq])] = op
+    # Single-operation identity:
+    params_tags["op_set_to_op"][frozenset([op])] = op
+
+  if DEBUG:
+    print()
+    pprint.pprint(params_tags)
+    print()
+
   id_key = params_rsrc_type["id_key"]
   rsrcs = collections.defaultdict(dict)
-  for resp in pager.paginate(**params_rsrc_type["describe_kwargs"]):
+  for resp in pager.paginate(**kwargs_describe(
+    params_rsrc_type["filter_pairs"]
+    + params_rsrc_type["extra_filter_pairs"](params_rsrc_type)
+  )):
     for rsrc in params_rsrc_type["rsrcs_get_fn"](resp):
-      rsrc_processed = rsrc_process(rsrc, params_rsrc_type, tags_get_fn)
+      rsrc_processed = rsrc_process(rsrc, params_tags, tags_get_fn)
       op = rsrc_processed.pop("op")
       if op:
         rsrcs[op][rsrc[id_key]] = rsrc_processed
@@ -634,7 +689,7 @@ def ops_perform(
   """Perform operations on resources of a given type.
   """
 
-  date_time_norm_str_safe = TRACK_TAG_CHARS_UNSAFE_REGEXP.sub(
+  date_time_norm_str_safe = DATE_CHARS_UNSAFE_REGEXP.sub(
     "",
     date_time_norm_str
   )
@@ -781,13 +836,16 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
   """Perform scheduled operations on AWS resources, based on tags
   """
 
+  if DEBUG:
+    pprint.pprint(PARAMS)
+    print()
+
   now = datetime.datetime.utcnow()
   (sched_regexp_lists, date_time_norm_str) = date_time_process(now.replace(
-    minute=now.minute // 10 * 10,  # Truncate ones digit of minute
+    minute=now.minute // 10 * 10,  # DOWN to :00, :10, :20, :30, :40 or :50
     second=0,
     microsecond=0,
   ))
-
   print(re.sub(r"[{}]", "", LOG_LINE_FMT))  # Simple log header
   print(LOG_LINE_FMT.format(  # Log normalized time
     initiated=9,  # Code, to distinguish this from failure (0) or success (1)
@@ -800,62 +858,28 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
   ))
 
   # Iterate over supported AWS services and resource types.
-  # Augment params, the data-driven basis of this code.
   # Find resources based on tags.
   # Perform each operation on the intended resources.
 
-  for (svc, params_svc) in params.items():
+  for (svc, params_svc) in PARAMS.items():
     aws_client = boto3.client(svc)
 
     # boto3 method references can only be resolved at run-time,
     # against an instance of an AWS service's Client class.
     # http://boto3.readthedocs.io/en/latest/guide/events.html#extensibility-guide
 
-    tags_set_method = getattr(
-      aws_client,
-      params_svc["tags_set_method_name"]
-    )
+    tags_set_method = getattr(aws_client, params_svc["tags_set_method_name"])
 
     for params_rsrc_type in params_svc["rsrc_types"].values():
+
       tags_get_fn = tags_get_get(params_svc, params_rsrc_type, aws_client)
 
-      tags_op_enable = []
-      params_rsrc_type.update({
-        "sched_regexps": {},
-        "tags_to_op": {},
-      })
-      for op in params_rsrc_type["ops"]:
-        tag_op = tag_key_join(op)
-        tags_op_enable.append(tag_op)
-        # Operation-enabling tag: require tag, ignore value (see rsrc_process):
-        params_rsrc_type["sched_regexps"][tag_op] = []
-
-        for (freq, regexps) in sched_regexp_lists.items():
-          tag_op_freq = tag_key_join(op, freq)
-          params_rsrc_type["sched_regexps"][tag_op_freq] = regexps
-          # Require an operation's enabling tag and one of its schedule tags:
-          params_rsrc_type["tags_to_op"][
-            frozenset([tag_op, tag_op_freq])
-          ] = op
-
-        # Single-operation identity:
-        params_rsrc_type["ops_to_op"][frozenset([op])] = op
-
-      if svc == "ec2":
-        # boto3 supports simple (non-regexp) tag filters for EC2
-        # (not RDS). Filtering on operation-enabling tags might save
-        # time by reducing calls to rsrc_process, which must iterate
-        # through all tags even if no enabling tags are present.
-        params_rsrc_type["describe_kwargs"]["Filters"].append(
-          filter_encode("tag-key", tags_op_enable)
-        )
-
       ops_rsrcs = rsrcs_get(
+        sched_regexp_lists,
         params_rsrc_type,
         aws_client.get_paginator(params_rsrc_type["pager_name"]),
         tags_get_fn
       )
-
       ops_perform(
         ops_rsrcs,
         date_time_norm_str,
@@ -864,10 +888,6 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
         aws_client,
         tags_set_method
       )
-
-  if DEBUG:
-    pprint.pprint(params)
-    print()
 
 
 if __name__ == "__main__":
