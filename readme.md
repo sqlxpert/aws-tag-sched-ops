@@ -12,11 +12,11 @@ Jump to: [Installation](#quick-start) &bull; [Operation Tags](#enabling-operatio
 
 ## Comparison with Lifecycle Manager
 
-In July, 2018, Amazon [introduced Data Lifecycle Manager](https://aws.amazon.com/blogs/aws/new-lifecycle-management-for-amazon-ebs-snapshots/). It's a start, but it has limitations:
+In July, 2018, Amazon [introduced Data Lifecycle Manager](https://aws.amazon.com/blogs/aws/new-lifecycle-management-for-amazon-ebs-snapshots/). It's a start, but...
 
  * Tags determine _which_ volumes will be backed up, not _when_. There is a new, single-purpose API for scheduling.
  * Snapshots are taken only every 12 or 24 hours.
- * A fixed number of snapshots are kept (as in RDS). "Last _x_" retention is not flexible enough for archiving (e.g., keep daily snapshots for a month, plus monthly snapshots for a year).
+ * "Last _x_" snapshot retention is not flexible enough for true archival policies (e.g., keep daily snapshots for a month, plus monthly snapshots for a year).
  * You can create snapshots of single volumes, but not images covering all of an EC2 instance's volumes. Also missing is an option to reboot first.
  * [The same IAM role](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/snapshot-lifecycle.html#dlm-permissions) confers authority to create _and_ delete snapshots, and [anyone who can update a lifecycle policy](https://docs.aws.amazon.com/IAM/latest/UserGuide/list_amazondatalifecyclemanager.html#amazondatalifecyclemanager-UpdateLifecyclePolicy) can reduce the retention period to delete snapshots. These are significant risks, especially in light of the data loss prevention provisions in the European Union General Data Protection Regulation.
  
