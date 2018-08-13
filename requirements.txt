@@ -30,6 +30,9 @@
 # Necessary for operation:
 boto3
 botocore
+pytz
+python-dateutil
+aniso8601
 
 # Useful for AWS administration:
 awscli
