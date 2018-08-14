@@ -67,7 +67,7 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
  
  * Test your backups! Can they be restored successfully?
  
- * Weigh the benefits of rebooting against the risks. Rebooting is usually necessary to make software updates take effect, but a system may stop working afterward.
+ * Weigh the benefits of rebooting against the risks. Rebooting is sometimes necessary for a coherent backup, but a system may stop working afterward.
  
  * Be aware of AWS charges, including but not limited to: the costs of running the AWS Lambda function, storing CloudWatch logs, and storing images and snapshots; the whole-hour cost when you stop an RDS, EC2 Windows, or EC2 commercial Linux instance (but [most EC2 instances have a 1-minute minimum charge](https://aws.amazon.com/blogs/aws/new-per-second-billing-for-ec2-instances-and-ebs-volumes/)); the continuing cost of storage for stopped instances; and costs that resume when AWS automatically starts an RDS instance that has been stopped for too many days.
  
