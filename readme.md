@@ -347,7 +347,7 @@ If you intend to install TagSchedOps in multiple regions,
 
    |Parameter|Value|
    |--|--|
-   |LambdaCodeS3Bucket|_Use the shared prefix; for example, if you created_ `my-bucket-us-east-1` _and_ `my-bucket-us-west-2` _, use `my-bucket`_|
+   |LambdaCodeS3Bucket|_Use the shared prefix; for example, if you created_ `my-bucket-us-east-1` _and_ `my-bucket-us-west-2` _, use_ `my-bucket`|
    |MainRegion|_Always use the same value, to prevent the creation of duplicate sets of user policies_|
    |StackSetsOrMultiRegion|Yes|
    |TagSchedOpsPerformCodeS3VersionID|_Leave blank, because the value would differ in every region; only the latest version of the AWS Lambda function source code file in each region's S3 bucket can be used_|

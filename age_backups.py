@@ -342,7 +342,7 @@ Instructions at https://github.com/sqlxpert/tag-sched-ops
     default=RETAIN_POLICY_DEFAULT,
     action="store",
     help=
-"""One or more ISO 8601 intervals, each repeating or non-
+"""One or more ISO 8601 intervals, each repeating or non-,
 and specified as a duration. For each EC2 insance, EBS
 volume and RDS database, the first available image/
 snapshot created during each period of an interval will
@@ -534,6 +534,8 @@ def units_smaller_get(unit_largest):
   """Take a date/time unit and return a list of smaller units.
 
   These units are datetime.replace() keyword argument names.
+  Also accepts "week", even though it is not supported by replace();
+  never returns "week".
   """
   if unit_largest in UNITS_DATETIME_ORDERED:
     units_smaller = (
@@ -658,7 +660,8 @@ def resolution_decode(resolution):
   - unit_duration is the ISO 8601 duration element specifier letter
     (e.g., "D" for day)
   - unit_datetime is the corresponding datetime.replace() keyword
-    argument, as a string (e.g. "day")
+    argument name, as a string (e.g. "day"); also returns "week",
+    which is not supported by replace()
 
   Returns None if the resolution is invalid.
   """
@@ -697,6 +700,9 @@ RESOLUTIONS_OK = (
   "PT1H",
   "PT30M",
   "PT20M",
+  # Inconsistent with 10-minute TagSchedOps cycle, so not supported:
+  # "PT15M",
+  # "PT12M",
   "PT10M",
   # Too specific, so not supported:
   # "PT1M",
@@ -917,8 +923,8 @@ def interval_gen(interval_in, period_start_strs, context_forward=False):
       err_str = str(exc)
   else:
     err_str = (
-      "Must be a valid repeating or non-repeating interval with a duration, "
-      "no decimal, hour = 0-4, 6 or 12, minute = 0, 10, 20 or 30, second = 0."
+      "Must be a valid ISO 8601 interval, repeating or non-, with a duration,"
+      " no decimal, hour 0-4, 6 or 12, minute 0, 10, 20 or 30, and second 0."
     )
 
   if err_str:
@@ -928,7 +934,7 @@ def interval_gen(interval_in, period_start_strs, context_forward=False):
       parent_rsrc_id="",
       rsrc_id="",
       op="",
-      note=f"Bad ISO 8601 interval '{interval_in}': {err_str}"
+      note=f"Bad interval '{interval_in}': {err_str}"
     ))
 
   return dates
@@ -1220,7 +1226,7 @@ def date_head_print(date, rsrcs_date, intervals_parent_rsrcs):
 
 
 def rsrcs_print(rsrcs_date):
-  """Take a resource dictionary value and print resources, if in debug mode.
+  """Take a resource dictionary date/time key, and print resources.
   """
 
   for act in (KEEP, DEL):
