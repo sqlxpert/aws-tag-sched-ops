@@ -303,35 +303,34 @@ def arg_parser_get():
     usage=None,  # Selects default, auto-generate
     add_help=True,
     formatter_class=argparse.RawTextHelpFormatter,
-    description=(
-      "Tag expired EC2 images, EBS snapshots and RDS snapshots for deletion"
-      "\n\n"
-      "Instructions at https://github.com/sqlxpert/tag-sched-ops"
-      "\n\n"
-      "This program adds or removes the 'managed-delete' tag. It is\n"
-      "designed to act only on images/snapshots created by TagSchedOps,\n"
-      "with undisturbed 'managed-origin' and 'managed-parent-id' tags."
-    ),
-    epilog="""
-      Copyright 2018, Paul Marcelin.
+    description=
+"""Tag expired EC2 images, EBS snapshots and RDS snapshots for deletion
 
-      This program is part of TagSchedOps.
+Instructions at https://github.com/sqlxpert/tag-sched-ops
 
-      TagSchedOps is free software: you can redistribute it and/or modify
-      it under the terms of the GNU General Public License as published by
-      the Free Software Foundation, either version 3 of the License, or
-      (at your option) any later version.
+This program adds/removes the 'managed-delete' tag. It is meant to act only
+on images/snapshots created by TagSchedOps, with their 'managed-' tags intact.
+""",
+    epilog="""Copyright 2018, Paul Marcelin.
 
-      TagSchedOps is distributed in the hope that it will be useful,
-      but WITHOUT ANY WARRANTY; without even the implied warranty of
-      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-      GNU General Public License for more details.
+This program is part of TagSchedOps.
 
-      You should have received a copy of the GNU General Public License
-      along with TagSchedOps. If not, see http://www.gnu.org/licenses/
+TagSchedOps is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-      Instructions at https://github.com/sqlxpert/tag-sched-ops
-    """,  # Deliberately repeat instuction URL, in case user has no PAGER
+TagSchedOps is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with TagSchedOps. If not, see http://www.gnu.org/licenses/
+
+Instructions at https://github.com/sqlxpert/tag-sched-ops
+""",
+# Deliberately repeat instuction URL, in case user has no PAGER
   )
   arg_parser.add_argument(
     "--retain-intervals",
@@ -342,47 +341,45 @@ def arg_parser_get():
     type=str,
     default=RETAIN_POLICY_DEFAULT,
     action="store",
-    help="""
-      One or more ISO 8601 intervals, each repeating or
-      non- and specified as a duration. For each EC2
-      instance, EBS volume and RDS database, the first
-      available image/snapshot created during each
-      period of an interval will be left alone, and any
-      others created during the period will be tagged
-      for deletion.
+    help=
+"""One or more ISO 8601 intervals, each repeating or non-
+and specified as a duration. For each EC2 insance, EBS
+volume and RDS database, the first available image/
+snapshot created during each period of an interval will
+be left alone, and any others created during the period
+will be tagged for deletion.
 
-      Use spaces to separate multiple intervals.
-      No decimal is allowed, hour must be 0-4, 6 or 12,
-      minute must be 0, 10, 20 or 30, and second must
-      be 0.
+Use spaces to separate multiple intervals. No decimal
+is allowed, hour must be 0-4, 6 or 12, minute must be
+0, 10, 20 or 30, and second must be 0.
 
-      To keep first daily images/snapshots from the
-      past 31 days, use:
+To keep first daily images/snapshots from the past
+31 days, use:
 
-        %(prog)s --retain-intervals 'R31/1D'
+  %(prog)s --retain-intervals 'R31/1D'
 
-      To rescue images/snapshots tagged but not yet
-      deleted, use:
+To rescue images/snapshots tagged but not yet deleted:
 
-        %(prog)s \\
-          --retain-intervals 'R/PT10M' \\
-          --tag-keys 'managed-delete'
+  %(prog)s \\
+    --retain-intervals 'R/PT10M' \\
+    --tag-keys 'managed-delete'
 
-      To keep first hourly images/snapshots from the
-      past 24 hours, first daily ones from the past 7
-      days, first weekly ones from the past 5 weeks,
-      first monthly ones from the past 12 months, and
-      first yearly ones, from the beginning, use:
+To keep first hourly images/snapshots from the past 24
+hours, first daily ones from the past 7 days, first
+weekly ones from the past 5 weeks, first monthly ones
+from the past 12 months, and first yearly ones, from
+the beginning:
 
-        %(prog)s --retain-intervals \\
-          'R24/PT1H' 'R7/P1D' 'R5/P1W' 'R12/P1M' 'R/P1Y'
+  %(prog)s --retain-intervals \\
+    'R24/PT1H' 'R7/P1D' 'R5/P1W' 'R12/P1M' 'R/P1Y'
 
-      If multiple images/snapshots of the same
-      instance/volume were created during the same
-      10-minute period (abnormal for TagSchedOps),
-      which one will be retained is unpredictable;
-      check output.
-    """,
+If multiple images/snapshots of the same instance/
+volume were created during the same 10-minute period
+(abnormal for TagSchedOps), which one will be retained
+is unpredictable; check output.
+
+""",
+# Final blank line fixes confusing argparse help message formatting
   )
   arg_parser.add_argument(
     "--user-timezone",
@@ -392,22 +389,22 @@ def arg_parser_get():
     type=str,
     default="",
     action="store",
-    help="""
-      The name of your local timezone, in a form
-      accepted by the pytz Python module (for example,
-      'America/St_Johns', which is in Olson form).
+    help=
+"""The Olson name of your local timezone (for example,
+'America/St_Johns').
 
-      If not given, defaults to your system's local
-      time zone. Local time is useful if you want to
-      find images/snapshots created during periods
-      aligned with your day (which started at midnight
-      in your timezone -- not in London, England).
+If not given, defaults to your system's local timezone.
+Local time is useful if you want to find images/
+snapshots created during periods aligned with your day
+(which started at midnight in your timezone -- not in
+London, England).
 
-      If, on the other hand, you prefer intervals
-      aligned with the UTC day, use:
+If, on the other hand, you prefer intervals aligned to
+the UTC day, use:
 
-      %(prog)s --user-timezone 'UTC'
-    """,
+  %(prog)s --user-timezone 'UTC'
+
+""",
   )
   arg_parser.add_argument(
     "--tag-keys",
@@ -417,14 +414,14 @@ def arg_parser_get():
     type=str,
     default=[],
     action="append",
-    help="""
-      One or more tag keys. The image/snapshot must
-      have at least one of these tags (logical OR).
-      The values of the tags do not matter.
+    help=
+"""One or more tag keys. The image/snapshot must have at
+least one of these tags (logical OR). The values of the
+tags do not matter.
 
-      You may repeat --tag-key to create multiple rules
-      (logical AND).
-    """,
+You may repeat --tag-key to create multiple rules
+(logical AND).
+""",
   )
   arg_parser.add_argument(
     "--no-tag-keys",
@@ -434,10 +431,10 @@ def arg_parser_get():
     type=str,
     default=[],
     action="store",
-    help="""
-      One or more tag keys. The image/snapshot must
-      not have any of these tags (logical NOR).
-    """,
+    help=
+"""One or more tag keys. The image/snapshot must not have
+any of these tags (logical NOR).
+""",
   )
   arg_parser.add_argument(
     "--tag-key-vals",
@@ -447,15 +444,15 @@ def arg_parser_get():
     type=str,
     default=[],
     action="append",
-    help="""
-      A tag key, optionally followed by one or more
-      tag values. The image/snapshot must have the tag
-      and, if values are specified, the value of the
-      tag must be one of them (logical OR).
+    help=
+"""A tag key, optionally followed by one or more tag
+values. The image/snapshot must have the tag and, if
+values are given, the value of the tag must be one of
+them (logical OR).
 
-      You may repeat --tag-key-vals to create multiple
-      rules (logical AND).
-    """,
+You may repeat --tag-key-vals to create multiple rules
+(logical AND).
+""",
   )
   arg_parser.add_argument(
     "--region",
@@ -465,32 +462,31 @@ def arg_parser_get():
     type=str,
     default=[],
     action="store",
-    help="""
-      Zero, one or more AWS regions in which to look
-      for images/snapshots.
+    help=
+"""Zero, one or more AWS regions in which to look for
+images/snapshots.
 
-      If no region is specified, the AWS client
-      defaults to checking:
+If no region is specified, the AWS client defaults to
+consulting:
 
-      * the AWS_DEFAULT_REGION environment variable
+* the AWS_DEFAULT_REGION environment variable
 
-      * the mainclient configuration profile;
-        set this up in advance with:
+* the mainclient configuration profile;
+  set this up in advance with:
+    aws configure
 
-        aws configure
+* a specific profile named in AWS_PROFILE;
+  set this up in advance with:
+    aws configure --profile "${AWS_PROFILE}"
 
-      * a specific profile named in AWS_PROFILE;
-        set this up in advance with:
+Specifying --region with no region name is allowed
+so that you can use a shell array but still trigger
+default AWS client behavior when it is empty. Shell
+array example:
 
-        aws configure --profile "${AWS_PROFILE}"
+  %(prog)s --region ${my_regions[@]}
 
-      Specifying --region with no region name is
-      allowed so that you can use a shell array but
-      still trigger default AWS client behavior when
-      it is empty. Shell array example:
-
-      %(prog)s --region ${my_regions[@]}
-    """,
+""",
   )
   arg_parser.add_argument(
     "--dry-run",
@@ -502,18 +498,17 @@ def arg_parser_get():
     const=1,
     choices=(0, 1),
     action="store",
-    help="""
-      Show which images/snapshots would be tagged, but
-      don't do anything.
+    help=
+"""Show which images/snapshots would be tagged, but don't
+do anything.
 
-      An optional integer is allowed so that you can
-      toggle this setting easily with a shell variable,
-      instead of having to add and remove --dry-run;
-      0 does the real thing and 1 performs a dry run.
-      Shell variable example:
+An optional integer is allowed so that you can toggle
+this setting easily with a shell variable, instead of
+adding/removing --dry-run; 0 does the real thing and
+1 performs a dry run. Shell variable example:
 
-      %(prog)s --dry-run "${dry_run}"
-    """,
+  %(prog)s --dry-run "${dry_run}"
+""",
   )
   return arg_parser
 
