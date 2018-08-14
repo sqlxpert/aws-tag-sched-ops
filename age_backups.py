@@ -904,15 +904,14 @@ def interval_gen(interval_in, period_start_strs, context_forward=False):
       if context_forward else
       f"{repeat_part}/{duration_part}/{date_context_part}"
     )
-    if DEBUG:
-      print(LOG_LINE_FMT.format(
-        code=9,
-        region="",
-        parent_rsrc_id="",
-        rsrc_id="",
-        op="",
-        note=f"Interval {interval_in} translation: {interval}"
-      ))
+    print(LOG_LINE_FMT.format(
+      code=9,
+      region="",
+      parent_rsrc_id="",
+      rsrc_id="",
+      op="",
+      note=f"Interval {interval_in} translation: {interval}"
+    ))
     try:
       dates = aniso8601.parse_repeating_interval(interval, relative=True)
     except aniso8601.exceptions.ISOFormatError as exc:
@@ -1002,7 +1001,7 @@ def rsrc_tag_op(
     else:
       result = params_tag_op["resp_process_fn"](resp)
 
-  if (op in ("add", "del")) or DEBUG:
+  if DEBUG:
     print(LOG_LINE_FMT.format(
       code=int(success),
       region=region,
@@ -1157,7 +1156,6 @@ def intervals_process(params_user, date_min, rsrcs):
   """
 
   intervals_end = None
-  # pylint: disable=too-many-nested-blocks
   if date_min is not None:
     for interval_user in params_user["intervals"]:
       interval_end = None
@@ -1172,15 +1170,14 @@ def intervals_process(params_user, date_min, rsrcs):
         else:
           rsrcs[boundary][BEGIN].add(interval_user)
           if boundary < date_min:
-            if DEBUG:  # Don't count this nested block against us, pylint!
-              print(LOG_LINE_FMT.format(
-                code=9,
-                region="",
-                parent_rsrc_id="",
-                rsrc_id="",
-                op="",
-                note=f"Interval {interval_user} floor: {boundary}"
-              ))
+            print(LOG_LINE_FMT.format(
+              code=9,
+              region="",
+              parent_rsrc_id="",
+              rsrc_id="",
+              op="",
+              note=f"Interval {interval_user} floor: {boundary}"
+            ))
             break
       if (
         (interval_end is not None)
@@ -1230,7 +1227,7 @@ def rsrcs_print(rsrcs_date):
   """
 
   for act in (KEEP, DEL):
-    op = "stage_del" if act == DEL else "stage_keep"
+    op = "stage_to_del" if act == DEL else "stage_to_keep"
     for (region, dummy, parent_rsrc_id, rsrc_id) in rsrcs_date[act].keys():
       print(LOG_LINE_FMT.format(
         code=9,
@@ -1358,14 +1355,18 @@ def rsrcs_tag(params, clients, rsrcs, dry_run):
   """Take resources dictionary and add tags to/remove tags from resources.
   """
 
+  dry_run_str = "_dry_run" if dry_run else ""
   for rsrcs_date in rsrcs.values():
-    for (status, tags_test, tag_op) in (
-      (DEL, lambda tags_dict: TAG_DEL not in tags_dict, "add"),
-      (KEEP, lambda tags_dict: TAG_DEL in tags_dict, "del"),
+    for (status, tags_test, tag_op, user_str) in (
+      (DEL, lambda tags_dict: TAG_DEL not in tags_dict, "add", "tag_to_del"),
+      (KEEP, lambda tags_dict: TAG_DEL in tags_dict, "del", "tag_to_keep"),
     ):
-      for ((region, svc, dummy, rsrc_id), tags) in rsrcs_date[status].items():
+      for (
+        (region, svc, parent_rsrc_id, rsrc_id),
+        tags
+      ) in rsrcs_date[status].items():
         if tags_test(tags):
-          rsrc_tag_op(
+          success = rsrc_tag_op(
             region,
             rsrc_id,
             tag_op,
@@ -1375,6 +1376,14 @@ def rsrcs_tag(params, clients, rsrcs, dry_run):
             critical=False,
             dry_run=dry_run,
           )
+          print(LOG_LINE_FMT.format(
+            code=int(bool(success)),
+            region=region,
+            parent_rsrc_id=parent_rsrc_id,
+            rsrc_id=rsrc_id,
+            op=f"{user_str}{dry_run_str}",
+            note="",
+          ))
 
 
 def describe_kwargs_get(params_rsrc_type, params_user):
@@ -1441,9 +1450,9 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
   elif isinstance(event, list):
     parse_args_args = (event)
   else:
-    parse_args_args = ()
+    parse_args_args = (None,)  # Brings in parse_args default, sys.argv
   params_user = cmd_args_interpet(
-    arg_parser_get().parse_args(parse_args_args)
+    arg_parser_get().parse_args(*parse_args_args)
   )
 
   # Master resource dictionary:
@@ -1503,15 +1512,14 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
             )
 
   create_date_min = min(rsrcs) if rsrcs else None
-  if DEBUG:
-    print(LOG_LINE_FMT.format(
-      code=9,
-      region="",
-      parent_rsrc_id="",
-      rsrc_id="",
-      op="",
-      note=f"Oldest image/snapshot created: {create_date_min}"
-    ))
+  print(LOG_LINE_FMT.format(
+    code=9,
+    region="",
+    parent_rsrc_id="",
+    rsrc_id="",
+    op="",
+    note=f"Oldest image/snapshot created: {create_date_min}"
+  ))
 
   if create_date_min:
     intervals_end = intervals_process(params_user, create_date_min, rsrcs)
