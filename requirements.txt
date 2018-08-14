@@ -2,9 +2,13 @@
 #
 #   python3 -m venv VIRTUALENV_PATH
 #   source VIRTUALENV_PATH/bin/activate
+#   pip3 install --upgrade pip setuptools wheel
 #   pip3 install --upgrade --requirement requirements.txt
 #
 # where VIRTUALENV_PATH is the path to your new Python 3 virtual environment
+#
+# Upgrading pip, setuptools and wheel first is a good practice,
+# and may also prevent problems installing the requirements.
 
 
 # https://github.com/sqlxpert/aws-tag-sched-ops/
