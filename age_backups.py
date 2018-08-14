@@ -1427,7 +1427,24 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
   """List matching EC2 instance images, EBS volume snapshots and RDS snapshots
   """
 
-  params_user = cmd_args_interpet(arg_parser_get().parse_args())
+  # Only when called by AWS Lambda:
+  # https://docs.aws.amazon.com/lambda/latest/dg/python-programming-model-handler-types.html
+  # Accept arguments via the event parameter, as a single string or as a
+  # list of strings. Single-string is supported so that the same string can
+  # be fed to AWS Lambda or used on a shell command-line. When passing a
+  # single string, you may enclose argument words in single or double quotes
+  # (' or "), for syntactic consistency with the shell command-line, but
+  # if any argument contains whitespace (tag keys and values are possible
+  # examples), you must pass a list of strings instead of a single string.
+  if isinstance(event, str):
+    parse_args_args = ([word.strip("'\"") for word in event.split()])
+  elif isinstance(event, list):
+    parse_args_args = (event)
+  else:
+    parse_args_args = ()
+  params_user = cmd_args_interpet(
+    arg_parser_get().parse_args(parse_args_args)
+  )
 
   # Master resource dictionary:
   # Key is a datetime, which represent a period boundary from
