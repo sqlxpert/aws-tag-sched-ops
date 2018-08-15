@@ -72,14 +72,34 @@ To execute directly:
 
 For delevopers only:
 
+# pylint: disable=line-too-long
+
 1. Check Python syntax and style (must use Python 3 Pylint and pycodestyle!):
+     deactivate
+     source VIRTUALENV_PATH/bin/activate
      cd aws-tag-sched-ops  # Home of pylintrc and pycodestyle setup.cfg
      pylint      age_backups.py
      pycodestyle age_backups.py
-2. Package for upload to S3, for use with AWS Lambda:
-     rm     age_backups.py.zip
-     zip    age_backups.py.zip age_backups.py
-     md5sum age_backups.py.zip > age_backups.py.zip.md5.txt
+2. Create a minimal Python 3 virtual environment, at VIRTUALENV_TINY_PATH,
+   only for AWS Lambda packaging (no developer tools, which are unnecessary
+   at run-time, and no botocore or boto3, which are always provided by AWS):
+     deactivate
+     python3 -m venv VIRTUALENV_TINY_PATH
+     source VIRTUALENV_MIN_PATH/bin/activate
+     pip3 install --upgrade pytz python-dateutil aniso8601
+   For details and an example, see:
+   https://docs.aws.amazon.com/lambda/latest/dg/lambda-python-how-to-create-deployment-package.html#deployment-pkg-for-virtualenv
+3. Package for upload to S3, for use with AWS Lambda:
+     deactivate
+     source VIRTUALENV_TINY_PATH/bin/activate
+     cd aws-tag-sched-ops
+     rm --force          /tmp/age_backups.py.zip
+     zip                 /tmp/age_backups.py.zip age_backups.py
+     cd "${VIRTUAL_ENV}/lib/python3.6/site-packages"
+     zip --recurse-paths /tmp/age_backups.py.zip * --exclude '*.pyc' '*/__pycache__/'
+     cd -
+     mv --force          /tmp/age_backups.py.zip .
+     md5sum                   age_backups.py.zip > age_backups.py.zip.md5.txt
 """
 
 import os
@@ -485,6 +505,10 @@ default AWS client behavior when it is empty. Shell
 array example:
 
   %(prog)s --region ${my_regions[@]}
+
+When called as an AWS Lambda function, this program
+ignores the --region argument and uses the region in
+which the AWS Lambda function was created.
 
 """,
   )
@@ -997,7 +1021,7 @@ def rsrc_tag_op(
         note=resp if resp else err_str,
       ))
       if critical:
-        raise RuntimeError(f"{op} tags failed for {rsrc_id} with {resp}")
+        raise RuntimeError(f"tags_{op} failed for {rsrc_id} with {resp}")
     else:
       result = params_tag_op["resp_process_fn"](resp)
 
@@ -1288,7 +1312,7 @@ def rsrcs_process(intervals_end, rsrcs):
     rsrcs_print(rsrcs_date)
 
 
-def cmd_args_interpet(cmd_args):
+def cmd_args_interpet(cmd_args, aws_lambda=False):
   """Take parse_args() result and return a dictionary of parameters.
   """
 
@@ -1309,7 +1333,7 @@ def cmd_args_interpet(cmd_args):
     timezone = None
 
   regions = cmd_args.regions
-  if not regions:
+  if aws_lambda or not regions:
     regions = [""]  # Dummy entry lets boto3 determine a region
 
   params_user = {
@@ -1445,14 +1469,17 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
   # (' or "), for syntactic consistency with the shell command-line, but
   # if any argument contains whitespace (tag keys and values are possible
   # examples), you must pass a list of strings instead of a single string.
+  aws_lambda = True
   if isinstance(event, str):
-    parse_args_args = ([word.strip("'\"") for word in event.split()])
+    parse_args_args = [[word.strip("'\"") for word in event.split()]]
   elif isinstance(event, list):
-    parse_args_args = (event)
+    parse_args_args = [event]
   else:
-    parse_args_args = (None,)  # Brings in parse_args default, sys.argv
+    aws_lambda = False
+    parse_args_args = [None]  # Brings in parse_args default, sys.argv
   params_user = cmd_args_interpet(
-    arg_parser_get().parse_args(*parse_args_args)
+    arg_parser_get().parse_args(*parse_args_args),
+    aws_lambda=aws_lambda,
   )
 
   # Master resource dictionary:

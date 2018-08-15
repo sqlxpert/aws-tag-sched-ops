@@ -1,17 +1,18 @@
 ---
 AWSTemplateFormatVersion: "2010-09-09"
 
-Description: "Start, reboot, stop and back up AWS resources using tag-based schedules. Copyright 2017, Paul Marcelin. https://github.com/sqlxpert/aws-tag-sched-ops/"
+Description: "Start, reboot, stop and back up AWS resources using tag-based schedules. Copyright 2018, Paul Marcelin. https://github.com/sqlxpert/aws-tag-sched-ops/"
 
 
 # To check YAML syntax, first complete the setup steps
-# in aws-tag-sched-ops/requirements.txt and then run:
-#   yamllint -c aws-tag-sched-ops/.yamllint aws-tag-sched-ops/cloudformation/aws_tag_sched_ops.yaml
+# in aws-tag-sched-ops/requirements.txt and then:
+#   cd aws-tag-sched-ops  # Home of .yamllint
+#   yamllint cloudformation/aws_tag_sched_ops.yaml
 
 
 # https://github.com/sqlxpert/aws-tag-sched-ops/
 #
-# Copyright 2017, Paul Marcelin
+# Copyright 2018, Paul Marcelin
 #
 # This file is part of TagSchedOps.
 #
@@ -49,6 +50,14 @@ Parameters:
     Type: String
     Description: "Version ID for the desired version of the TagSchedOpsPerform source code S3 object. Leave blank, unless object versioning has been turned on for the S3 bucket. (If using CloudFormation StackSets, always leave blank.)"
     Default: ""
+  TagSchedOpsTagCodeName:
+    Type: String
+    Description: "Name (without the .py.zip suffix) of the file (S3 object) containing compressed source code for the TagSchedOpsTag AWS Lamba function. Accept the default unless directed otherwise."
+    Default: "age_backups"
+  TagSchedOpsTagCodeS3VersionID:
+    Type: String
+    Description: "Version ID for the desired version of the TagSchedOpsTag source code S3 object. Leave blank, unless object versioning has been turned on for the S3 bucket. (If using CloudFormation StackSets, always leave blank.)"
+    Default: ""
 
   # Do not validate at CloudFormation level,
   # in case values accepted by underlying APIs change:
@@ -67,12 +76,79 @@ Parameters:
     Default: 128
   TagSchedOpsPerformTimeoutSecs:
     Type: Number
-    Description: "How many seconds before execution of the TagSchedOpsPerform AWS Lambda function is canceled. Increase only in case of time-out errors."
+    Description: "How many seconds before execution of the TagSchedOpsTag AWS Lambda function is canceled. Increase only in case of time-out errors."
     Default: 120
+  TagSchedOpsTagLogRetainDays:
+    Type: Number
+    Description: "How many days to keep logs from the TagSchedOpsTag AWS Lambda function. Typical values are 1, 7, 14, 30, 60, and 90 days, but for the full list, see http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutRetentionPolicy.html"
+    Default: 30
+  TagSchedOpsTagMemoryMB:
+    Type: Number
+    Description: "How many megabytes of memory to allocate to the TagSchedOpsTag AWS Lambda function. Increase only in case of out-of-memory errors."
+    Default: 128
+  TagSchedOpsTagTimeoutSecs:
+    Type: Number
+    Description: "How many seconds before execution of the TagSchedOpsTag AWS Lambda function is canceled. Increase only in case of time-out errors."
+    Default: 120
+
+Metadata:
+  "AWS::CloudFormation::Interface":
+    ParameterGroups:
+      - Label:
+          default: "Basics"
+        Parameters:
+          - MainRegion
+          - StackSetsOrMultiRegion
+          - LambdaCodeS3Bucket
+      - Label:
+          default: "TagSchedOpsPerform Lambda function (performs scheduled operations/creates images and snapshots)"
+        Parameters:
+          - TagSchedOpsPerformCodeName
+          - TagSchedOpsPerformCodeS3VersionID
+          - TagSchedOpsPerformLogRetainDays
+          - TagSchedOpsPerformMemoryMB
+          - TagSchedOpsPerformTimeoutSecs
+      - Label:
+          default: "TagSchedOpsTag Lambda function (tags images and snapshots for deletion)"
+        Parameters:
+          - TagSchedOpsTagCodeName
+          - TagSchedOpsTagCodeS3VersionID
+          - TagSchedOpsTagLogRetainDays
+          - TagSchedOpsTagMemoryMB
+          - TagSchedOpsTagTimeoutSecs
+    ParameterLabels:
+      MainRegion:
+        default: "Main region"
+      StackSetsOrMultiRegion:
+        default: "Multi-region or StackSets?"
+      LambdaCodeS3Bucket:
+        default: "Lambda code S3 bucket"
+      TagSchedOpsPerformCodeName:
+        default: "S3 object name"
+      TagSchedOpsPerformCodeS3VersionID:
+        default: "S3 version ID"
+      TagSchedOpsPerformLogRetainDays:
+        default: "Log retention (days)"
+      TagSchedOpsPerformMemoryMB:
+        default: "Memory (MB)"
+      TagSchedOpsPerformTimeoutSecs:
+        default: "Timeout (seconds)"
+      TagSchedOpsTagCodeName:
+        default: "S3 object name"
+      TagSchedOpsTagCodeS3VersionID:
+        default: "S3 version ID"
+      TagSchedOpsTagLogRetainDays:
+        default: "Log retention (days)"
+      TagSchedOpsTagMemoryMB:
+        default: "Memory (MB)"
+      TagSchedOpsTagTimeoutSecs:
+        default: "Timeout (seconds)"
 
 Conditions:
   TagSchedOpsPerformCodeNoS3ObjVersion:
     !Equals [ !Ref TagSchedOpsPerformCodeS3VersionID, "" ]
+  TagSchedOpsTagCodeNoS3ObjVersion:
+    !Equals [ !Ref TagSchedOpsTagCodeS3VersionID, "" ]
   RegionMulti:
     !Equals [ !Ref StackSetsOrMultiRegion, "Yes" ]
   UserIamPoliciesCreate:
@@ -260,6 +336,21 @@ Resources:
         - !Ref RdsTagSchedOpsPerform
 
 
+  TagSchedOpsTagLambdaRole:
+    Type: "AWS::IAM::Role"
+    DeletionPolicy: Delete
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: "lambda.amazonaws.com" }
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Ref Ec2TagSchedOpsTagForDeletion
+        - !Ref RdsTagSchedOpsTagForDeletion
+
+
   TagSchedOpsPerformLambdaFn:
     Type: "AWS::Lambda::Function"
     # Not a strict dependency, from CloudFormation's perspective.
@@ -279,6 +370,25 @@ Resources:
       Timeout: !Ref TagSchedOpsPerformTimeoutSecs
 
 
+  TagSchedOpsTagLambdaFn:
+    Type: "AWS::Lambda::Function"
+    # Not a strict dependency, from CloudFormation's perspective.
+    # This policy need not have been created and attached before the
+    # AWS Lambda function is created, but rather, before it first runs:
+    # DependsOn: TagSchedOpsTagLog
+    DeletionPolicy: Delete
+    Properties:
+      Code:
+        S3Bucket: !If [ RegionMulti, !Sub "${LambdaCodeS3Bucket}-${AWS::Region}", !Ref LambdaCodeS3Bucket ]
+        S3Key: !Join [ ".", [ !Ref TagSchedOpsTagCodeName, "py", "zip" ] ]
+        S3ObjectVersion: !If [ TagSchedOpsTagCodeNoS3ObjVersion, !Ref "AWS::NoValue", !Ref TagSchedOpsTagCodeS3VersionID ]
+      Handler: !Join [ ".", [ !Ref TagSchedOpsTagCodeName, "lambda_handler" ] ]
+      MemorySize: !Ref TagSchedOpsTagMemoryMB
+      Role: !GetAtt TagSchedOpsTagLambdaRole.Arn
+      Runtime: "python3.6"
+      Timeout: !Ref TagSchedOpsTagTimeoutSecs
+
+
   TagSchedOpsPerformLogGrp:
     Type: "AWS::Logs::LogGroup"
     DeletionPolicy: Retain  # Might want to review after function is deleted
@@ -288,6 +398,17 @@ Resources:
       # Disadvantage: Custom name prevents modification by CloudFormation.
       LogGroupName: !Join [ "/", [ "", "aws", "lambda", !Ref TagSchedOpsPerformLambdaFn ] ]
       RetentionInDays: !Ref TagSchedOpsPerformLogRetainDays
+
+
+  TagSchedOpsTagLogGrp:
+    Type: "AWS::Logs::LogGroup"
+    DeletionPolicy: Retain  # Might want to review after function is deleted
+    Properties:
+      # AWS Lambda functions log to streams named after them,
+      # so a stream name assigned by CloudFormation would not work.
+      # Disadvantage: Custom name prevents modification by CloudFormation.
+      LogGroupName: !Join [ "/", [ "", "aws", "lambda", !Ref TagSchedOpsTagLambdaFn ] ]
+      RetentionInDays: !Ref TagSchedOpsTagLogRetainDays
 
 
   TagSchedOpsPerformLog:
@@ -309,6 +430,27 @@ Resources:
             # the final name of the AWS Lambda function, including
             # the random string appended by CloudFormation:
             Resource: !Join [ ":", [ !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
+
+
+  TagSchedOpsTagLog:
+    Type: "AWS::IAM::ManagedPolicy"
+    DeletionPolicy: Delete
+    Properties:
+      Description: "TagSchedOpsTag log streams: create, and put events. Required when executing that AWS Lambda function."
+      Roles:
+        - !Ref TagSchedOpsTagLambdaRole
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "logs:CreateLogStream"
+              - "logs:PutLogEvents"
+            # Field 6 (counting from 0) of a CloudWatch log group
+            # ARN is the log group's name, which in this case is
+            # the final name of the AWS Lambda function, including
+            # the random string appended by CloudFormation:
+            Resource: !Join [ ":", [ !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsTagLogGrp.Arn ] ], "log-stream", "*" ] ]
 
 
   TagSchedOpsPerform10MinEventRule:
@@ -352,12 +494,12 @@ Resources:
       SourceArn: !GetAtt TagSchedOpsPerform10MinEventRule.Arn
 
 
-  TagSchedOpsPerformLambdaFnProtect:  # Name in ARN on final line must match!
+  TagSchedOpsLambdaFnsProtect:  # ARNs at end must match this!
     Type: "AWS::IAM::ManagedPolicy"
     Condition: UserIamPoliciesCreate
     DeletionPolicy: Delete
     Properties:
-      Description: "TagSchedOpsPerform Lambda function, CloudWatch log group, log stream, and CloudWatch event: cannot change or delete. TagSchedOpsPerform Lambda function: cannot invoke manually. This policy may not be exhaustive."
+      Description: "TagSchedOpsPerform and -Tag Lambda functions, CloudWatch log groups, log streams: cannot change or delete. All CloudWatch Events rules: cannot create, change or delete. TagSchedOpsPerform and -Tag Lambda functions: cannot invoke manually. This policy may not be exhaustive."
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -371,21 +513,30 @@ Resources:
               - "lambda:AddPermission"
               - "lambda:RemovePermission"
               - "lambda:InvokeFunction"
-            Resource: !GetAtt TagSchedOpsPerformLambdaFn.Arn
+            Resource:
+              - !GetAtt TagSchedOpsPerformLambdaFn.Arn
+              - !GetAtt TagSchedOpsTagLambdaFn.Arn
 
           - Effect: Deny
             Action: "lambda:CreateEventSourceMapping"
             Resource: "*"
             Condition:
-              ArnEquals:
-                "lambda:FunctionArn": !GetAtt TagSchedOpsPerformLambdaFn.Arn
+              # ArnEquals:
+              #   "lambda:FunctionArn": !GetAtt TagSchedOpsPerformLambdaFn.Arn
+              # TODO: check this:
+              "ForAnyValue:ArnEquals":
+                "lambda:FunctionArn":
+                  - !GetAtt TagSchedOpsPerformLambdaFn.Arn
+                  - !GetAtt TagSchedOpsTagLambdaFn.Arn
 
           - Effect: Deny
             Action:
               - "logs:DeleteLogGroup"
               - "logs:DeleteRetentionPolicy"
               - "logs:PutRetentionPolicy"
-            Resource: !GetAtt TagSchedOpsPerformLogGrp.Arn
+            Resource:
+              - !GetAtt TagSchedOpsPerformLogGrp.Arn
+              - !GetAtt TagSchedOpsTagLogGrp.Arn
 
           - Effect: Deny
             Action: "logs:DeleteLogStream"
@@ -393,7 +544,9 @@ Resources:
             # ARN is the log group's name, which in this case is
             # the final name of the AWS Lambda function, including
             # the random string appended by CloudFormation:
-            Resource: !Join [ ":", [ !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
+            Resource:
+              - !Join [ ":", [ !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
+              - !Join [ ":", [ !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsTagLogGrp.Arn ] ], "log-stream", "*" ] ]
 
           - Effect: Deny
             Action:
@@ -403,7 +556,16 @@ Resources:
               - "events:DisableRule"
               - "events:PutRule"
               - "events:PutTargets"
-            Resource: !GetAtt TagSchedOpsPerform10MinEventRule.Arn
+            Resource: "*"
+            # The above is conservative, denying create, change and delete
+            # privileges for all CloudWatch Events rules, but the alternative
+            # would require remembering to apply one protection policy
+            # for each event rule, of which there could be many for the
+            # TagSchedOpsTag Lambda function. Also, even if IAM supports
+            # wildcards in resource ARNs for "events:" actions, there is no
+            # way to identify the target Lambda function from the rule ARN.
+            # Resource:
+            #   - !GetAtt TagSchedOpsPerform10MinEventRule.Arn
 
           - Effect: Deny
             Action:
@@ -414,7 +576,9 @@ Resources:
               - "iam:DeleteRolePolicy"
               - "iam:UpdateAssumeRolePolicy"
               - "iam:PassRole"
-            Resource: !GetAtt TagSchedOpsPerformLambdaRole.Arn
+            Resource:
+              - !GetAtt TagSchedOpsPerformLambdaRole.Arn
+              - !GetAtt TagSchedOpsTagLambdaRole.Arn
 
           - Effect: Deny
             Action:
@@ -423,12 +587,13 @@ Resources:
               - "iam:DeletePolicyVersion"
             Resource:
               - !Ref TagSchedOpsPerformLog
-              - !Ref Ec2TagSchedOpsPerform
-              - !Ref RdsTagSchedOpsPerform
+              - !Ref TagSchedOpsTagLog
+              - !Ref Ec2TagSchedOpsTagForDeletion
+              - !Ref RdsTagSchedOpsTagForDeletion
               # !Ref TagSchedOpsPerformLambdaFnProtect
               # produces a "Circular dependency between resources" error.
               # Work-around:
-              - !Sub "arn:aws:iam::${AWS::AccountId}:policy/${AWS::StackName}-TagSchedOpsPerformLambdaFnProtect*"
+              - !Sub "arn:aws:iam::${AWS::AccountId}:policy/${AWS::StackName}-TagSchedOpsLambdaFnsProtect*"
 
 
   Ec2TagSchedOpsAdminister:
@@ -436,7 +601,7 @@ Resources:
     Condition: UserIamPoliciesCreate
     DeletionPolicy: Delete
     Properties:
-      Description: "All EC2 instances, EBS volumes: describe; view tags; add, delete tags for scheduled operations. All EC2 images, EBS snapshots: describe; view tags; cannot delete images or snapshots, or tag for deletion. All CloudWatch events: describe. Event for TagSchedOps: enable and disable."
+      Description: "All EC2 instances, EBS volumes: describe; view tags; add, delete tags for scheduled operations. All EC2 images, EBS snapshots: describe; view tags; cannot delete images or snapshots, or tag for deletion. All CloudWatch events: describe. Event for TagSchedOpsPerform: enable and disable."
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -530,7 +695,9 @@ Resources:
             # ARN is the log group's name, which in this case is
             # the final name of the AWS Lambda function, including
             # the random string appended by CloudFormation:
-            Resource: !Join [ ":", [ !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
+            Resource:
+              - !Join [ ":", [ !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
+              - !Join [ ":", [ !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsTagLogGrp.Arn ] ], "log-stream", "*" ] ]
 
           # Diagnose permissions errors
 
@@ -552,7 +719,8 @@ Resources:
             Action:
               - "events:EnableRule"
               - "events:DisableRule"
-            Resource: !GetAtt TagSchedOpsPerform10MinEventRule.Arn
+            Resource:
+              - !GetAtt TagSchedOpsPerform10MinEventRule.Arn
 
 
   RdsTagSchedOpsAdminister:
@@ -560,7 +728,7 @@ Resources:
     Condition: UserIamPoliciesCreate
     DeletionPolicy: Delete
     Properties:
-      Description: "All RDS instances: describe; view tags; add, delete tags for scheduled operations. All RDS snapshots: describe; view tags; cannot delete snapshots, or tag for deletion.  All CloudWatch events: describe. Event for TagSchedOps: enable and disable. Due to an AWS limitation, ANY tag can be added with an intended tag. Withholding all RDS tagging privileges is safer than relying on this policy."
+      Description: "All RDS instances: describe; view tags; add, delete tags for scheduled operations. All RDS snapshots: describe; view tags; cannot delete snapshots, or tag for deletion.  All CloudWatch events: describe. Event for TagSchedOpsPerform: enable and disable. Due to an AWS limitation, ANY tag can be added with an intended tag. Withholding all RDS tagging privileges is safer than relying on this policy."
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -772,7 +940,9 @@ Resources:
             # ARN is the log group's name, which in this case is
             # the final name of the AWS Lambda function, including
             # the random string appended by CloudFormation:
-            Resource: !Join [ ":", [ !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
+            Resource:
+              - !Join [ ":", [ !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
+              - !Join [ ":", [ !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsTagLogGrp.Arn ] ], "log-stream", "*" ] ]
 
           # Diagnose permissions errors
 
@@ -957,7 +1127,9 @@ Resources:
             # ARN is the log group's name, which in this case is
             # the final name of the AWS Lambda function, including
             # the random string appended by CloudFormation:
-            Resource: !Join [ ":", [ !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
+            Resource:
+              - !Join [ ":", [ !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
+              - !Join [ ":", [ !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsTagLogGrp.Arn ] ], "log-stream", "*" ] ]
 
           # Diagnose permissions errors
 
@@ -1176,7 +1348,9 @@ Resources:
             # ARN is the log group's name, which in this case is
             # the final name of the AWS Lambda function, including
             # the random string appended by CloudFormation:
-            Resource: !Join [ ":", [ !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
+            Resource:
+              - !Join [ ":", [ !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
+              - !Join [ ":", [ !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsTagLogGrp.Arn ] ], "log-stream", "*" ] ]
 
           # Diagnose permissions errors
 
@@ -1336,7 +1510,9 @@ Resources:
             # ARN is the log group's name, which in this case is
             # the final name of the AWS Lambda function, including
             # the random string appended by CloudFormation:
-            Resource: !Join [ ":", [ !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
+            Resource:
+              - !Join [ ":", [ !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
+              - !Join [ ":", [ !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsTagLogGrp.Arn ] ], "log-stream", "*" ] ]
 
           # Diagnose permissions errors
 
@@ -1504,7 +1680,9 @@ Resources:
             # ARN is the log group's name, which in this case is
             # the final name of the AWS Lambda function, including
             # the random string appended by CloudFormation:
-            Resource: !Join [ ":", [ !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
+            Resource:
+              - !Join [ ":", [ !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
+              - !Join [ ":", [ !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsTagLogGrp.Arn ] ], "log-stream", "*" ] ]
 
           # Diagnose permissions errors
 
@@ -2348,3 +2526,18 @@ Resources:
           - Effect: Deny
             Action: "rds:DeleteDBSnapshot"
             Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:snapshot:*"
+
+
+Outputs:
+
+  TagSchedOpsTagLambdaFnId:
+    Value: !Ref TagSchedOpsTagLambdaFn
+    Description: "TagSchedOpsTag Lambda function name"
+    Export:
+      Name: "LambdaFn-TagSchedOpsTag-Name"
+
+  TagSchedOpsTagLambdaFnArn:
+    Value: !GetAtt TagSchedOpsTagLambdaFn.Arn
+    Description: "TagSchedOpsTag Lambda function ARN"
+    Export:
+      Name: "LambdaFn-TagSchedOpsTag-Arn"
