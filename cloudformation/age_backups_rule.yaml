@@ -7,7 +7,7 @@ Description: "Rule to tag EC2 instance images, EBS volume snapshots, and RDS dat
 # To check YAML syntax, first complete the setup steps
 # in aws-tag-sched-ops/requirements.txt and then:
 #   cd aws-tag-sched-ops  # Home of .yamllint
-#   yamllint cloudformation/aws_tag_sched_ops.yaml
+#   yamllint cloudformation/age_backups_rule.yaml
 
 
 # https://github.com/sqlxpert/aws-tag-sched-ops/
@@ -42,7 +42,7 @@ Parameters:
 
   TagSchedOpsTagRuleTimezoneLocal:
     Type: String
-    Description: "The Olson name of your preferred local timezone (for example, 'America/Los_Angeles'). The default aligns time intervals with the UTC day, which begins at midnight in London, England."
+    Description: "The Olson name of your preferred local timezone (for example, \"America/Los_Angeles\"). The default aligns time intervals with the UTC day, which begins at midnight in London, England."
     Default: "UTC"
 
   TagSchedOpsTagRuleRetainIntervals:
@@ -55,16 +55,28 @@ Parameters:
     Description: "Other command-line options to pass to age_backups.py. Spaces are allowed between arguments, but no argument may contain a space. See documentation or run: aws-tag-sched-ops/age_backups.py --help"
     Default: ""
 
+  TagSchedOpsTagRuleArgsAsList:
+    Type: String
+    Description: "All command-line options to pass to age_backups.py, as a JSON list of strings. Example (copy everything between the bars, but do not include the bars): |[\"--user-timezone\", \"UTC\", \"--retain-intervals\", \"R31/P1D\"|. This form is cumbersome, but allows spaces within arguments."
+    Default: ""
+
 Metadata:
   "AWS::CloudFormation::Interface":
     ParameterGroups:
-      # - Label:
-      #     default: "Basics"
-      - Parameters:
+      - Label:
+          default: "Basics"
+        Parameters:
           - TagSchedOpsTagRuleScheduleCron
+      - Label:
+          default: "Easy options (must leave Advanced options entry blank)"
+        Parameters:
           - TagSchedOpsTagRuleTimezoneLocal
           - TagSchedOpsTagRuleRetainIntervals
           - TagSchedOpsTagRuleArgsMisc
+      - Label:
+          default: "Advanced options (leave all Easy options entries blank)"
+        Parameters:
+          - TagSchedOpsTagRuleArgsAsList
     ParameterLabels:
       TagSchedOpsTagRuleScheduleCron:
         default: "Schedule (cron form)"
@@ -74,6 +86,13 @@ Metadata:
         default: "Retention policy"
       TagSchedOpsTagRuleArgsMisc:
         default: "Other command-line options"
+      TagSchedOpsTagRuleArgsAsList:
+        default: "All options, in a JSON list of strings"
+
+Conditions:
+
+  TagSchedOpsTagRuleArgsAsListEmpty:
+    !Equals [ !Ref TagSchedOpsTagRuleArgsAsList, "" ]
 
 Resources:
 
@@ -82,13 +101,13 @@ Resources:
     Type: "AWS::Events::Rule"
     DeletionPolicy: Delete
     Properties:
-      Description: !Sub "${TagSchedOpsTagRuleScheduleCron} age_backups.py --user-timezone '${TagSchedOpsTagRuleTimezoneLocal}' --retain-intervals ${TagSchedOpsTagRuleRetainIntervals} ${TagSchedOpsTagRuleArgsMisc}"
+      Description: !If [ TagSchedOpsTagRuleArgsAsListEmpty, !Sub "${TagSchedOpsTagRuleScheduleCron} age_backups.py --user-timezone '${TagSchedOpsTagRuleTimezoneLocal}' --retain-intervals ${TagSchedOpsTagRuleRetainIntervals} ${TagSchedOpsTagRuleArgsMisc}", !Sub "${TagSchedOpsTagRuleScheduleCron} age_backups.py ${TagSchedOpsTagRuleArgsAsList}" ]
       ScheduleExpression: !Sub "cron(${TagSchedOpsTagRuleScheduleCron})"
       State: ENABLED
       Targets:
         - Arn: !ImportValue "LambdaFn-TagSchedOpsTag-Arn"
           Id: !ImportValue "LambdaFn-TagSchedOpsTag-Name"
-          Input: !Sub "\"--user-timezone '${TagSchedOpsTagRuleTimezoneLocal}' --retain-intervals ${TagSchedOpsTagRuleRetainIntervals} ${TagSchedOpsTagRuleArgsMisc}\""  # Quoted for JSON
+          Input: !If [ TagSchedOpsTagRuleArgsAsListEmpty, !Sub "\"--user-timezone '${TagSchedOpsTagRuleTimezoneLocal}' --retain-intervals ${TagSchedOpsTagRuleRetainIntervals} ${TagSchedOpsTagRuleArgsMisc}\"", !Ref TagSchedOpsTagRuleArgsAsList ]
 
 
   TagSchedOpsTagRuleInvokeLambdaPerm:
