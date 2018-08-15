@@ -1,0 +1,111 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: "Rule to tag EC2 instance images, EBS volume snapshots, and RDS database snapshots for deletion. Copyright 2018, Paul Marcelin. https://github.com/sqlxpert/aws-tag-sched-ops/"
+
+
+# To check YAML syntax, first complete the setup steps
+# in aws-tag-sched-ops/requirements.txt and then:
+#   cd aws-tag-sched-ops  # Home of .yamllint
+#   yamllint cloudformation/aws_tag_sched_ops.yaml
+
+
+# https://github.com/sqlxpert/aws-tag-sched-ops/
+#
+# Copyright 2018, Paul Marcelin
+#
+# This file is part of TagSchedOps.
+#
+# TagSchedOps is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# TagSchedOps is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with TagSchedOps. If not, see http://www.gnu.org/licenses/
+
+
+Parameters:
+
+  # Do not validate at CloudFormation level,
+  # in case values accepted by underlying APIs change:
+
+  TagSchedOpsTagRuleScheduleCron:
+    Type: String
+    Description: "When/how often to tag images/snapshots for deletion, in cron form, for UTC timezone. The default is once a day, at 08:06 UTC (just after midnight Pacific Standard Time or 01:00 Pacific Daylight Time). See https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html#CronExpressions"
+    Default: "06 08 * * ? *"
+
+  TagSchedOpsTagRuleTimezoneLocal:
+    Type: String
+    Description: "The Olson name of your preferred local timezone (for example, 'America/Los_Angeles'). The default aligns time intervals with the UTC day, which begins at midnight in London, England."
+    Default: "UTC"
+
+  TagSchedOpsTagRuleRetainIntervals:
+    Type: String
+    Description: "One or more ISO 8601 intervals, repeating or non-, specified as durations. Enclose each interval in single quotes (') and separate multiple intervals with spaces. The default keeps first daily images/snapshots from the past 31 days and tags any others for deletion. Restrictions: no decimal, hour must be 0-4, 6 or 12, minute must be 0, 10, 20 or 30, and second must be 0. See documentation or run: aws-tag-sched-ops/age_backups.py --help"
+    Default: "'R31/P1D'"
+
+  TagSchedOpsTagRuleArgsMisc:
+    Type: String
+    Description: "Other command-line options to pass to age_backups.py. Spaces are allowed between arguments, but no argument may contain a space. See documentation or run: aws-tag-sched-ops/age_backups.py --help"
+    Default: ""
+
+Metadata:
+  "AWS::CloudFormation::Interface":
+    ParameterGroups:
+      # - Label:
+      #     default: "Basics"
+      - Parameters:
+          - TagSchedOpsTagRuleScheduleCron
+          - TagSchedOpsTagRuleTimezoneLocal
+          - TagSchedOpsTagRuleRetainIntervals
+          - TagSchedOpsTagRuleArgsMisc
+    ParameterLabels:
+      TagSchedOpsTagRuleScheduleCron:
+        default: "Schedule (cron form)"
+      TagSchedOpsTagRuleTimezoneLocal:
+        default: "Local timezone"
+      TagSchedOpsTagRuleRetainIntervals:
+        default: "Retention policy"
+      TagSchedOpsTagRuleArgsMisc:
+        default: "Other command-line options"
+
+Resources:
+
+
+  TagSchedOpsTagRule:
+    Type: "AWS::Events::Rule"
+    DeletionPolicy: Delete
+    Properties:
+      Description: !Sub "${TagSchedOpsTagRuleScheduleCron} age_backups.py --user-timezone '${TagSchedOpsTagRuleTimezoneLocal}' --retain-intervals ${TagSchedOpsTagRuleRetainIntervals} ${TagSchedOpsTagRuleArgsMisc}"
+      ScheduleExpression: !Sub "cron(${TagSchedOpsTagRuleScheduleCron})"
+      State: ENABLED
+      Targets:
+        - Arn: !ImportValue "LambdaFn-TagSchedOpsTag-Arn"
+          Id: !ImportValue "LambdaFn-TagSchedOpsTag-Name"
+          Input: !Sub "\"--user-timezone '${TagSchedOpsTagRuleTimezoneLocal}' --retain-intervals ${TagSchedOpsTagRuleRetainIntervals} ${TagSchedOpsTagRuleArgsMisc}\""  # Quoted for JSON
+
+
+  TagSchedOpsTagRuleInvokeLambdaPerm:
+    Type: "AWS::Lambda::Permission"
+    DeletionPolicy: Delete
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName: !ImportValue "LambdaFn-TagSchedOpsTag-Name"
+      Principal: "events.amazonaws.com"
+      SourceArn: !GetAtt TagSchedOpsTagRule.Arn
+
+
+  TagSchedOpsTagRuleDisableLambdaPerm:
+    Type: "AWS::Lambda::Permission"
+    DeletionPolicy: Delete
+    Properties:
+      Action: "lambda:DisableInvokeFunction"
+      FunctionName: !ImportValue "LambdaFn-TagSchedOpsTag-Name"
+      Principal: "events.amazonaws.com"
+      SourceArn: !GetAtt TagSchedOpsTagRule.Arn
