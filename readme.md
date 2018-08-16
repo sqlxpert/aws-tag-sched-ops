@@ -35,13 +35,13 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
    |<kbd>managed-image</kbd>||Leave value blank|
    |<kbd>managed-image-periodic</kbd>|<kbd>d=\*&nbsp;H:M=11:30</kbd>|Replace 11:30 with [current UTC time](https://www.timeanddate.com/worldclock/timezone/utc) + 20 minutes|
 
-3. Go to the [S3 Console](https://console.aws.amazon.com/s3/home). Click the name of the bucket where you keep AWS Lambda function source code. (This may be the same bucket where you keep CloudFormation templates.) If you are creating the bucket now, be sure to create it in the region where you intend to install TagSchedOps; appending the region to the bucket name (for example, `my-bucket-us-east-1`) is recommended. Upload the compressed source code of the AWS Lambda function, [`aws-lambda/aws_tag_sched_ops_perform.py.zip`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/aws-lambda/aws_tag_sched_ops_perform.py.zip)
+3. Go to the [S3 Console](https://console.aws.amazon.com/s3/home). Click the name of the bucket where you keep AWS Lambda function source code. (This may be the same bucket where you keep CloudFormation templates.) If you are creating the bucket now, be sure to create it in the region where you intend to install TagSchedOps, and append the region (for example, <kbd>my-bucket-us-east-1</kbd>). Upload the compressed source code of the AWS Lambda function, [<samp>aws-lambda/aws_tag_sched_ops_perform.py.zip</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/aws-lambda/aws_tag_sched_ops_perform.py.zip)
 
    _Security Tip:_ Remove public read and write access from the S3 bucket. Carefully limit write access.
 
-   _Security Tip:_ Download the file from S3 and verify it. (In some cases, you can simply compare the ETag reported by S3.)<br/><kbd>md5sum aws-lambda/aws_tag_sched_ops_perform.py.zip</kbd> should match [`aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt`](aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt)
+   _Security Tip:_ Download the file from S3 and verify it. (In some cases, you can simply compare the ETag reported by S3.)<br/><kbd>md5sum aws-lambda/aws_tag_sched_ops_perform.py.zip</kbd> should match [<samp>aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt</samp>](aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt)
 
-4. Go to the [CloudFormation Console](https://console.aws.amazon.com/cloudformation/home). Click Create Stack. Click Choose File, immediately below "Upload a template to Amazon S3", and navigate to your locally downloaded copy of [`cloudformation/aws_tag_sched_ops.yaml`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
+4. Go to the [CloudFormation Console](https://console.aws.amazon.com/cloudformation/home). Click Create Stack. Click Choose File, immediately below "Upload a template to Amazon S3", and navigate to your locally downloaded copy of [<samp>cloudformation/aws_tag_sched_ops.yaml</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
 
    |Item|Value|
    |--|--|
@@ -79,10 +79,10 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
   | |Start|Create Image|Reboot then Create Image|Reboot then Fail Over|Reboot|Create Snapshot|Create Snapshot then Stop|Stop|
   |--|--|--|--|--|--|--|--|--|
-  |Tags&nbsp;&rarr;|<kbd>managed-start</kbd>|<kbd>managed-image</kbd>|<kbd>managed-reboot-image</kbd>|<kbd>managed-reboot-failover</kbd>|<kbd>managed-reboot</kbd>|<kbd>managed-snapshot</kbd>|<kbd>managed-snapshot-stop</kbd>|<kbd>managed-stop</kbd>|
-  |[EC2&nbsp;compute&nbsp;instance](https://console.aws.amazon.com/ec2/v2/home#Instances)|&check;|&check;|&check;||&check;|||&check;|
-  |[EC2 EBS&nbsp;disk&nbsp;volume](https://console.aws.amazon.com/ec2/v2/home#Volumes)||||||&check;|||
-  |[RDS&nbsp;database&nbsp;instance](https://console.aws.amazon.com/rds/home#dbinstances:)|&check;|||&check;|&check;|&check;|&check;|&check;|
+  |_Tags_&nbsp;&rarr;|<kbd>managed-start</kbd>|<kbd>managed-image</kbd>|<kbd>managed-reboot-image</kbd>|<kbd>managed-reboot-failover</kbd>|<kbd>managed-reboot</kbd>|<kbd>managed-snapshot</kbd>|<kbd>managed-snapshot-stop</kbd>|<kbd>managed-stop</kbd>|
+  |[EC2&nbsp;instance](https://console.aws.amazon.com/ec2/v2/home#Instances)|&check;|&check;|&check;||&check;|||&check;|
+  |[EBS&nbsp;volume](https://console.aws.amazon.com/ec2/v2/home#Volumes)||||||&check;|||
+  |[RDS&nbsp;instance](https://console.aws.amazon.com/rds/home#dbinstances:)|&check;|||&check;|&check;|&check;|&check;|&check;|
 
 * Also add tags for [repetitive (<kbd>-periodic</kbd>)](#repetitive-schedules) and/or [one-time (<kbd>-once</kbd>)](#one-time-schedules) schedules. Prefix with the operation.
 * If there are no corresponding schedule tags, an enabling tag will be ignored, and the operation will never occur.
@@ -133,7 +133,7 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
       * Repeat a whole component to specify multiple values. For example, <kbd>d=01&nbsp;d=11&nbsp;d=21</kbd> means the 1st, 11th and 21st days of the month.
       * The <kbd>\*</kbd> wildcard is allowed for day (_every day of the month_) and hour (_every hour of the day_).
       * For consistent one-day-a-month scheduling, avoid <kbd>d=29</kbd> through <kbd>d=31</kbd>.
-      * Label letters match [strftime()](http://manpages.ubuntu.com/manpages/xenial/man3/strftime.3.html) and weekday numbers are [ISO 8601-standard](https://en.wikipedia.org/wiki/ISO_8601#Week_dates) (different from cron).
+      * Label letters match [<code>strftime</code>](http://manpages.ubuntu.com/manpages/xenial/man3/strftime.3.html) and weekday numbers are [ISO 8601-standard](https://en.wikipedia.org/wiki/ISO_8601#Week_dates) (different from cron).
 
   * Examples:
 
@@ -220,7 +220,7 @@ Some operations create a child resource (image or snapshot) from a parent resour
 
 ### Naming
 
-* The name of the child consists of these parts, separated by hyphens (`-`):
+* The name of the child consists of these parts, separated by hyphens (<samp>-</samp>):
 
   |#|Part|Example|Purpose|
   |--|--|--|--|
@@ -239,7 +239,7 @@ Some operations create a child resource (image or snapshot) from a parent resour
 
   |Tag(s)|Purpose|
   |--|--|
-  |<samp>Name</samp>|Supplements EC2 resource identifier. The key is renamed `managed-parent-name` when the value is passed from parent to child, because the child has a <samp>Name</samp> tag of its own. The code handles `Name` specially for both EC2 and RDS, in case AWS someday extends EC2-style tag semantics to RDS.|
+  |<samp>Name</samp>|Supplements EC2 resource identifier. The key is renamed <samp>managed-parent-name</samp> when the value is passed from parent to child, because the child has a <samp>Name</samp> tag of its own. The code handles `Name` specially for both EC2 and RDS, in case AWS someday extends EC2-style tag semantics to RDS.|
   |<samp>managed&#x2011;parent&#x2011;name</samp>|The <samp>Name</samp> tag value from the parent. May be blank.|
   |<samp>managed&#x2011;parent&#x2011;id</samp>|The identifier of the parent instance or volume. AWS stores this in metadata for some but not all resource types, and the retrieval key differs for each resource type.|
   |<samp>managed&#x2011;origin</samp>|The operation (for example, <samp>snapshot</samp>) that created the child. Identifies resources created by this project. Also distinguishes special cases, such as whether an EC2 instance was or was not rebooted before an image was created.|
@@ -262,7 +262,6 @@ If two or more operations on the same resource are scheduled for the same 10-min
 |RDS instance|Stop + Create Snapshot|Create Snapshot then Stop|
 
 The Create Image + Reboot combination for EC2 instances is useful. For example, you could take hourly backups but reboot only in conjunction with the midnight backup. The midnight backup would be guaranteed to be coherent for all files, but you could safely retrieve static files as of any given hour, from the other backups. To set up this example:
-
 |Tag|Value|
 |--|--|
 |<kbd>managed&#x2011;image</kbd>||
@@ -300,7 +299,7 @@ Resources tagged for unsupported combinations of operations are logged (with mes
 
    |Policy Name|Manage Enabling Tags|Manage One-Time Schedule Tags|Manage Repetitive Schedule Tags|Back Up|Manage Deletion Tag|Delete|
    |--|--|--|--|--|--|--|
-   |_Scope&nbsp;&rarr;_|_Instances, Volumes_|_Instances, Volumes_|_Instances, Volumes_|_Instances, Volumes_|_Images, Snapshots_|_Images, Snapshots_|
+   |_Scope_&nbsp;&rarr;|_Instances, Volumes_|_Instances, Volumes_|_Instances, Volumes_|_Instances, Volumes_|_Images, Snapshots_|_Images, Snapshots_|
    |TagSchedOpsAdminister|Allow|Allow|Allow|No effect|Deny|Deny|
    |TagSchedOpsTagScheduleOnce|Deny|Allow [<sup>i</sup>](#policy-footnote-1)|Deny|No effect|Deny|Deny|
    |TagSchedOpsTagForDeletion|Deny|Deny|Deny|Deny|Allow|Deny|
@@ -309,7 +308,7 @@ Resources tagged for unsupported combinations of operations are logged (with mes
 
    Footnotes:
 
-     1. <a name="policy-footnote-1"></a>Enabling tag required. For example, a user could add `managed-image-once` to an EC2 instance only if the `managed-image` tag were already present.
+     1. <a name="policy-footnote-1"></a>Enabling tag required. For example, a user could add <kbd>managed-image-once</kbd> to an EC2 instance only if the <samp>managed-image</samp> tag were already present.
 
    These policies cover all regions. If you use regions to differentiate production and non-production resources, modify copies of the provided policies.
 
@@ -326,7 +325,7 @@ Resources tagged for unsupported combinations of operations are logged (with mes
 
  * Note these AWS technical limitations/oversights:
 
-    * An IAM user or role that can create an image of an EC2 instance can force a reboot by omitting the `NoReboot` option. (Explicitly denying the reboot privilege does not help.) The unavoidable pairing of a harmless privilege, taking a backup, with a risky one, rebooting, is unfortunate.
+    * An IAM user or role that can create an image of an EC2 instance can force a reboot by omitting the <code>NoReboot</code> option. (Explicitly denying the reboot privilege does not help.) The unavoidable pairing of a harmless privilege, taking a backup, with a risky one, rebooting, is unfortunate.
 
     * Tags are ignored when deleting EC2 images and snapshots. Limit EC2 image and snapshot deletion privileges -- even Ec2TagSchedOpsDelete -- to highly-trusted IAM users and roles.
 
@@ -348,7 +347,7 @@ If you intend to install TagSchedOps in multiple regions,
 
    |Parameter|Value|
    |--|--|
-   |LambdaCodeS3Bucket|_Use the shared prefix; for example, if you created_ `my-bucket-us-east-1` _and_ `my-bucket-us-west-2` _, use_ <kbd>my-bucket</kbd>|
+   |LambdaCodeS3Bucket|_Use the shared prefix; for example, if you created_ <samp>my-bucket-us-east-1</samp> _and_ <samp>my-bucket-us-west-2</samp> _, use_ <kbd>my-bucket</kbd>|
    |MainRegion|_Always use the same value, to prevent the creation of duplicate sets of user policies_|
    |StackSetsOrMultiRegion|Yes|
    |TagSchedOpsPerformCodeS3VersionID|_Leave blank, because the value would differ in every region; only the latest version of the AWS Lambda function source code file in each region's S3 bucket can be used_|
@@ -409,7 +408,7 @@ If you intend to install TagSchedOps in multiple AWS accounts,
    |Item|Value|
    |--|--|
    |StackSet name|<kbd>TagSchedOps</kbd>|
-   |LambdaCodeS3Bucket|_Use the shared prefix; for example, if you created_ `my-bucket-us-east-1` _, use use_ <kbd>my-bucket</kbd>|
+   |LambdaCodeS3Bucket|_Use the shared prefix; for example, if you created_ <samp>my-bucket-us-east-1</samp> _, use use_ <kbd>my-bucket</kbd>|
    |MainRegion|_Must be a StackSet target region_|
    |StackSetsOrMultiRegion|Yes|
    |TagSchedOpsPerformCodeS3VersionID|_In a multi-region scenario, leave blank_|
