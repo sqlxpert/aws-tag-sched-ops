@@ -101,14 +101,6 @@ Metadata:
           - StackSetsOrMultiRegion
           - LambdaCodeS3Bucket
       - Label:
-          default: "TagSchedOpsPerform Lambda function (performs scheduled operations/creates images and snapshots)"
-        Parameters:
-          - TagSchedOpsPerformCodeName
-          - TagSchedOpsPerformCodeS3VersionID
-          - TagSchedOpsPerformLogRetainDays
-          - TagSchedOpsPerformMemoryMB
-          - TagSchedOpsPerformTimeoutSecs
-      - Label:
           default: "TagSchedOpsTag Lambda function (tags images and snapshots for deletion)"
         Parameters:
           - TagSchedOpsTagCodeName
@@ -116,6 +108,14 @@ Metadata:
           - TagSchedOpsTagLogRetainDays
           - TagSchedOpsTagMemoryMB
           - TagSchedOpsTagTimeoutSecs
+      - Label:
+          default: "TagSchedOpsPerform Lambda function (performs scheduled operations/creates images and snapshots)"
+        Parameters:
+          - TagSchedOpsPerformCodeName
+          - TagSchedOpsPerformCodeS3VersionID
+          - TagSchedOpsPerformLogRetainDays
+          - TagSchedOpsPerformMemoryMB
+          - TagSchedOpsPerformTimeoutSecs
     ParameterLabels:
       MainRegion:
         default: "Main region"
@@ -359,15 +359,16 @@ Resources:
     # DependsOn: TagSchedOpsPerformLog
     DeletionPolicy: Delete
     Properties:
+      Role: !GetAtt TagSchedOpsPerformLambdaRole.Arn
       Code:
         S3Bucket: !If [ RegionMulti, !Sub "${LambdaCodeS3Bucket}-${AWS::Region}", !Ref LambdaCodeS3Bucket ]
         S3Key: !Join [ ".", [ !Ref TagSchedOpsPerformCodeName, "py", "zip" ] ]
         S3ObjectVersion: !If [ TagSchedOpsPerformCodeNoS3ObjVersion, !Ref "AWS::NoValue", !Ref TagSchedOpsPerformCodeS3VersionID ]
-      Handler: !Join [ ".", [ !Ref TagSchedOpsPerformCodeName, "lambda_handler" ] ]
-      MemorySize: !Ref TagSchedOpsPerformMemoryMB
-      Role: !GetAtt TagSchedOpsPerformLambdaRole.Arn
       Runtime: "python3.6"
+      Handler: !Join [ ".", [ !Ref TagSchedOpsPerformCodeName, "lambda_handler" ] ]
+      ReservedConcurrentExecutions: 1  # Only one run at a time!
       Timeout: !Ref TagSchedOpsPerformTimeoutSecs
+      MemorySize: !Ref TagSchedOpsPerformMemoryMB
 
 
   TagSchedOpsTagLambdaFn:
@@ -378,15 +379,16 @@ Resources:
     # DependsOn: TagSchedOpsTagLog
     DeletionPolicy: Delete
     Properties:
+      Role: !GetAtt TagSchedOpsTagLambdaRole.Arn
       Code:
         S3Bucket: !If [ RegionMulti, !Sub "${LambdaCodeS3Bucket}-${AWS::Region}", !Ref LambdaCodeS3Bucket ]
         S3Key: !Join [ ".", [ !Ref TagSchedOpsTagCodeName, "py", "zip" ] ]
         S3ObjectVersion: !If [ TagSchedOpsTagCodeNoS3ObjVersion, !Ref "AWS::NoValue", !Ref TagSchedOpsTagCodeS3VersionID ]
-      Handler: !Join [ ".", [ !Ref TagSchedOpsTagCodeName, "lambda_handler" ] ]
-      MemorySize: !Ref TagSchedOpsTagMemoryMB
-      Role: !GetAtt TagSchedOpsTagLambdaRole.Arn
       Runtime: "python3.6"
+      Handler: !Join [ ".", [ !Ref TagSchedOpsTagCodeName, "lambda_handler" ] ]
+      ReservedConcurrentExecutions: 5  # Multiple simultaneous runs possible
       Timeout: !Ref TagSchedOpsTagTimeoutSecs
+      MemorySize: !Ref TagSchedOpsTagMemoryMB
 
 
   TagSchedOpsPerformLogGrp:
@@ -513,6 +515,8 @@ Resources:
               - "lambda:AddPermission"
               - "lambda:RemovePermission"
               - "lambda:InvokeFunction"
+              - "lambda:PutFunctionConcurrency"
+              - "lambda:DeleteFunctionConcurrency"
             Resource:
               - !GetAtt TagSchedOpsPerformLambdaFn.Arn
               - !GetAtt TagSchedOpsTagLambdaFn.Arn
@@ -521,9 +525,6 @@ Resources:
             Action: "lambda:CreateEventSourceMapping"
             Resource: "*"
             Condition:
-              # ArnEquals:
-              #   "lambda:FunctionArn": !GetAtt TagSchedOpsPerformLambdaFn.Arn
-              # TODO: check this:
               "ForAnyValue:ArnEquals":
                 "lambda:FunctionArn":
                   - !GetAtt TagSchedOpsPerformLambdaFn.Arn

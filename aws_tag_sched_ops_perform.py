@@ -64,9 +64,9 @@ To execute directly, for development purposes ONLY:
      pycodestyle aws_tag_sched_ops_perform.py
 
 8. Package for upload to S3, for use with AWS Lambda:
-     rm     aws_tag_sched_ops_perform.py.zip
-     zip    aws_tag_sched_ops_perform.py.zip aws_tag_sched_ops_perform.py
-     md5sum aws_tag_sched_ops_perform.py.zip > aws_tag_sched_ops_perform.py.zip.md5.txt
+     rm --force aws-lambda/aws_tag_sched_ops_perform.py.zip
+     zip -8     aws-lambda/aws_tag_sched_ops_perform.py.zip aws_tag_sched_ops_perform.py
+     md5sum     aws-lambda/aws_tag_sched_ops_perform.py.zip > aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt
 """
 
 

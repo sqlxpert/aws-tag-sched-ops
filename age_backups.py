@@ -93,13 +93,13 @@ For delevopers only:
      deactivate
      source VIRTUALENV_TINY_PATH/bin/activate
      cd aws-tag-sched-ops
-     rm --force          /tmp/age_backups.py.zip
-     zip                 /tmp/age_backups.py.zip age_backups.py
+     rm --force             /tmp/age_backups.py.zip
+     zip                    /tmp/age_backups.py.zip age_backups.py
      cd "${VIRTUAL_ENV}/lib/python3.6/site-packages"
-     zip --recurse-paths /tmp/age_backups.py.zip * --exclude '*.pyc' '*/__pycache__/'
+     zip --recurse-paths -8 /tmp/age_backups.py.zip * --exclude '*.pyc' '*/__pycache__/'
      cd -
-     mv --force          /tmp/age_backups.py.zip .
-     md5sum                   age_backups.py.zip > age_backups.py.zip.md5.txt
+     md5sum                 /tmp/age_backups.py.zip > aws-lambda/age_backups.py.zip.md5.txt
+     mv --force             /tmp/age_backups.py.zip   aws-lambda
 """
 
 import os
@@ -127,6 +127,7 @@ LOG_LINE_FMT = "\t".join([
   "{code}",
   "{region}",
   "{parent_rsrc_id}",
+  "{date}",
   "{rsrc_id}",
   "{op}",
   "{note}"
@@ -732,6 +733,7 @@ RESOLUTIONS_OK = (
   # "PT1M",
   # "PT1S",
 )
+STRFTIME_FMT_NORM = "%Y-%m-%dT%H:%M"  # Used only with UTC
 STRFTIME_FMT_YMD = "%Y-%m-%dT%H:%M:%S.%f%z"
 STRFTIME_FMT_W = "%Y-W%W-1T%H:%M:%S.%f%z"
 #                        |
@@ -932,6 +934,7 @@ def interval_gen(interval_in, period_start_strs, context_forward=False):
       code=9,
       region="",
       parent_rsrc_id="",
+      date="",
       rsrc_id="",
       op="",
       note=f"Interval {interval_in} translation: {interval}"
@@ -955,6 +958,7 @@ def interval_gen(interval_in, period_start_strs, context_forward=False):
       code=9,
       region="",
       parent_rsrc_id="",
+      date="",
       rsrc_id="",
       op="",
       note=f"Bad interval '{interval_in}': {err_str}"
@@ -1016,6 +1020,7 @@ def rsrc_tag_op(
         code=int(success),
         region=region,
         parent_rsrc_id="",
+        date="",
         rsrc_id=rsrc_id,
         op=f"tags_{op}",
         note=resp if resp else err_str,
@@ -1030,6 +1035,7 @@ def rsrc_tag_op(
       code=int(success),
       region=region,
       parent_rsrc_id="",
+      date="",
       rsrc_id=rsrc_id,
       op=f"tags_{op}" + ("_dry_run" if dry_run else ""),
       note=tag_op_kwargs.get(
@@ -1198,9 +1204,10 @@ def intervals_process(params_user, date_min, rsrcs):
               code=9,
               region="",
               parent_rsrc_id="",
+              date=boundary.strftime(STRFTIME_FMT_NORM),
               rsrc_id="",
               op="",
-              note=f"Interval {interval_user} floor: {boundary}"
+              note=f"Interval {interval_user} floor"
             ))
             break
       if (
@@ -1216,22 +1223,21 @@ def date_head_print(date, rsrcs_date, intervals_parent_rsrcs):
   """
 
   if DEBUG:
-    date_str = date.strftime("%Y-%m-%dT%H:%M")
     intervals_starting = rsrcs_date[BEGIN] - intervals_parent_rsrcs.keys()
     periods_starting = rsrcs_date[BEGIN] - intervals_starting
     intervals_ending = rsrcs_date[END]
     intervals_ending_str = (
-      ("  end " + ", ".join(intervals_ending))
+      ("End " + ", ".join(intervals_ending) + "  ")
       if intervals_ending else
       ""
     )
     periods_starting_str = (
-      ("  next " + ", ".join(periods_starting))
+      ("Next " + ", ".join(periods_starting) + "  ")
       if periods_starting else
       ""
     )
     intervals_starting_str = (
-      ("  new " + ", ".join(intervals_starting))
+      ("New " + ", ".join(intervals_starting) + "  ")
       if intervals_starting else
       ""
     )
@@ -1239,15 +1245,16 @@ def date_head_print(date, rsrcs_date, intervals_parent_rsrcs):
       code=9,
       region="",
       parent_rsrc_id="",
+      date=date.strftime(STRFTIME_FMT_NORM),
       rsrc_id="",
       op="",
       # pylint: disable=line-too-long
-      note=f"{date_str}{intervals_ending_str}{periods_starting_str}{intervals_starting_str}",
+      note=f"{intervals_ending_str}{periods_starting_str}{intervals_starting_str}",
     ))
 
 
-def rsrcs_print(rsrcs_date):
-  """Take a resource dictionary date/time key, and print resources.
+def rsrcs_print(date, rsrcs_date):
+  """Take a resource dictionary date/time item, and print resources.
   """
 
   for act in (KEEP, DEL):
@@ -1257,6 +1264,9 @@ def rsrcs_print(rsrcs_date):
         code=9,
         region=region,
         parent_rsrc_id=parent_rsrc_id,
+        date="" if DEBUG else date.strftime(STRFTIME_FMT_NORM),
+        # In DEBUG mode, date is in header line. Revisit this if execution or
+        # logging ever become asynchronous, putting log lines out of order.
         rsrc_id=rsrc_id,
         op=op,
         note="",
@@ -1309,7 +1319,7 @@ def rsrcs_process(intervals_end, rsrcs):
       rsrcs_date[KEEP] = rsrcs_date[DEL]
       rsrcs_date[DEL] = {}
 
-    rsrcs_print(rsrcs_date)
+    rsrcs_print(date, rsrcs_date)
 
 
 def cmd_args_interpet(cmd_args, aws_lambda=False):
@@ -1321,6 +1331,7 @@ def cmd_args_interpet(cmd_args, aws_lambda=False):
       code=9,
       region="",
       parent_rsrc_id="",
+      date="",
       rsrc_id="",
       op="",
       note="Args, parsed: " + str(vars(cmd_args))
@@ -1357,19 +1368,20 @@ def cmd_args_interpet(cmd_args, aws_lambda=False):
       code=9,
       region="",
       parent_rsrc_id="",
+      date="",
       rsrc_id="",
       op="",
       note=f"Args, interpreted: {params_user_no_start_strs}"
     ))
     for resolution in RESOLUTIONS_OK:
-      period_start_str = params_user["period_start_strs"][resolution]
       print(LOG_LINE_FMT.format(
         code=9,
         region="",
         parent_rsrc_id="",
+        date=params_user["period_start_strs"][resolution],
         rsrc_id="",
         op="",
-        note=f"{period_start_str} start for resolution {resolution}"
+        note=f"Start for resolution {resolution}"
       ))
 
   return params_user
@@ -1380,7 +1392,7 @@ def rsrcs_tag(params, clients, rsrcs, dry_run):
   """
 
   dry_run_str = "_dry_run" if dry_run else ""
-  for rsrcs_date in rsrcs.values():
+  for (date, rsrcs_date) in rsrcs.items():
     for (status, tags_test, tag_op, user_str) in (
       (DEL, lambda tags_dict: TAG_DEL not in tags_dict, "add", "tag_to_del"),
       (KEEP, lambda tags_dict: TAG_DEL in tags_dict, "del", "tag_to_keep"),
@@ -1404,6 +1416,7 @@ def rsrcs_tag(params, clients, rsrcs, dry_run):
             code=int(bool(success)),
             region=region,
             parent_rsrc_id=parent_rsrc_id,
+            date=date.strftime(STRFTIME_FMT_NORM),
             rsrc_id=rsrc_id,
             op=f"{user_str}{dry_run_str}",
             note="",
@@ -1459,6 +1472,8 @@ def describe_kwargs_get(params_rsrc_type, params_user):
 def lambda_handler(event, context):  # pylint: disable=unused-argument
   """List matching EC2 instance images, EBS volume snapshots and RDS snapshots
   """
+
+  print(re.sub(r"[{}]", "", LOG_LINE_FMT))  # Simple log header
 
   # Only when called by AWS Lambda:
   # https://docs.aws.amazon.com/lambda/latest/dg/python-programming-model-handler-types.html
@@ -1522,6 +1537,7 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
             code=9,
             region="",
             parent_rsrc_id="",
+            date="",
             rsrc_id="",
             op="",
             note=f"{svc} {rsrc_type} describe args: {describe_kwargs}"
@@ -1538,18 +1554,28 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
               desc
             )
 
-  create_date_min = min(rsrcs) if rsrcs else None
+  created_min = min(rsrcs) if rsrcs else None
   print(LOG_LINE_FMT.format(
     code=9,
     region="",
     parent_rsrc_id="",
+    date=created_min.strftime(STRFTIME_FMT_NORM) if created_min else "",
     rsrc_id="",
     op="",
-    note=f"Oldest image/snapshot created: {create_date_min}"
+    note=f"Oldest image/snapshot created"
   ))
 
-  if create_date_min:
-    intervals_end = intervals_process(params_user, create_date_min, rsrcs)
+  if created_min:
+    intervals_end = intervals_process(params_user, created_min, rsrcs)
+    print(LOG_LINE_FMT.format(
+      code=9,
+      region="",
+      parent_rsrc_id="",
+      date=intervals_end.strftime(STRFTIME_FMT_NORM) if intervals_end else "",
+      rsrc_id="",
+      op="",
+      note=f"End of latest interval"
+    ))
     if intervals_end:
       rsrcs_process(intervals_end, rsrcs)
       rsrcs_tag(PARAMS, clients, rsrcs, params_user["dry_run"])
