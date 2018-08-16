@@ -86,7 +86,7 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 * Also add tags for [repetitive (`-periodic`)](#repetitive-schedules) and/or [one-time (`-once`)](#one-time-schedules) schedules. Prefix with the operation.
 * If there are no corresponding schedule tags, an enabling tag will be ignored, and the operation will never occur.
 * To temporarily suspend an operation, delete its enabling tag. You may leave its schedule tag(s) in place.
-* Examples (for an EC2 or RDS instance):
+* Examples (for an EBS volume or and RDS instance):
 
   |All tags|Operation occurs?|Comment|
   |--|--|--|
