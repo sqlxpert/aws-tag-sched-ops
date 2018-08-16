@@ -79,11 +79,11 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
   | |Start|Create Image|Reboot then Create Image|Reboot then Fail Over|Reboot|Create Snapshot|Create Snapshot then Stop|Stop|
   |--|--|--|--|--|--|--|--|--|
-  |[EC2 compute instance](https://console.aws.amazon.com/ec2/v2/home#Instances)|<kbd>managed&#x2011;start</kbd>|<kbd>managed&#x2011;image</kbd>|<kbd>managed&#x2011;reboot-image</kbd>| |<kbd>managed&#x2011;reboot</kbd>| | |<kbd>managed&#x2011;stop</kbd>|
+  |[EC2 compute instance](https://console.aws.amazon.com/ec2/v2/home#Instances)|<kbd>managed&#x2011;start</kbd>|<kbd>managed&#x2011;image</kbd>|<kbd>managed&#x2011;reboot&#x2011;image</kbd>| |<kbd>managed&#x2011;reboot</kbd>| | |<kbd>managed&#x2011;stop</kbd>|
   |[EC2 EBS disk volume](https://console.aws.amazon.com/ec2/v2/home#Volumes)| | | | | |<kbd>managed&#x2011;snapshot</kbd>| | |
-  |[RDS database instance](https://console.aws.amazon.com/rds/home#dbinstances:)|<kbd>managed&#x2011;start</kbd>| | |<kbd>managed&#x2011;reboot-failover</kbd>|<kbd>managed&#x2011;reboot</kbd>|<kbd>managed&#x2011;snapshot</kbd>|<kbd>managed&#x2011;snapshot-stop</kbd>|<kbd>managed&#x2011;stop</kbd>|
+  |[RDS database instance](https://console.aws.amazon.com/rds/home#dbinstances:)|<kbd>managed&#x2011;start</kbd>| | |<kbd>managed&#x2011;reboot&#x2011;failover</kbd>|<kbd>managed&#x2011;reboot</kbd>|<kbd>managed&#x2011;snapshot</kbd>|<kbd>managed&#x2011;snapshot&#x2011;stop</kbd>|<kbd>managed&#x2011;stop</kbd>|
 
-* Also add tags for [repetitive (`-periodic`)](#repetitive-schedules) and/or [one-time (`-once`)](#one-time-schedules) schedules. Prefix with the operation.
+* Also add tags for [repetitive (<kbd>-periodic</kbd>)](#repetitive-schedules) and/or [one-time (<kbd>-once</kbd>)](#one-time-schedules) schedules. Prefix with the operation.
 * If there are no corresponding schedule tags, an enabling tag will be ignored, and the operation will never occur.
 * To temporarily suspend an operation, delete its enabling tag. You may leave its schedule tag(s) in place.
 * Examples (for an EBS volume or and RDS instance):
@@ -131,7 +131,7 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
       * To be valid, a component or combination of components must specify a day, hour and minute.
       * Repeat a whole component to specify multiple values. For example, <kbd>d=01&nbsp;d=11&nbsp;d=21</kbd> means the 1st, 11th and 21st days of the month.
       * The <kbd>\*</kbd> wildcard is allowed for day (_every day of the month_) and hour (_every hour of the day_).
-      * For consistent one-day-a-month scheduling, avoid <kbd>d=29</kbd> through <kbd>=31</kbd>.
+      * For consistent one-day-a-month scheduling, avoid <kbd>d=29</kbd> through <kbd>d=31</kbd>.
       * Label letters match [strftime()](http://manpages.ubuntu.com/manpages/xenial/man3/strftime.3.html) and weekday numbers are [ISO 8601-standard](https://en.wikipedia.org/wiki/ISO_8601#Week_dates) (different from cron).
 
   * Examples:
@@ -139,7 +139,7 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
     |Value of Repetitive Schedule Tag|Demonstrates|Operation Begins|
     |--|--|--|
     |<kbd>dTH:M=\*T14:25</kbd>|Once-a-day event|Between 14:20 and 14:30, every day|
-    |uTH:M=1T14:25</kbd>|Once-a-week event|Between 14:20 and 14:30, every Monday.|
+    |<kbd>uTH:M=1T14:25</kbd>|Once-a-week event|Between 14:20 and 14:30, every Monday.|
     |<kbd>dTH:M=28T14:25</kbd>|Once-a-month event|Between 14:20 and 14:30 on the 28th day of every month|
     |<kbd>d=1&nbsp;d=8&nbsp;d=15&nbsp;d=22&nbsp;H=03&nbsp;H=19&nbsp;M=01</kbd>|cron schedule|Between 03:00 and 03:10 and again between 19:00 and 19:10, on the 1st, 8th, 15th, and 22nd days of every month|
     |<kbd>d=\*&nbsp;H=\*&nbsp;M=15&nbsp;M=45&nbsp;H:M=08:50</kbd>|Extra daily event|Between 10 and 20 minutes after the hour and 40 to 50 minutes after the hour, every hour of every day, _and also_ every day between 08:50 and 09:00|
@@ -164,10 +164,10 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
   |<samp>initiated</samp>|<samp>rsrc_id</samp>|<samp>op</samp>|<samp>child_rsrc_type</samp>|<samp>child</samp>|<samp>child_op</samp>|<samp>note</samp>|
   |--|--|--|--|--|--|--|
   |<samp>9</samp>||||||<samp>2017-09-12T20:40</samp>|
-  |<samp>1</samp>|<samp>i-08abefc70375d36e8</samp>|<samp>reboot-image</samp>|<samp>Image</samp>|<samp>zm-my-server-20170912T2040-83xx7</samp>|||
-  |<samp>1</samp>|<samp>i-08abefc70375d36e8</samp>|<samp>reboot-image</samp>|<samp>Image</samp>|<samp>ami-bc9fcbc6</samp>|<samp>tag</samp>||
-  |<samp>1</samp>|<samp>i-04d2c0140da5bb13e</samp>|<samp>start</samp>|||||
-  |<samp>0</samp>|<samp>i-09cdea279388d35a2</samp>|<samp>start,stop</samp>||||<samp>OPS_UNSUPPORTED</samp>|
+  |<samp>1</samp>|<samp>i&#x2011;08abefc70375d36e8</samp>|<samp>reboot-image</samp>|<samp>Image</samp>|<samp>zm-my-server-20170912T2040-83xx7</samp>|||
+  |<samp>1</samp>|<samp>i&#x2011;08abefc70375d36e8</samp>|<samp>reboot-image</samp>|<samp>Image</samp>|<samp>ami&#x2011;bc9fcbc6</samp>|<samp>tag</samp>||
+  |<samp>1</samp>|<samp>i&#x2011;04d2c0140da5bb13e</samp>|<samp>start</samp>|||||
+  |<samp>0</samp>|<samp>i&#x2011;09cdea279388d35a2</samp>|<samp>start,stop</samp>||||<samp>OPS_UNSUPPORTED</samp>|
   |<samp>0</samp>|<samp>my-database</samp>|<samp>reboot-failover</samp>||||...<samp>ForceFailover cannot be specified</samp>...|
 
   _This run began September 12, 2017 between 20:40 and 20:50 UTC. An EC2 instance (ID prefix <samp>i-</samp>) is being rebooted and backed up, but the instance may not yet be ready again, and the image may not yet be complete; the image is named <samp>zm-my-server-20170912T2040-83xx7</samp>. The image has received ID <samp>ami-bc9fcbc6</samp>, and has been tagged. A different EC2 instance is starting up, but may not yet be ready. A third EC2 instance is tagged for simultaneous start and stop, a combination that is not supported. An RDS database instance (no <samp>i-</samp> or <samp>vol-</samp> ID prefix) could not be rebooted with fail-over. (The full error message goes on to explain that it is not multi-zone.)_
@@ -238,11 +238,11 @@ Some operations create a child resource (image or snapshot) from a parent resour
 
   |Tag(s)|Purpose|
   |--|--|
-  |`Name`|Supplements EC2 resource identifier. The key is renamed `managed-parent-name` when the value is passed from parent to child, because the child has a `Name` tag of its own. The code handles `Name` specially for both EC2 and RDS, in case AWS someday extends EC2-style tag semantics to RDS.|
-  |`managed-parent-name`|The `Name` tag value from the parent. May be blank.|
-  |`managed-parent-id`|The identifier of the parent instance or volume. AWS stores this in metadata for some but not all resource types, and the retrieval key differs for each resource type.|
-  |`managed-origin`|The operation (for example, `snapshot`) that created the child. Identifies resources created by this project. Also distinguishes special cases, such as whether an EC2 instance was or was not rebooted before an image was created.|
-  |<a name="tag-managed-date-time">`managed-date-time`</a>|Groups resources created during the same 10-minute interval. The last digit of the minute is normalized to 0, and `Z` is always appended, to indicate UTC. AWS stores the _exact_ time (too specific for grouping) in metadata, and the retrieval key and the format differ for each resource type!|
+  |<samp>Name</samp>|Supplements EC2 resource identifier. The key is renamed `managed-parent-name` when the value is passed from parent to child, because the child has a <samp>Name</samp> tag of its own. The code handles `Name` specially for both EC2 and RDS, in case AWS someday extends EC2-style tag semantics to RDS.|
+  |<samp>managed&#x2011;parent&#x2011;name</samp>|The <samp>Name</samp> tag value from the parent. May be blank.|
+  |<samp>managed&#x2011;parent&#x2011;id</samp>|The identifier of the parent instance or volume. AWS stores this in metadata for some but not all resource types, and the retrieval key differs for each resource type.|
+  |<samp>managed&#x2011;origin</samp>|The operation (for example, `snapshot`) that created the child. Identifies resources created by this project. Also distinguishes special cases, such as whether an EC2 instance was or was not rebooted before an image was created.|
+  |<a name="tag-managed-date-time"><samp>managed-date-time</samp></a>|Groups resources created during the same 10-minute interval. The last digit of the minute is normalized to 0, and <samp>Z</samp> is always appended, to indicate UTC. AWS stores the _exact_ time (too specific for grouping) in metadata, and the retrieval key and the format differ for each resource type!|
 
 * Tags other than operation-enabling tags, schedule tags, and the `Name` tag, are copied from parent to child. (The deletion tag, `managed-delete`, would not make sense on instances and volumes, but if it is present, it is not copied to images and snapshots.)
 
