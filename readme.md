@@ -136,12 +136,12 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
     |Value of `-periodic` Schedule Tag|Demonstrates|Operation Begins|
     |--|--|--|
-    |dTH:M=28T14:25|Once-a-month|Between 14:20 and 14:30 on the 28th day of every month.|
-    |dTH:M=*T14:25|Once-a-day|Between 14:20 and 14:30, every day.|
+    |dTH:M=\*T14:25|Once-a-day|Between 14:20 and 14:30, every day.|
     |uTH:M=1T14:25|Once-a-week|Between 14:20 and 14:30, every Monday.|
+    |dTH:M=28T14:25|Once-a-month|Between 14:20 and 14:30 on the 28th day of every month.|
     |d=1&nbsp;d=8&nbsp;d=15&nbsp;d=22&nbsp;H=03&nbsp;H=19&nbsp;M=01|`cron` schedule|Between 03:00 and 03:10 and again between 19:00 and 19:10, on the 1st, 8th, 15th, and 22nd days of every month.|
-    |d=*&nbsp;H=*&nbsp;M=15&nbsp;M=45&nbsp;H:M=08:50|Extra daily event|Between 10 and 20 minutes after the hour and 40 to 50 minutes after the hour, every hour of every day, _and also_ every day between 08:50 and 09:00.|
-    |d=*&nbsp;H=11&nbsp;M=00&nbsp;uTH:M=2T03:30&nbsp;uTH:M=5T07:20|Two extra weekly events|Between 11:00 and 11:10 every day, _and also_ every Tuesday between 03:30 and 03:40 and every Friday between 07:20 and 7:30.|
+    |d=\*&nbsp;H=\*&nbsp;M=15&nbsp;M=45&nbsp;H:M=08:50|Extra daily event|Between 10 and 20 minutes after the hour and 40 to 50 minutes after the hour, every hour of every day, _and also_ every day between 08:50 and 09:00.|
+    |d=\*&nbsp;H=11&nbsp;M=00&nbsp;uTH:M=2T03:30&nbsp;uTH:M=5T07:20|Two extra weekly events|Between 11:00 and 11:10 every day, _and also_ every Tuesday between 03:30 and 03:40 and every Friday between 07:20 and 7:30.|
     |u=3&nbsp;H=22&nbsp;M=15&nbsp;dTH:M=01T05:20|Extra monthly event|Between 22:10 and 22:20 every Wednesday, _and also_ on the first day of every month between 05:20 and 05:30.|
 
 ### One-Time Schedules
