@@ -41,7 +41,7 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
    _Security Tip:_ Download the file from S3 and verify it. (In some cases, you can simply compare the ETag reported by S3.)<br/><kbd>md5sum aws-lambda/aws_tag_sched_ops_perform.py.zip</kbd> should match [<samp>aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt</samp>](aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt)
 
-4. Go to the [CloudFormation Console](https://console.aws.amazon.com/cloudformation/home). Click Create Stack. Click Choose File, immediately below "Upload a template to Amazon S3", and navigate to your locally downloaded copy of [<samp>cloudformation/aws_tag_sched_ops.yaml</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
+4. Go to the [CloudFormation Console](https://console.aws.amazon.com/cloudformation/home). Click Create Stack. Click Choose File, immediately below <samp>Upload a template to Amazon S3</samp>, and navigate to your locally downloaded copy of [<samp>cloudformation/aws_tag_sched_ops.yaml</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
 
    |Item|Value|
    |--|--|
@@ -55,7 +55,7 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
 6. Before deregistering (deleting) the sample image, note its ID, so that you can delete the associated [Snapshots](https://console.aws.amazon.com/ec2/v2/home#Snapshots:sort=desc:startTime). Also untag the instance.
 
-7. Go to [Users](https://console.aws.amazon.com/iam/home#/users) in the IAM Console. Click your regular (uprivileged) username. Click Add Permissions, then click "Attach existing policies directly". In the Search box, type <kbd>TagSchedOpsAdminister</kbd>. Add the two matching policies.
+7. Go to [Users](https://console.aws.amazon.com/iam/home#/users) in the IAM Console. Click your regular (uprivileged) username. Click Add Permissions, then click <samp>Attach existing policies directly</samp>. In the Search box, type <kbd>TagSchedOpsAdminister</kbd>. Add the two matching policies.
 
    _Security Tip_: Review everyone's EC2 and RDS tagging privileges!
 
@@ -196,9 +196,9 @@ To use the debugging mode,
 
 2. Click on the [TagSchedOpsPerformLambdaFn AWS Lambda function](https://console.aws.amazon.com/lambda/home?region=us-east-1#/functions?f0=a3c%3D%3AVGFnU2NoZWRPcHNQZXJmb3JtTGFtYmRhRm4%3D).
 
-3. Open the Code tab and scroll to the bottom. In the "Environment variables" section, type <kbd>DEBUG</kbd> in the first empty Key box. Leave Value blank.
+3. Open the Code tab and scroll to the bottom. In the <samp>Environment variables</samp> section, type <kbd>DEBUG</kbd> in the first empty Key box. Leave Value blank.
 
-4. <a name="debug-step-4"></a>Scroll back to the top and click the white Save button. _Do not click the orange "Save and test" button_; that would cause the function to run more than once in the same 10-minute interval.
+4. <a name="debug-step-4"></a>Scroll back to the top and click the white Save button. _Do not click the orange_ <samp>Save and test</samp> _button_; that would cause the function to run more than once in the same 10-minute interval.
 
 5. After 10 minutes, find the debugging information in [CloudWatch Logs](#output).
 
@@ -208,7 +208,7 @@ To use the debugging mode,
 
 * The TagSchedOpsAdminister policies authorize turning the function on or off completely.
 
-* After logging in to the [AWS Web Console](https://signin.aws.amazon.com/console), go to [Rules](https://console.aws.amazon.com/cloudwatch/home#rules:) in the CloudWatch Events Console. Click the radio button to the left of TagSchedOpsPerform10MinEventRule, then select Enable or Disable from the Actions pop-up menu, next to the blue "Create rule" button.
+* After logging in to the [AWS Web Console](https://signin.aws.amazon.com/console), go to [Rules](https://console.aws.amazon.com/cloudwatch/home#rules:) in the CloudWatch Events Console. Click the radio button to the left of TagSchedOpsPerform10MinEventRule, then select Enable or Disable from the Actions pop-up menu, next to the blue <samp>Create rule</samp> button.
 
 * This toggle is per-region and per-AWS-account.
 
@@ -313,7 +313,7 @@ Resources tagged for unsupported combinations of operations are logged (with mes
 
    These policies cover all regions. If you use regions to differentiate production and non-production resources, modify copies of the provided policies.
 
-   Because Deny always takes precendence in IAM, some policy combinations conflict.
+   Because <code>Deny</code> always takes precendence in IAM, some policy combinations conflict.
 
    In some cases, you must add, change or delete one tag at a time.
 
@@ -404,7 +404,7 @@ If you intend to install TagSchedOps in multiple AWS accounts,
 
 4. In the AWS account with the AWSCloudFormationStackSet*Admin*istrationRole, go to the [StackSets Console](https://console.aws.amazon.com/cloudformation/stacksets/home#/stacksets).
 
-5. Click Create StackSet, then select "Upload a template to Amazon S3", then click Browse and select your locally downloaded copy of [<samp>cloudformation/aws_tag_sched_ops.yaml</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
+5. Click Create StackSet, then select <samp>Upload a template to Amazon S3</samp>, then click Browse and select your locally downloaded copy of [<samp>cloudformation/aws_tag_sched_ops.yaml</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
 
    |Item|Value|
    |--|--|
@@ -414,7 +414,7 @@ If you intend to install TagSchedOps in multiple AWS accounts,
    |StackSetsOrMultiRegion|Yes|
    |TagSchedOpsPerformCodeS3VersionID|_In a multi-region scenario, leave blank_|
 
-6. On the next page, specify the target AWS accounts, typically by entering account numbers below "Deploy stacks in accounts". Then, move the target region(s) from "Available regions" to "Deployment order". It is a good idea to put the main region first.
+6. On the next page, specify the target AWS accounts, typically by entering account numbers below <samp>Deploy stacks in accounts</samp>. Then, move the target region(s) from <samp>Available regions</samp> to <samp>Deployment order</samp>. It is a good idea to put the main region first.
 
 ### Manual Installation
 
@@ -448,27 +448,27 @@ New versions of the AWS Lambda function source code and the CloudFormation templ
 
 1. Log in to the [AWS Web Console](https://signin.aws.amazon.com/console) as a privileged user.
 
-2. Go to the [S3 Console](https://console.aws.amazon.com/s3/home). Click the name of the bucket where you keep CloudFormation templates and their dependencies. Open the Properties tab. If Versioning is disabled, click anywhere inside the box, select "Enable versioning", and click Save.
+2. Go to the [S3 Console](https://console.aws.amazon.com/s3/home). Click the name of the bucket where you keep CloudFormation templates and their dependencies. Open the Properties tab. If Versioning is disabled, click anywhere inside the box, select <samp>Enable versioning</samp>, and click Save.
 
 3. Open the Overview tab. Upload the latest version of
 [<samp>aws-lambda/aws_tag_sched_ops_perform.py.zip</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/aws-lambda/aws_tag_sched_ops_perform.py.zip) to S3.
 
-4. Click the checkbox to the left of the newly-uploaded file. In the window that pops up, look below the Download button and reselect "Latest version". In the Overview section of the pop-up window, find the Link and copy the text _after_ <samp>versionId=</samp>. (The Version ID will not appear unless you expressly select "Latest version".)
+4. Click the checkbox to the left of the newly-uploaded file. In the window that pops up, look below the Download button and reselect <samp>Latest version</samp>. In the Overview section of the pop-up window, find the Link and copy the text _after_ <samp>versionId=</samp>. (The Version ID will not appear unless you expressly select <samp>Latest version</samp>.)
 
    _Security Tip:_ Download the file from S3 and verify it. (In some cases, you can simply compare the ETag reported by S3.) <br/><kbd>md5sum aws-lambda/aws_tag_sched_ops_perform.py.zip</kbd> should match [<samp>aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt</samp>](aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt)
 
 5. Go to [Stacks](https://console.aws.amazon.com/cloudformation/home#/stacks) in the CloudFormation Console. Click the checkbox to the left of <samp>TagSchedOps</samp> (you might have given the stack a different name). From the Actions pop-up menu next to the blue Create Stack button, select Create Change Set For Current Stack.
 
-6. Click Choose File, immediately below "Upload a template to Amazon S3", and navigate to your locally downloaded copy of the latest version of [<samp>cloudformation/aws_tag_sched_ops.yaml</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
+6. Click Choose File, immediately below <samp>Upload a template to Amazon S3</samp>, and navigate to your locally downloaded copy of the latest version of [<samp>cloudformation/aws_tag_sched_ops.yaml</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
 
    |Item|Value|
    |--|--|
-   |Change set name|_Type a name of your choice_|
-   |TagSchedOpsPerformCodeS3VersionID|_Paste the Version ID, from S3_|
+   |<samp>Change set name</samp>|_Type a name of your choice_|
+   |<samp>TagSchedOpsPerformCodeS3VersionID</samp>|_Paste the Version ID, from S3_|
 
    _A different S3 Version ID makes CloudFormation recognize new AWS Lambda function source code. Once you are familiar with the full update procedure, you may skip Steps 2-5 and leave TagSchedOpsPerformCodeS3VersionID as it was, when you are certain that only the CloudFormation template, not the function source code, is changing._
 
-7. Click through the remaining steps. Finally, click "Create change set".
+7. Click through the remaining steps. Finally, click <samp>Create change set</samp>.
 
 8. In the Changes section, check the Replacement column.
 
@@ -476,7 +476,7 @@ New versions of the AWS Lambda function source code and the CloudFormation templ
 
    1. If the resource is for internal use, ignore it.
 
-   2. If, however, it a user policy, such as TagSchedOpsAdminister, open another Web browser window, go to [Policies](https://console.aws.amazon.com/iam/home#/policies) in the IAM Console, click the name of the policy, open the "Attached entities" tab, and detach the policy from all entities. Keep notes!
+   2. If, however, it a user policy, such as TagSchedOpsAdminister, open another Web browser window, go to [Policies](https://console.aws.amazon.com/iam/home#/policies) in the IAM Console, click the name of the policy, open the <samp>Attached entities</samp> tab, and detach the policy from all entities. Keep notes!
 
 9. Click Execute, below the top-right corner of the CloudFormation Console window.
 
@@ -490,7 +490,7 @@ New versions of the AWS Lambda function source code and the CloudFormation templ
 
 Differences when updating a StackSet instead of an ordinary stack:
 
- * Click the radio button to the left of TagSchedOps, in the [list of StackSets](https://console.aws.amazon.com/cloudformation/stacksets/home#/stacksets). From the Actions pop-up menu next to the blue Create StackSet button, select "Manage stacks in StackSet". Then, select "Edit stacks". On the next page, select "Upload a template to Amazon S3" and upload the latest version of [<samp>cloudformation/aws_tag_sched_ops.yaml</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml).
+ * Click the radio button to the left of TagSchedOps, in the [list of StackSets](https://console.aws.amazon.com/cloudformation/stacksets/home#/stacksets). From the Actions pop-up menu next to the blue Create StackSet button, select <samp>Manage stacks in StackSet</samp>. Then, select <samp>Edit stacks</samp>. On the next page, select <samp>Upload a template to Amazon S3</samp> and upload the latest version of [<samp>cloudformation/aws_tag_sched_ops.yaml</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml).
 
  * A single update covers all target regions and/or AWS target accounts.
 
