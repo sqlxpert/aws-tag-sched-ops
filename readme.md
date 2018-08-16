@@ -98,7 +98,7 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
   |`managed-start-once`=`2017-12-31T09:05`|No|No enabling tag (operation is suspended)|
   |`managed-start` <br/>`managed-start-once`|No|Blank schedule|
   |`managed-start` <br/>`managed-start-periodic`=`Monday`|No|Invalid schedule|
-  |`managed-start` <br/>`managed-stop-periodic`=`u=1 H=09,M=05`|No|Enabling tag and schedule tag cover different operations|
+  |`managed-start` <br/>`managed-stop-periodic`=`u=1 H=09 M=05`|No|Enabling tag and schedule tag cover different operations|
 
 ## Scheduling Operations
  
