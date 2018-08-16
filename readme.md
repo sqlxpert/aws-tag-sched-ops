@@ -88,17 +88,17 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 * To temporarily suspend an operation, delete its enabling tag. You may leave its schedule tag(s) in place.
 * Examples (for an EC2 or RDS instance):
 
-  |Set of Tags|Works?|Comment|
+  |Tags _Tag:Value_|Operation occurs?|Comment|
   |--|--|--|
-  |managed-start <br/>managed-start-periodic: u=1&nbsp;H=09&nbsp;M=05|Yes|Enabled and scheduled|
-  |managed-start=No <br/>managed-start-periodic: u=1&nbsp;H=09&nbsp;M=05|Yes|Value of enabling tag is always ignored|
-  |managed-start <br/>managed-start-once: 2017-12-31T09:05|Yes||
-  |managed-start <br/>managed-start-periodic: u=1&nbsp;H=09&nbsp;M=05 <br/>managed-start-once: 2017-12-31T09:05|Yes|Both repetitive and one-time schedule tags are allowed|
-  |managed-start|No|No schedule tag|
-  |managed-start-once: 2017-12-31T09:05|No|No enabling tag (operation is suspended)|
-  |managed-start <br/>managed-start-once|No|Blank schedule|
-  |managed-start <br/>managed-start-periodic: Monday|No|Invalid schedule|
-  |managed-start <br/>managed-stop-periodic: u=1&nbsp;H=09&nbsp;M=05|No|Enabling tag and schedule tag cover different operations|
+  |managed-snapshot:&nbsp;&empty;<br/>managed-snapshot-periodic:&nbsp;u=1&nbsp;H=09&nbsp;M=05|Yes||
+  |managed-snapshot:&nbsp;&empty;<br/>managed-snapshot-once:&nbsp;2017-12-31T09:05|Yes||
+  |managed-snapshot:&nbsp;&empty;<br/>managed-snapshot-periodic:&nbsp;u=1&nbsp;H=09&nbsp;M=05 <br/>managed-snapshot-once:&nbsp;2017-12-31T09:05|Yes|Both repetitive and one-time schedule tags are allowed|
+  |managed-snapshot:&nbsp;No <br/>managed-snapshot-periodic:&nbsp;u=1&nbsp;H=09&nbsp;M=05|Yes|The value of an enabling tag is always ignored|
+  |managed-snapshot:&nbsp;&empty;|No|No schedule tag is present|
+  |managed-snapshot-once:&nbsp;2017-12-31T09:05|No|No enabling tag is present (operation is suspended)|
+  |managed-snapshot:&nbsp;&empty;<br/>managed-snapshot-once:&nbsp;&empty;|No|Schedule is invalid (blank)|
+  |managed-snapshot:&nbsp;&empty;<br/>managed-snapshot-periodic:&nbsp;Monday|No|Schedule is invalid|
+  |managed-snapshot:&nbsp;&empty;<br/>managed-stop-periodic:&nbsp;u=1&nbsp;H=09&nbsp;M=05|No|The enabling tag and the schedule tag are for different operations|
 
 ## Scheduling Operations
 
@@ -134,11 +134,11 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
   * Examples:
 
-    |Value of `-periodic` Schedule Tag|Demonstrates|Operation Begins|
+    |Value of Repetitive Schedule Tag|Demonstrates|Operation Begins|
     |--|--|--|
-    |dTH:M=\*T14:25|Once-a-day|Between 14:20 and 14:30, every day.|
-    |uTH:M=1T14:25|Once-a-week|Between 14:20 and 14:30, every Monday.|
-    |dTH:M=28T14:25|Once-a-month|Between 14:20 and 14:30 on the 28th day of every month.|
+    |dTH:M=\*T14:25|Once-a-day event|Between 14:20 and 14:30, every day.|
+    |uTH:M=1T14:25|Once-a-week event|Between 14:20 and 14:30, every Monday.|
+    |dTH:M=28T14:25|Once-a-month event|Between 14:20 and 14:30 on the 28th day of every month.|
     |d=1&nbsp;d=8&nbsp;d=15&nbsp;d=22&nbsp;H=03&nbsp;H=19&nbsp;M=01|`cron` schedule|Between 03:00 and 03:10 and again between 19:00 and 19:10, on the 1st, 8th, 15th, and 22nd days of every month.|
     |d=\*&nbsp;H=\*&nbsp;M=15&nbsp;M=45&nbsp;H:M=08:50|Extra daily event|Between 10 and 20 minutes after the hour and 40 to 50 minutes after the hour, every hour of every day, _and also_ every day between 08:50 and 09:00.|
     |d=\*&nbsp;H=11&nbsp;M=00&nbsp;uTH:M=2T03:30&nbsp;uTH:M=5T07:20|Two extra weekly events|Between 11:00 and 11:10 every day, _and also_ every Tuesday between 03:30 and 03:40 and every Friday between 07:20 and 7:30.|
