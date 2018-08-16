@@ -90,15 +90,15 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
   |All tags|Operation occurs?|Comment|
   |--|--|--|
-  |<kbd>managed&#x2011;snapshot</kbd>:&nbsp;&empty;<br/><kbd>managed&#x2011;snapshot&#x2011;periodic</kbd>:&nbsp;<kbd>u=1&nbsp;H=09&nbsp;M=05</kbd>|Yes||
-  |<kbd>managed&#x2011;snapshot</kbd>:&nbsp;&empty;<br/><kbd>managed&#x2011;snapshot&#x2011;once</kbd>:&nbsp;<kbd>2017-12-31T09:05</kbd>|Yes||
-  |<kbd>managed&#x2011;snapshot</kbd>:&nbsp;&empty;<br/><kbd>managed&#x2011;snapshot&#x2011;periodic</kbd>:&nbsp;<kbd>u=1&nbsp;H=09&nbsp;M=05</kbd> <br/><kbd>managed&#x2011;snapshot&#x2011;once</kbd>:&nbsp;<kbd>2017-12-31T09:05</kbd>|Yes|Both repetitive and one-time schedule tags are allowed|
-  |<kbd>managed&#x2011;snapshot</kbd>:&nbsp;<kbd>No</kbd> <br/><kbd>managed&#x2011;snapshot&#x2011;periodic</kbd>:&nbsp;<kbd>u=1&nbsp;H=09&nbsp;M=05</kbd>|Yes|The value of an enabling tag is always ignored|
-  |<kbd>managed&#x2011;snapshot</kbd>:&nbsp;&empty;</kbd>|No|No schedule tag is present|
-  |<kbd>managed&#x2011;snapshot&#x2011;once</kbd>:&nbsp;<kbd>2017-12-31T09:05</kbd>|No|No enabling tag is present (operation is suspended)|
-  |<kbd>managed&#x2011;snapshot</kbd>:&nbsp;&empty;<br/><kbd>managed&#x2011;snapshot&#x2011;once</kbd>:&nbsp;&empty;</kbd>|No|Schedule is invalid (blank)|
-  |<kbd>managed&#x2011;snapshot</kbd>:&nbsp;&empty;<br/><kbd>managed&#x2011;snapshot&#x2011;periodic</kbd>:&nbsp;<kbd>Monday</kbd>|No|Schedule is invalid|
-  |<kbd>managed&#x2011;snapshot</kbd>:&nbsp;&empty;<br/><kbd>managed&#x2011;stop&#x2011;periodic</kbd>:&nbsp;<kbd>u=1&nbsp;H=09&nbsp;M=05</kbd>|No|The enabling tag and the schedule tag are for different operations|
+  |<samp>managed&#x2011;snapshot</samp>:&nbsp;&empty;<br/><samp>managed&#x2011;snapshot&#x2011;periodic</samp>:&nbsp;<samp>u=1&nbsp;H=09&nbsp;M=05</samp>|Yes||
+  |<samp>managed&#x2011;snapshot</samp>:&nbsp;&empty;<br/><samp>managed&#x2011;snapshot&#x2011;once</samp>:&nbsp;<samp>2017-12-31T09:05</samp>|Yes||
+  |<samp>managed&#x2011;snapshot</samp>:&nbsp;&empty;<br/><samp>managed&#x2011;snapshot&#x2011;periodic</samp>:&nbsp;<samp>u=1&nbsp;H=09&nbsp;M=05</samp> <br/><samp>managed&#x2011;snapshot&#x2011;once</samp>:&nbsp;<samp>2017-12-31T09:05</samp>|Yes|Both repetitive and one-time schedule tags are allowed|
+  |<samp>managed&#x2011;snapshot</samp>:&nbsp;<samp>No</samp> <br/><samp>managed&#x2011;snapshot&#x2011;periodic</samp>:&nbsp;<samp>u=1&nbsp;H=09&nbsp;M=05</samp>|Yes|The value of an enabling tag is always ignored|
+  |<samp>managed&#x2011;snapshot</samp>:&nbsp;&empty;</samp>|No|No schedule tag is present|
+  |<samp>managed&#x2011;snapshot&#x2011;once</samp>:&nbsp;<samp>2017-12-31T09:05</samp>|No|No enabling tag is present (operation is suspended)|
+  |<samp>managed&#x2011;snapshot</samp>:&nbsp;&empty;<br/><samp>managed&#x2011;snapshot&#x2011;once</samp>:&nbsp;&empty;</samp>|No|Schedule is invalid (blank)|
+  |<samp>managed&#x2011;snapshot</samp>:&nbsp;&empty;<br/><samp>managed&#x2011;snapshot&#x2011;periodic</samp>:&nbsp;<samp>Monday</samp>|No|Schedule is invalid|
+  |<samp>managed&#x2011;snapshot</samp>:&nbsp;&empty;<br/><samp>managed&#x2011;stop&#x2011;periodic</samp>:&nbsp;<samp>u=1&nbsp;H=09&nbsp;M=05</samp>|No|The enabling tag and the schedule tag are for different operations|
 
   Each tag is shown in <var>key</var>:&nbsp;<var>value</var> form. &empty; means that the value is blank.
 
@@ -138,13 +138,13 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
     |Value of Repetitive Schedule Tag|Demonstrates|Operation Begins|
     |--|--|--|
-    |<kbd>dTH:M=\*T14:25</kbd>|Once-a-day event|Between 14:20 and 14:30, every day|
-    |<kbd>uTH:M=1T14:25</kbd>|Once-a-week event|Between 14:20 and 14:30, every Monday.|
-    |<kbd>dTH:M=28T14:25</kbd>|Once-a-month event|Between 14:20 and 14:30 on the 28th day of every month|
-    |<kbd>d=1&nbsp;d=8&nbsp;d=15&nbsp;d=22&nbsp;H=03&nbsp;H=19&nbsp;M=01</kbd>|cron schedule|Between 03:00 and 03:10 and again between 19:00 and 19:10, on the 1st, 8th, 15th, and 22nd days of every month|
-    |<kbd>d=\*&nbsp;H=\*&nbsp;M=15&nbsp;M=45&nbsp;H:M=08:50</kbd>|Extra daily event|Between 10 and 20 minutes after the hour and 40 to 50 minutes after the hour, every hour of every day, _and also_ every day between 08:50 and 09:00|
-    |<kbd>d=\*&nbsp;H=11&nbsp;M=00&nbsp;uTH:M=2T03:30&nbsp;uTH:M=5T07:20</kbd>|Two extra weekly events|Between 11:00 and 11:10 every day, _and also_ every Tuesday between 03:30 and 03:40 and every Friday between 07:20 and 7:30|
-    |<kbd>u=3&nbsp;H=22&nbsp;M=15&nbsp;dTH:M=01T05:20</kbd>|Extra monthly event|Between 22:10 and 22:20 every Wednesday, _and also_ on the first day of every month between 05:20 and 05:30|
+    |<samp>dTH:M=\*T14:25</samp>|Once-a-day event|Between 14:20 and 14:30, every day|
+    |<samp>uTH:M=1T14:25</samp>|Once-a-week event|Between 14:20 and 14:30, every Monday.|
+    |<samp>dTH:M=28T14:25</samp>|Once-a-month event|Between 14:20 and 14:30 on the 28th day of every month|
+    |<samp>d=1&nbsp;d=8&nbsp;d=15&nbsp;d=22&nbsp;H=03&nbsp;H=19&nbsp;M=01</samp>|cron schedule|Between 03:00 and 03:10 and again between 19:00 and 19:10, on the 1st, 8th, 15th, and 22nd days of every month|
+    |<samp>d=\*&nbsp;H=\*&nbsp;M=15&nbsp;M=45&nbsp;H:M=08:50</samp>|Extra daily event|Between 10 and 20 minutes after the hour and 40 to 50 minutes after the hour, every hour of every day, _and also_ every day between 08:50 and 09:00|
+    |<samp>d=\*&nbsp;H=11&nbsp;M=00&nbsp;uTH:M=2T03:30&nbsp;uTH:M=5T07:20</samp>|Two extra weekly events|Between 11:00 and 11:10 every day, _and also_ every Tuesday between 03:30 and 03:40 and every Friday between 07:20 and 7:30|
+    |<samp>u=3&nbsp;H=22&nbsp;M=15&nbsp;dTH:M=01T05:20</samp>|Extra monthly event|Between 22:10 and 22:20 every Wednesday, _and also_ on the first day of every month between 05:20 and 05:30|
 
 ### One-Time Schedules
 
@@ -291,7 +291,7 @@ Resources tagged for unsupported combinations of operations are logged (with mes
 
  * Allow only a few trusted users to tag EC2 and RDS resources, because tags determine which resources are started, backed up, rebooted, and stopped.
 
- * Tag backups for deletion, but let a special IAM user or role actually delete them. To mark images and snapshots for (manual) deletion, add the `managed-delete` tag.
+ * Tag backups for deletion, but let a special IAM user or role actually delete them. To mark images and snapshots for (manual) deletion, add the <kbd>managed-delete</kbd> tag.
 
  * Do not allow the same IAM users and roles that create backups to delete backups (or even to tag them for deletion).
 
