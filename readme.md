@@ -20,7 +20,7 @@ In July, 2018, Amazon [introduced Data Lifecycle Manager](https://aws.amazon.com
  * You can create snapshots of single volumes, but not images covering all of an EC2 instance's volumes. Also missing is an option to reboot first.
  * [The same IAM role](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/snapshot-lifecycle.html#dlm-permissions) confers authority to create _and_ delete snapshots, and [anyone who can update a lifecycle policy](https://docs.aws.amazon.com/IAM/latest/UserGuide/list_amazondatalifecyclemanager.html#amazondatalifecyclemanager-UpdateLifecyclePolicy) can reduce the retention period to delete snapshots. These are significant risks, especially in light of the data loss prevention provisions in the European Union General Data Protection Regulation.
  
-By all means, set up Data Lifecycle Manager if you have no automation in place, but consider this project for more flexibility -- and sign up as a contributor if you would like to help develop the [backup retention part](#backup-retention-feature)!
+By all means, set up Data Lifecycle Manager if you have no automation in place, but consider this project for more flexibility!
 
 ## Quick Start
 
@@ -33,7 +33,7 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
    |Key|Value|Note|
    |--|--|--|
    |`managed-image`||Leave value blank|
-   |`managed-image-periodic`|`d=*,H:M=11:30`|Replace `11:30` with [current UTC time](https://www.timeanddate.com/worldclock/timezone/utc) + 20 minutes|
+   |`managed-image-periodic`|`d=*&nbsp;H:M=11:30`|Replace `11:30` with [current UTC time](https://www.timeanddate.com/worldclock/timezone/utc) + 20 minutes|
 
 3. Go to the [S3 Console](https://console.aws.amazon.com/s3/home). Click the name of the bucket where you keep AWS Lambda function source code. (This may be the same bucket where you keep CloudFormation templates.) If you are creating the bucket now, be sure to create it in the region where you intend to install TagSchedOps; appending the region to the bucket name (for example, `my-bucket-us-east-1`) is recommended. Upload the compressed source code of the AWS Lambda function, [`aws-lambda/aws_tag_sched_ops_perform.py.zip`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/aws-lambda/aws_tag_sched_ops_perform.py.zip)
 
@@ -62,16 +62,16 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 8. Log out of the AWS Console. You can now manage relevant tags, view logs, and decode errors, without logging in as a privileged user.
 
 ## Warnings
-
- * Check that scheduled AWS operations have completed successfully. Verification of completion is beyond the scope of this code.
  
  * Test your backups! Can they be restored successfully?
- 
+
+ * Check that your backups have completed successfully -- or broaden your retention policy to select replacements for missing backups.
+
  * Weigh the benefits of rebooting against the risks. Rebooting is sometimes necessary for a coherent backup, but a system may stop working afterward.
  
- * Be aware of AWS charges, including but not limited to: the costs of running the AWS Lambda function, storing CloudWatch logs, and storing images and snapshots; the whole-hour cost when you stop an RDS, EC2 Windows, or EC2 commercial Linux instance (but [most EC2 instances have a 1-minute minimum charge](https://aws.amazon.com/blogs/aws/new-per-second-billing-for-ec2-instances-and-ebs-volumes/)); the continuing cost of storage for stopped instances; and costs that resume when AWS automatically starts an RDS instance that has been stopped for too many days.
+ * Be aware of AWS charges, including but not limited to: the costs of running the AWS Lambda function, storing CloudWatch logs, and storing images and snapshots; the whole-hour cost when you stop an RDS, EC2 Windows, or EC2 commercial Linux instance (but [other EC2 instances have a 1-minute minimum charge](https://aws.amazon.com/blogs/aws/new-per-second-billing-for-ec2-instances-and-ebs-volumes/)); the ongoing cost of storage for stopped instances; and costs that resume when AWS automatically starts an RDS instance that has been stopped for too many days.
  
- * Secure your own AWS environment. Test the function and the IAM policies from end-to-end, to make sure that they work correctly and meet your expectations. To help improve this project, please submit [bug reports and feature requests](https://github.com/sqlxpert/aws-tag-sched-ops/issues), as well as [proposed changes](https://github.com/sqlxpert/aws-tag-sched-ops/pulls).
+ * Secure your own AWS environment. Test the provided AWS Lambda functions and IAM policies to make sure that they work correctly and meet your expectations. To help improve this project, please submit [bug reports and feature requests](https://github.com/sqlxpert/aws-tag-sched-ops/issues), as well as [proposed changes](https://github.com/sqlxpert/aws-tag-sched-ops/pulls).
 
 ## Enabling Operations
 
@@ -90,22 +90,22 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
   |Set of Tags|Works?|Comment|
   |--|--|--|
-  |`managed-start` <br/>`managed-start-periodic`=`u=1,H=09,M=05`|Yes|Enabled and scheduled|
-  |`managed-start`=`No` <br/>`managed-start-periodic`=`u=1,H=09,M=05`|Yes|Value of enabling tag is always ignored|
+  |`managed-start` <br/>`managed-start-periodic`=`u=1&nbsp;H=09&nbsp;M=05`|Yes|Enabled and scheduled|
+  |`managed-start`=`No` <br/>`managed-start-periodic`=`u=1&nbsp;H=09&nbsp;M=05`|Yes|Value of enabling tag is always ignored|
   |`managed-start` <br/>`managed-start-once`=`2017-12-31T09:05`|Yes||
-  |`managed-start` <br/>`managed-start-periodic`=`u=1,H=09,M=05` <br/>`managed-start-once`=`2017-12-31T09:05`|Yes|Both repetitive and one-time schedule tags are allowed|
+  |`managed-start` <br/>`managed-start-periodic`=`u=1&nbsp;H=09&nbsp;M=05` <br/>`managed-start-once`=`2017-12-31T09:05`|Yes|Both repetitive and one-time schedule tags are allowed|
   |`managed-start`|No|No schedule tag|
   |`managed-start-once`=`2017-12-31T09:05`|No|No enabling tag (operation is suspended)|
   |`managed-start` <br/>`managed-start-once`|No|Blank schedule|
   |`managed-start` <br/>`managed-start-periodic`=`Monday`|No|Invalid schedule|
-  |`managed-start` <br/>`managed-stop-periodic`=`u=1,H=09,M=05`|No|Enabling tag and schedule tag cover different operations|
+  |`managed-start` <br/>`managed-stop-periodic`=`u=1&nbsp;H=09,M=05`|No|Enabling tag and schedule tag cover different operations|
 
 ## Scheduling Operations
  
  * All times are UTC, on a 24-hour clock.
  * The function runs once every 10 minutes. The last digit of the minute is always ignored. For example, `M=47` means _one time, between 40 and 50 minutes after the hour_.
  * Month and minute values must have two digits. Use a leading zero if necessary. (Weekday numbers have only one digit.)
- * Use a comma (`,`) or a space (` `) to separate components. **(RDS does not allow commas in tag values.)** The order of components within a tag value does not matter.
+ * Use a comma (`,`) or a space (` `) to separate components. (RDS does not allow commas in tag values.) The order of components within a tag value does not matter.
  * `T` separates date from time; it is invariable.
  * [Repetitive (`-periodic`)](#repetitive-schedules) and [one-time (`-once`)](#one-time-schedules) schedule tags are supported. Prefix with the operation.
  * If the corresponding [enabling tag](#enabling-operations) is missing, schedule tags will be ignored, and the operation will never occur.
@@ -136,13 +136,11 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
   
     |Value of `-periodic` Schedule Tag|Demonstrates|Operation Begins|
     |--|--|--|
-    |`d=28,H=14,M=25` _or_ `dTH:M=28T14:25`|Monthly event|Between 14:20 and 14:30 on the 28th day of every month.|
-    |`d=1,d=8,d=15,d=22,H=03,H=19,M=01`|`cron`-style schedule|Between 03:00 and 03:10 and again between 19:00 and 19:10, on the 1st, 8th, 15th, and 22nd days of every month.|
-    |`d=*,H=*,M=15,M=45,H:M=08:50`|Extra event in the day|Between 10 and 20 minutes after the hour and 40 to 50 minutes after the hour, every hour of every day, _and also_ every day between 08:50 and 09:00.|
-    |`d=*,H=11,M=00,uTH:M=2T03:30,uTH:M=5T07:20`|Extra weekly events|Between 11:00 and 11:10 every day, _and also_ every Tuesday between 03:30 and 03:40 and every Friday between 07:20 and 7:30.|
-    |`u=3,H=22,M=15,dTH:M=01T05:20`|Extra monthly event|Between 22:10 and 22:20 every Wednesday, _and also_ on the first day of every month between 05:20 and 05:30.|
-    
-    Remember to use spaces (` `) instead of commas (`,`) in RDS! (Either separator character is fine in EC2.)
+    |`d=28&nbsp;H=14&nbsp;M=25` _or_ `dTH:M=28T14:25`|Monthly event|Between 14:20 and 14:30 on the 28th day of every month.|
+    |`d=1&nbsp;d=8&nbsp;d=15&nbsp;d=22&nbsp;H=03&nbsp;H=19&nbsp;M=01`|`cron`-style schedule|Between 03:00 and 03:10 and again between 19:00 and 19:10, on the 1st, 8th, 15th, and 22nd days of every month.|
+    |`d=*&nbsp;H=*&nbsp;M=15&nbsp;M=45&nbsp;H:M=08:50`|Extra event in the day|Between 10 and 20 minutes after the hour and 40 to 50 minutes after the hour, every hour of every day, _and also_ every day between 08:50 and 09:00.|
+    |`d=*&nbsp;H=11&nbsp;M=00&nbsp;uTH:M=2T03:30&nbsp;uTH:M=5T07:20`|Extra weekly events|Between 11:00 and 11:10 every day, _and also_ every Tuesday between 03:30 and 03:40 and every Friday between 07:20 and 7:30.|
+    |`u=3&nbsp;H=22&nbsp;M=15&nbsp;dTH:M=01T05:20`|Extra monthly event|Between 22:10 and 22:20 every Wednesday, _and also_ on the first day of every month between 05:20 and 05:30.|
     
 ### One-Time Schedules
  
@@ -281,7 +279,7 @@ Resources tagged for unsupported combinations of operations are logged (with mes
 
 ## Security Model
 
- * Prevent unauthorized changes to the AWS Lambda function by attaching the TagSchedOpsPerformLambdaFnProtect IAM policy to most entities with write privileges for:
+ * Prevent unauthorized changes to the AWS Lambda function by attaching the TagSchedOpsPerformLambdaFnProtect IAM policy to most IAM users and roles with write privileges for:
      * AWS Lambda
      * CloudFormation Events
      * CloudFormation Logs
@@ -291,7 +289,7 @@ Resources tagged for unsupported combinations of operations are logged (with mes
 
  * Tag backups for deletion, but let a special IAM user or role actually delete them. To mark images and snapshots for (manual) deletion, add the `managed-delete` tag.
  
- * Do not allow the same entities that create backups to delete backups (or even to tag them for deletion).
+ * Do not allow the same IAM users and roles that create backups to delete backups (or even to tag them for deletion).
  
  * Choose from a library of IAM policies:
  
@@ -299,22 +297,20 @@ Resources tagged for unsupported combinations of operations are logged (with mes
    |--|--|--|--|--|--|--|
    |_Scope &rarr;_|_Instances, Volumes_|_Instances, Volumes_|_Instances, Volumes_|_Instances, Volumes_|_Images, Snapshots_|_Images, Snapshots_|
    |TagSchedOpsAdminister|Allow|Allow|Allow|No effect|Deny|Deny|
-   |TagSchedOpsTagScheduleOnce|Deny [<sup>i</sup>](#policy-footnote-1)|Allow [<sup>ii</sup>](#policy-footnote-2)|Deny|No effect|Deny|Deny|
-   |TagSchedOpsTagSchedulePeriodic|Deny [<sup>i</sup>](#policy-footnote-1)|No effect|Allow [<sup>ii</sup>](#policy-footnote-2)|No Effect|Deny|Deny|
+   |TagSchedOpsTagScheduleOnce|Deny [<sup>i</sup>](#policy-footnote-1)|Allow [<sup>ii</sup>](#policy-footnote-1)|Deny|No effect|Deny|Deny|
    |TagSchedOpsTagForDeletion|Deny|Deny|Deny|Deny|Allow|Deny|
    |TagSchedOpsBackupDelete|Deny|Deny|Deny|Deny|Deny|Allow|
    |TagSchedOpsNoTag|Deny|Deny|Deny|No effect|Deny|Deny|
    
    Footnotes:
    
-     1. <a name="policy-footnote-1"></a>For RDS, No Effect.
-     2. <a name="policy-footnote-2"></a>Enabling tag required. For example, a user could only add `managed-image-once` to an EC2 instance already tagged with `managed-image`.
+     1. <a name="policy-footnote-1"></a>Enabling tag required. For example, a user could add `managed-image-once` to an EC2 instance only if the `managed-image` tag were already present.
       
-   These policies cover all regions. If you use regions to differentiate production and non-production resources, copy the policies and adapt them.
+   These policies cover all regions. If you use regions to differentiate production and non-production resources, modify copies of the provided policies.
 
    Because Deny always takes precendence in IAM, some policy combinations conflict.
 
-   A known shortcoming is that, in some cases, you cannot add, change or delete more than one tag in the same operation.
+   In some cases, you must add, change or delete one tag at a time.
  
  * Although the TagSchedOpsAdminister and TagSchedOpsTag policies authorize tagging via the AWS API, users who are not AWS administrators may also want:
  
@@ -327,9 +323,9 @@ Resources tagged for unsupported combinations of operations are logged (with mes
  
     * An IAM user or role that can create an image of an EC2 instance can force a reboot by omitting the `NoReboot` option. (Explicitly denying the reboot privilege does not help.) The unavoidable pairing of a harmless privilege, taking a backup, with a risky one, rebooting, is unfortunate.
 
-    * Tags are ignored when deleting EC2 images and snapshots. Limit EC2 image and snapshot deletion privileges -- even Ec2TagSchedOpsDelete -- to highly-trusted entities.
+    * Tags are ignored when deleting EC2 images and snapshots. Limit EC2 image and snapshot deletion privileges -- even Ec2TagSchedOpsDelete -- to highly-trusted IAM users and roles.
 
-    * In RDS, an IAM user or role that can add specific tags can add _any other_ tags in the same request. Limit RDS tagging privileges -- even the provided policies -- to highly-trusted users.
+    * In RDS, an IAM user or role that can add specific tags can add _any other_ tags in the same request. Limit RDS tagging privileges -- even the policies provided here -- to highly-trusted users and roles.
 
 ## Advanced Installation
 
@@ -500,8 +496,6 @@ Differences when updating a StackSet instead of an ordinary stack:
 ## Future Work
      
  * Automated testing, consisting of a CloudFormation template to create sample AWS resources, and a program (perhaps another AWS Lambda function!) to check whether the intended operations were performed. An AWS Lambda function would also be ideal for testing security policies, while cycling through different IAM roles.
- 
- * <a name="backup-retention-feature">Archival policy</a> system ([ISO 8601 standard duration/interval syntax](https://en.wikipedia.org/wiki/ISO_8601#Durations) will be used), and automatic application of `managed-delete` to expired backups. A correct archival policy is not strictly age-based. For example, you might preserve the last 30 daily backups, and beyond 30 days, the first backup of every month. Consider the flaw in the snapshot retention property of RDS database instances: the daily automatic snapshots created when that property is set can never be kept longer than 35 days.
  
  * Additional AWS Lambda function, to automatically delete backups tagged `managed-delete`
  
