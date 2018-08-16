@@ -64,7 +64,7 @@ Conditions:
     !Equals [ !Ref AWSCloudFormationStackSetExecutionRoleStatus, "Role does not exist" ]
   CloudFormationStackSetExecutionPoliciesCreateAttach:
     # Custom, least-privilege alternative to AdministratorAccess
-    !Or
+    Fn::Or:
       - !Equals [ !Ref AWSCloudFormationStackSetExecutionRoleStatus, "Role does not exist" ]
       - !Equals [ !Ref AWSCloudFormationStackSetExecutionRoleStatus, "Role exists, policies above not attached" ]
 
@@ -184,10 +184,10 @@ Resources:
         Version: "2012-10-17"
         Statement:
 
-            # Sufficient only for a single AWS account. For multi-
-            # account, the user must also attach an S3 bucket policy
-            # allowing access by all StackSets taget accounts. Use of
-            # S3 ACLs, let alone public read access, is discouraged.
+          # Sufficient only for a single AWS account. For multi-
+          # account, the user must also attach an S3 bucket policy
+          # allowing access by all StackSets taget accounts. Use of
+          # S3 ACLs, let alone public read access, is discouraged.
           - Effect: Allow
             Action:
               - "s3:GetObject"
@@ -206,6 +206,8 @@ Resources:
               - "lambda:UpdateFunctionConfiguration"
               - "lambda:AddPermission"
               - "lambda:RemovePermission"
+              - "lambda:PutFunctionConcurrency"
+              - "lambda:DeleteFunctionConcurrency"
             Resource:
               # CloudFormation StackSets installation:
               - !Sub "arn:aws:lambda:*:${AWS::AccountId}:function:StackSet-*TagSchedOps*"
@@ -269,6 +271,7 @@ Resources:
               - !Sub "arn:aws:iam::${AWS::AccountId}:role/StackSet-*TagSchedOps*"
               # CloudFormation installation (assumed role, no StackSets):
               - !Sub "arn:aws:iam::${AWS::AccountId}:role/${TagSchedOpsCloudFormationStackNamePrefix}*-TagSchedOpsPerformLambdaRole-*"
+              - !Sub "arn:aws:iam::${AWS::AccountId}:role/${TagSchedOpsCloudFormationStackNamePrefix}*-TagSchedOpsTagLambdaRole-*"
 
           - Effect: Allow
             Action:
