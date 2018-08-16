@@ -92,7 +92,7 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
   |--|--|--|
   |<kbd>managed&#x2011;snapshot</kbd>:&nbsp;&empty;<br/><kbd>managed&#x2011;snapshot&#x2011;periodic</kbd>:&nbsp;<kbd>u=1&nbsp;H=09&nbsp;M=05</kbd>|Yes||
   |<kbd>managed&#x2011;snapshot</kbd>:&nbsp;&empty;<br/><kbd>managed&#x2011;snapshot&#x2011;once</kbd>:&nbsp;<kbd>2017-12-31T09:05</kbd>|Yes||
-  |<kbd>managed&#x2011;snapshot</kbd>:&nbsp;&empty;<br/><kbd>managed&#x2011;snapshot&#x2011;periodic</kbd>:&nbsp;<kbd>u=1&nbsp;H=09&nbsp;M=05 <br/><kbd>managed&#x2011;snapshot&#x2011;once</kbd>:&nbsp;<kbd>2017-12-31T09:05</kbd>|Yes|Both repetitive and one-time schedule tags are allowed|
+  |<kbd>managed&#x2011;snapshot</kbd>:&nbsp;&empty;<br/><kbd>managed&#x2011;snapshot&#x2011;periodic</kbd>:&nbsp;<kbd>u=1&nbsp;H=09&nbsp;M=05</kbd> <br/><kbd>managed&#x2011;snapshot&#x2011;once</kbd>:&nbsp;<kbd>2017-12-31T09:05</kbd>|Yes|Both repetitive and one-time schedule tags are allowed|
   |<kbd>managed&#x2011;snapshot</kbd>:&nbsp;<kbd>No</kbd> <br/><kbd>managed&#x2011;snapshot&#x2011;periodic</kbd>:&nbsp;<kbd>u=1&nbsp;H=09&nbsp;M=05</kbd>|Yes|The value of an enabling tag is always ignored|
   |<kbd>managed&#x2011;snapshot</kbd>:&nbsp;&empty;</kbd>|No|No schedule tag is present|
   |<kbd>managed&#x2011;snapshot&#x2011;once</kbd>:&nbsp;<kbd>2017-12-31T09:05</kbd>|No|No enabling tag is present (operation is suspended)|
