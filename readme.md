@@ -79,9 +79,10 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
   | |Start|Create Image|Reboot then Create Image|Reboot then Fail Over|Reboot|Create Snapshot|Create Snapshot then Stop|Stop|
   |--|--|--|--|--|--|--|--|--|
-  |[EC2 compute instance](https://console.aws.amazon.com/ec2/v2/home#Instances)|<kbd>managed&#x2011;start</kbd>|<kbd>managed&#x2011;image</kbd>|<kbd>managed&#x2011;reboot&#x2011;image</kbd>| |<kbd>managed&#x2011;reboot</kbd>| | |<kbd>managed&#x2011;stop</kbd>|
-  |[EC2 EBS disk volume](https://console.aws.amazon.com/ec2/v2/home#Volumes)| | | | | |<kbd>managed&#x2011;snapshot</kbd>| | |
-  |[RDS database instance](https://console.aws.amazon.com/rds/home#dbinstances:)|<kbd>managed&#x2011;start</kbd>| | |<kbd>managed&#x2011;reboot&#x2011;failover</kbd>|<kbd>managed&#x2011;reboot</kbd>|<kbd>managed&#x2011;snapshot</kbd>|<kbd>managed&#x2011;snapshot&#x2011;stop</kbd>|<kbd>managed&#x2011;stop</kbd>|
+  |Tags&nbsp;&rarr;|<kbd>managed-start</kbd>|<kbd>managed-image</kbd>|<kbd>managed-reboot-image</kbd>|<kbd>managed-reboot-failover</kbd>|<kbd>managed-reboot</kbd>|<kbd>managed-snapshot</kbd>|<kbd>managed-snapshot-stop</kbd>|<kbd>managed-stop</kbd>|
+  |[EC2&nbsp;compute&nbsp;instance](https://console.aws.amazon.com/ec2/v2/home#Instances)|&check;|&check;|&check;||&check;|||&check;|
+  |[EC2 EBS&nbsp;disk&nbsp;volume](https://console.aws.amazon.com/ec2/v2/home#Volumes)||||||&check;|||
+  |[RDS&nbsp;database&nbsp;instance](https://console.aws.amazon.com/rds/home#dbinstances:)|&check;|||&check;|&check;|&check;|&check;|&check;|
 
 * Also add tags for [repetitive (<kbd>-periodic</kbd>)](#repetitive-schedules) and/or [one-time (<kbd>-once</kbd>)](#one-time-schedules) schedules. Prefix with the operation.
 * If there are no corresponding schedule tags, an enabling tag will be ignored, and the operation will never occur.
@@ -241,7 +242,7 @@ Some operations create a child resource (image or snapshot) from a parent resour
   |<samp>Name</samp>|Supplements EC2 resource identifier. The key is renamed `managed-parent-name` when the value is passed from parent to child, because the child has a <samp>Name</samp> tag of its own. The code handles `Name` specially for both EC2 and RDS, in case AWS someday extends EC2-style tag semantics to RDS.|
   |<samp>managed&#x2011;parent&#x2011;name</samp>|The <samp>Name</samp> tag value from the parent. May be blank.|
   |<samp>managed&#x2011;parent&#x2011;id</samp>|The identifier of the parent instance or volume. AWS stores this in metadata for some but not all resource types, and the retrieval key differs for each resource type.|
-  |<samp>managed&#x2011;origin</samp>|The operation (for example, `snapshot`) that created the child. Identifies resources created by this project. Also distinguishes special cases, such as whether an EC2 instance was or was not rebooted before an image was created.|
+  |<samp>managed&#x2011;origin</samp>|The operation (for example, <samp>snapshot</samp>) that created the child. Identifies resources created by this project. Also distinguishes special cases, such as whether an EC2 instance was or was not rebooted before an image was created.|
   |<a name="tag-managed-date-time"><samp>managed-date-time</samp></a>|Groups resources created during the same 10-minute interval. The last digit of the minute is normalized to 0, and <samp>Z</samp> is always appended, to indicate UTC. AWS stores the _exact_ time (too specific for grouping) in metadata, and the retrieval key and the format differ for each resource type!|
 
 * Tags other than operation-enabling tags, schedule tags, and the <samp>Name</samp> tag, are copied from parent to child. (The deletion tag, <samp>managed-delete</samp>, would not make sense on instances and volumes, but if it is present, it is not copied to images and snapshots.)
@@ -299,7 +300,7 @@ Resources tagged for unsupported combinations of operations are logged (with mes
 
    |Policy Name|Manage Enabling Tags|Manage One-Time Schedule Tags|Manage Repetitive Schedule Tags|Back Up|Manage Deletion Tag|Delete|
    |--|--|--|--|--|--|--|
-   |_Scope &rarr;_|_Instances, Volumes_|_Instances, Volumes_|_Instances, Volumes_|_Instances, Volumes_|_Images, Snapshots_|_Images, Snapshots_|
+   |_Scope&nbsp;&rarr;_|_Instances, Volumes_|_Instances, Volumes_|_Instances, Volumes_|_Instances, Volumes_|_Images, Snapshots_|_Images, Snapshots_|
    |TagSchedOpsAdminister|Allow|Allow|Allow|No effect|Deny|Deny|
    |TagSchedOpsTagScheduleOnce|Deny|Allow [<sup>i</sup>](#policy-footnote-1)|Deny|No effect|Deny|Deny|
    |TagSchedOpsTagForDeletion|Deny|Deny|Deny|Deny|Allow|Deny|
