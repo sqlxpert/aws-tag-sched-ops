@@ -35,27 +35,27 @@ Parameters:
   # Do not validate at CloudFormation level,
   # in case values accepted by underlying APIs change:
 
-  TagSchedOpsTagRuleScheduleCron:
+  TagSchedOpsAgeRuleScheduleCron:
     Type: String
     Description: "When/how often to tag images/snapshots for deletion, in cron form, for UTC timezone. The default is once a day, at 08:06 UTC (just after midnight Pacific Standard Time or 01:00 Pacific Daylight Time). See https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html#CronExpressions"
     Default: "06 08 * * ? *"
 
-  TagSchedOpsTagRuleTimezoneLocal:
+  TagSchedOpsAgeRuleTimezoneLocal:
     Type: String
     Description: "The Olson name of your preferred local timezone (for example, \"America/Los_Angeles\"). The default aligns time intervals with the UTC day, which begins at midnight in London, England."
     Default: "UTC"
 
-  TagSchedOpsTagRuleRetainIntervals:
+  TagSchedOpsAgeRuleRetainIntervals:
     Type: String
     Description: "One or more ISO 8601 intervals, repeating or non-, specified as durations. Enclose each interval in single quotes (') and separate multiple intervals with spaces. The default keeps first daily images/snapshots from the past 31 days and tags any others for deletion. Restrictions: no decimal, hour must be 0-4, 6 or 12, minute must be 0, 10, 20 or 30, and second must be 0. See documentation or run: aws-tag-sched-ops/age_backups.py --help"
     Default: "'R31/P1D'"
 
-  TagSchedOpsTagRuleArgsMisc:
+  TagSchedOpsAgeRuleArgsMisc:
     Type: String
     Description: "Other command-line options to pass to age_backups.py. Spaces are allowed between arguments, but no argument may contain a space. See documentation or run: aws-tag-sched-ops/age_backups.py --help"
     Default: ""
 
-  TagSchedOpsTagRuleArgsAsList:
+  TagSchedOpsAgeRuleArgsAsList:
     Type: String
     Description: "All command-line options to pass to age_backups.py, as a JSON list of strings. Example (copy everything between the bars, but do not include the bars): |[\"--user-timezone\", \"UTC\", \"--retain-intervals\", \"R31/P1D\"|. This form is cumbersome, but allows spaces within arguments."
     Default: ""
@@ -66,65 +66,68 @@ Metadata:
       - Label:
           default: "Basics"
         Parameters:
-          - TagSchedOpsTagRuleScheduleCron
+          - TagSchedOpsAgeRuleScheduleCron
       - Label:
           default: "Easy options (must leave Advanced options entry blank)"
         Parameters:
-          - TagSchedOpsTagRuleTimezoneLocal
-          - TagSchedOpsTagRuleRetainIntervals
-          - TagSchedOpsTagRuleArgsMisc
+          - TagSchedOpsAgeRuleTimezoneLocal
+          - TagSchedOpsAgeRuleRetainIntervals
+          - TagSchedOpsAgeRuleArgsMisc
       - Label:
           default: "Advanced options (leave all Easy options entries blank)"
         Parameters:
-          - TagSchedOpsTagRuleArgsAsList
+          - TagSchedOpsAgeRuleArgsAsList
     ParameterLabels:
-      TagSchedOpsTagRuleScheduleCron:
+      TagSchedOpsAgeRuleScheduleCron:
         default: "Schedule (cron form)"
-      TagSchedOpsTagRuleTimezoneLocal:
+      TagSchedOpsAgeRuleTimezoneLocal:
         default: "Local timezone"
-      TagSchedOpsTagRuleRetainIntervals:
+      TagSchedOpsAgeRuleRetainIntervals:
         default: "Retention policy"
-      TagSchedOpsTagRuleArgsMisc:
+      TagSchedOpsAgeRuleArgsMisc:
         default: "Other command-line options"
-      TagSchedOpsTagRuleArgsAsList:
+      TagSchedOpsAgeRuleArgsAsList:
         default: "All options, in a JSON list of strings"
 
 Conditions:
 
-  TagSchedOpsTagRuleArgsAsListEmpty:
-    !Equals [ !Ref TagSchedOpsTagRuleArgsAsList, "" ]
+  TagSchedOpsAgeRuleArgsAsListEmpty:
+    !Equals [ !Ref TagSchedOpsAgeRuleArgsAsList, "" ]
 
 Resources:
 
 
-  TagSchedOpsTagRule:
+  TagSchedOpsAgeRule:
     Type: "AWS::Events::Rule"
     DeletionPolicy: Delete
     Properties:
-      Description: !If [ TagSchedOpsTagRuleArgsAsListEmpty, !Sub "${TagSchedOpsTagRuleScheduleCron} age_backups.py --user-timezone '${TagSchedOpsTagRuleTimezoneLocal}' --retain-intervals ${TagSchedOpsTagRuleRetainIntervals} ${TagSchedOpsTagRuleArgsMisc}", !Sub "${TagSchedOpsTagRuleScheduleCron} age_backups.py ${TagSchedOpsTagRuleArgsAsList}" ]
-      ScheduleExpression: !Sub "cron(${TagSchedOpsTagRuleScheduleCron})"
+      Description: !If [ TagSchedOpsAgeRuleArgsAsListEmpty, !Sub "${TagSchedOpsAgeRuleScheduleCron} age_backups.py --user-timezone '${TagSchedOpsAgeRuleTimezoneLocal}' --retain-intervals ${TagSchedOpsAgeRuleRetainIntervals} ${TagSchedOpsAgeRuleArgsMisc}", !Sub "${TagSchedOpsAgeRuleScheduleCron} age_backups.py ${TagSchedOpsAgeRuleArgsAsList}" ]
+      ScheduleExpression: !Sub "cron(${TagSchedOpsAgeRuleScheduleCron})"
       State: ENABLED
       Targets:
-        - Arn: !ImportValue "LambdaFn-TagSchedOpsTag-Arn"
-          Id: !ImportValue "LambdaFn-TagSchedOpsTag-Name"
-          Input: !If [ TagSchedOpsTagRuleArgsAsListEmpty, !Sub "\"--user-timezone '${TagSchedOpsTagRuleTimezoneLocal}' --retain-intervals ${TagSchedOpsTagRuleRetainIntervals} ${TagSchedOpsTagRuleArgsMisc}\"", !Ref TagSchedOpsTagRuleArgsAsList ]
+        - Arn: !ImportValue "LambdaFn-TagSchedOpsAge-Arn"
+          # Field 6 (counting from 0) of an AWS Lambda
+          # function ARN is the function's name, including
+          # the random string appended by CloudFormation:
+          Id: !Select [ 6, !Split [ ":", !ImportValue "LambdaFn-TagSchedOpsAge-Arn" ] ]
+          Input: !If [ TagSchedOpsAgeRuleArgsAsListEmpty, !Sub "\"--user-timezone '${TagSchedOpsAgeRuleTimezoneLocal}' --retain-intervals ${TagSchedOpsAgeRuleRetainIntervals} ${TagSchedOpsAgeRuleArgsMisc}\"", !Ref TagSchedOpsAgeRuleArgsAsList ]
 
 
-  TagSchedOpsTagRuleInvokeLambdaPerm:
+  TagSchedOpsAgeRuleInvokeLambdaPerm:
     Type: "AWS::Lambda::Permission"
     DeletionPolicy: Delete
     Properties:
       Action: "lambda:InvokeFunction"
-      FunctionName: !ImportValue "LambdaFn-TagSchedOpsTag-Name"
+      FunctionName: !Select [ 6, !Split [ ":", !ImportValue "LambdaFn-TagSchedOpsAge-Arn" ] ]
       Principal: "events.amazonaws.com"
-      SourceArn: !GetAtt TagSchedOpsTagRule.Arn
+      SourceArn: !GetAtt TagSchedOpsAgeRule.Arn
 
 
-  TagSchedOpsTagRuleDisableLambdaPerm:
+  TagSchedOpsAgeRuleDisableLambdaPerm:
     Type: "AWS::Lambda::Permission"
     DeletionPolicy: Delete
     Properties:
       Action: "lambda:DisableInvokeFunction"
-      FunctionName: !ImportValue "LambdaFn-TagSchedOpsTag-Name"
+      FunctionName: !Select [ 6, !Split [ ":", !ImportValue "LambdaFn-TagSchedOpsAge-Arn" ] ]
       Principal: "events.amazonaws.com"
-      SourceArn: !GetAtt TagSchedOpsTagRule.Arn
+      SourceArn: !GetAtt TagSchedOpsAgeRule.Arn

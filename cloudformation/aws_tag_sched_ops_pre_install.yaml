@@ -37,7 +37,7 @@ Parameters:
     MaxLength: 12
   AWSCloudFormationStackSetExecutionRoleStatus:
     Type: String
-    Description: "Status of the service role for CloudFormation StackSets, AWSCloudFormationStackSetExecutionRole, in current account (a StackSets target account, where child CloudFormation stacks will be created)"
+    Description: "Status of AWSCloudFormationStackSetExecutionRole, the service role for CloudFormation StackSets, in the current account (a StackSets target account, where child CloudFormation stacks will be created). After stack creation, not change from \"Role does not exist\" to a different value."
     AllowedValues:
       - "Role does not exist"
       - "Role exists, AdministratorAccess policy attached"
@@ -271,7 +271,7 @@ Resources:
               - !Sub "arn:aws:iam::${AWS::AccountId}:role/StackSet-*TagSchedOps*"
               # CloudFormation installation (assumed role, no StackSets):
               - !Sub "arn:aws:iam::${AWS::AccountId}:role/${TagSchedOpsCloudFormationStackNamePrefix}*-TagSchedOpsPerformLambdaRole-*"
-              - !Sub "arn:aws:iam::${AWS::AccountId}:role/${TagSchedOpsCloudFormationStackNamePrefix}*-TagSchedOpsTagLambdaRole-*"
+              - !Sub "arn:aws:iam::${AWS::AccountId}:role/${TagSchedOpsCloudFormationStackNamePrefix}*-TagSchedOpsAgeLambdaRole-*"
 
           - Effect: Allow
             Action:

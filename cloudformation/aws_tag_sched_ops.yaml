@@ -50,13 +50,13 @@ Parameters:
     Type: String
     Description: "Version ID for the desired version of the TagSchedOpsPerform source code S3 object. Leave blank, unless object versioning has been turned on for the S3 bucket. (If using CloudFormation StackSets, always leave blank.)"
     Default: ""
-  TagSchedOpsTagCodeName:
+  TagSchedOpsAgeCodeName:
     Type: String
-    Description: "Name (without the .py.zip suffix) of the file (S3 object) containing compressed source code for the TagSchedOpsTag AWS Lamba function. Accept the default unless directed otherwise."
+    Description: "Name (without the .py.zip suffix) of the file (S3 object) containing compressed source code for the TagSchedOpsAge AWS Lamba function. Accept the default unless directed otherwise."
     Default: "age_backups"
-  TagSchedOpsTagCodeS3VersionID:
+  TagSchedOpsAgeCodeS3VersionID:
     Type: String
-    Description: "Version ID for the desired version of the TagSchedOpsTag source code S3 object. Leave blank, unless object versioning has been turned on for the S3 bucket. (If using CloudFormation StackSets, always leave blank.)"
+    Description: "Version ID for the desired version of the TagSchedOpsAge source code S3 object. Leave blank, unless object versioning has been turned on for the S3 bucket. (If using CloudFormation StackSets, always leave blank.)"
     Default: ""
 
   # Do not validate at CloudFormation level,
@@ -76,19 +76,19 @@ Parameters:
     Default: 128
   TagSchedOpsPerformTimeoutSecs:
     Type: Number
-    Description: "How many seconds before execution of the TagSchedOpsTag AWS Lambda function is canceled. Increase only in case of time-out errors."
+    Description: "How many seconds before execution of the TagSchedOpsPerform AWS Lambda function is canceled. Increase only in case of time-out errors."
     Default: 120
-  TagSchedOpsTagLogRetainDays:
+  TagSchedOpsAgeLogRetainDays:
     Type: Number
-    Description: "How many days to keep logs from the TagSchedOpsTag AWS Lambda function. Typical values are 1, 7, 14, 30, 60, and 90 days, but for the full list, see http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutRetentionPolicy.html"
+    Description: "How many days to keep logs from the TagSchedOpsAge AWS Lambda function. Typical values are 1, 7, 14, 30, 60, and 90 days, but for the full list, see http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutRetentionPolicy.html"
     Default: 30
-  TagSchedOpsTagMemoryMB:
+  TagSchedOpsAgeMemoryMB:
     Type: Number
-    Description: "How many megabytes of memory to allocate to the TagSchedOpsTag AWS Lambda function. Increase only in case of out-of-memory errors."
+    Description: "How many megabytes of memory to allocate to the TagSchedOpsAge AWS Lambda function. Increase only in case of out-of-memory errors."
     Default: 128
-  TagSchedOpsTagTimeoutSecs:
+  TagSchedOpsAgeTimeoutSecs:
     Type: Number
-    Description: "How many seconds before execution of the TagSchedOpsTag AWS Lambda function is canceled. Increase only in case of time-out errors."
+    Description: "How many seconds before execution of the TagSchedOpsAge AWS Lambda function is canceled. Increase only in case of time-out errors."
     Default: 120
 
 Metadata:
@@ -101,13 +101,13 @@ Metadata:
           - StackSetsOrMultiRegion
           - LambdaCodeS3Bucket
       - Label:
-          default: "TagSchedOpsTag Lambda function (tags images and snapshots for deletion)"
+          default: "TagSchedOpsAge Lambda function (tags images and snapshots for deletion)"
         Parameters:
-          - TagSchedOpsTagCodeName
-          - TagSchedOpsTagCodeS3VersionID
-          - TagSchedOpsTagLogRetainDays
-          - TagSchedOpsTagMemoryMB
-          - TagSchedOpsTagTimeoutSecs
+          - TagSchedOpsAgeCodeName
+          - TagSchedOpsAgeCodeS3VersionID
+          - TagSchedOpsAgeLogRetainDays
+          - TagSchedOpsAgeMemoryMB
+          - TagSchedOpsAgeTimeoutSecs
       - Label:
           default: "TagSchedOpsPerform Lambda function (performs scheduled operations/creates images and snapshots)"
         Parameters:
@@ -133,22 +133,22 @@ Metadata:
         default: "Memory (MB)"
       TagSchedOpsPerformTimeoutSecs:
         default: "Timeout (seconds)"
-      TagSchedOpsTagCodeName:
+      TagSchedOpsAgeCodeName:
         default: "S3 object name"
-      TagSchedOpsTagCodeS3VersionID:
+      TagSchedOpsAgeCodeS3VersionID:
         default: "S3 version ID"
-      TagSchedOpsTagLogRetainDays:
+      TagSchedOpsAgeLogRetainDays:
         default: "Log retention (days)"
-      TagSchedOpsTagMemoryMB:
+      TagSchedOpsAgeMemoryMB:
         default: "Memory (MB)"
-      TagSchedOpsTagTimeoutSecs:
+      TagSchedOpsAgeTimeoutSecs:
         default: "Timeout (seconds)"
 
 Conditions:
   TagSchedOpsPerformCodeNoS3ObjVersion:
     !Equals [ !Ref TagSchedOpsPerformCodeS3VersionID, "" ]
-  TagSchedOpsTagCodeNoS3ObjVersion:
-    !Equals [ !Ref TagSchedOpsTagCodeS3VersionID, "" ]
+  TagSchedOpsAgeCodeNoS3ObjVersion:
+    !Equals [ !Ref TagSchedOpsAgeCodeS3VersionID, "" ]
   RegionMulti:
     !Equals [ !Ref StackSetsOrMultiRegion, "Yes" ]
   UserIamPoliciesCreate:
@@ -178,21 +178,21 @@ Resources:
 
           - Effect: Allow
             Action: "ec2:StartInstances"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*"
+            Resource: !Sub "arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/*"
             Condition:
               StringLike:
                 "ec2:ResourceTag/managed-start": "*"
 
           - Effect: Allow
             Action: "ec2:RebootInstances"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*"
+            Resource: !Sub "arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/*"
             Condition:
               StringLike:
                 "ec2:ResourceTag/managed-reboot": "*"
 
           - Effect: Allow
             Action: "ec2:StopInstances"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*"
+            Resource: !Sub "arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/*"
             Condition:
               StringLike:
                 "ec2:ResourceTag/managed-stop": "*"
@@ -206,7 +206,7 @@ Resources:
           # "ec2:ResourceTag/..." Condition key doesn't work.
           - Effect: Allow
             Action: "ec2:CreateTags"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}::image/*"
+            Resource: !Sub "arn:${AWS::Partition}:ec2:${AWS::Region}::image/*"
 
           - Effect: Allow
             Action: "ec2:DescribeVolumes"
@@ -219,7 +219,7 @@ Resources:
             # "ec2:ResourceTag/..." Condition key doesn't work.
           - Effect: Allow
             Action: "ec2:CreateTags"
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}::snapshot/*"
+            Resource: !Sub "arn:${AWS::Partition}:ec2:${AWS::Region}::snapshot/*"
 
           # Security: an entity that creates cannot delete
 
@@ -237,8 +237,8 @@ Resources:
               - "ec2:CreateTags"
               - "ec2:DeleteTags"
             Resource:
-              - !Sub "arn:aws:ec2:${AWS::Region}::image/*"
-              - !Sub "arn:aws:ec2:${AWS::Region}::snapshot/*"
+              - !Sub "arn:${AWS::Partition}:ec2:${AWS::Region}::image/*"
+              - !Sub "arn:${AWS::Partition}:ec2:${AWS::Region}::snapshot/*"
             Condition:
               "ForAnyValue:StringEquals":
                 "aws:TagKeys":
@@ -259,32 +259,32 @@ Resources:
             Resource: "*"
           - Effect: Allow
             Action: "rds:ListTagsForResource"
-            Resource: !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:db:*"
 
           - Effect: Allow
             Action: "rds:StartDBInstance"
-            Resource: !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:db-tag/managed-start": "*"
 
           - Effect: Allow
             Action: "rds:RebootDBInstance"
-            Resource: !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:db-tag/managed-reboot": "*"
 
           - Effect: Allow
             Action: "rds:RebootDBInstance"
-            Resource: !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:db-tag/managed-reboot-failover": "*"
 
           - Effect: Allow
             Action: "rds:StopDBInstance"
-            Resource: !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:db-tag/managed-stop": "*"
@@ -292,30 +292,30 @@ Resources:
           - Effect: Allow
             Action: "rds:StopDBInstance"  # With snapshot option
             Resource:
-              - !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:db:*"
-              - !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:snapshot:*"
+              - !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:db:*"
+              - !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:snapshot:*"
             Condition:
               StringLike:
                 "rds:db-tag/managed-snapshot-stop": "*"
           - Effect: Allow
             Action: "rds:AddTagsToResource"
-            Resource: !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:snapshot:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:snapshot:*"
 
           - Effect: Allow
             Action: "rds:CreateDBSnapshot"
             Resource:
-              - !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:db:*"
-              - !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:snapshot:*"
+              - !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:db:*"
+              - !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:snapshot:*"
             Condition:
               StringLike:
                 "rds:db-tag/managed-snapshot": "*"
 
           - Effect: Deny  # Security: an entity that creates cannot delete...
             Action: "rds:DeleteDBSnapshot"
-            Resource: !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:snapshot:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:snapshot:*"
           - Effect: Deny  # Security: ...and cannot tag for deletion.
             Action: "rds:AddTagsToResource"
-            Resource: !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:snapshot:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:snapshot:*"
             Condition:
               StringLike:
                 "rds:snapshot-tag/managed-delete": "*"
@@ -336,7 +336,7 @@ Resources:
         - !Ref RdsTagSchedOpsPerform
 
 
-  TagSchedOpsTagLambdaRole:
+  TagSchedOpsAgeLambdaRole:
     Type: "AWS::IAM::Role"
     DeletionPolicy: Delete
     Properties:
@@ -371,24 +371,24 @@ Resources:
       MemorySize: !Ref TagSchedOpsPerformMemoryMB
 
 
-  TagSchedOpsTagLambdaFn:
+  TagSchedOpsAgeLambdaFn:
     Type: "AWS::Lambda::Function"
     # Not a strict dependency, from CloudFormation's perspective.
     # This policy need not have been created and attached before the
     # AWS Lambda function is created, but rather, before it first runs:
-    # DependsOn: TagSchedOpsTagLog
+    # DependsOn: TagSchedOpsAgeLog
     DeletionPolicy: Delete
     Properties:
-      Role: !GetAtt TagSchedOpsTagLambdaRole.Arn
+      Role: !GetAtt TagSchedOpsAgeLambdaRole.Arn
       Code:
         S3Bucket: !If [ RegionMulti, !Sub "${LambdaCodeS3Bucket}-${AWS::Region}", !Ref LambdaCodeS3Bucket ]
-        S3Key: !Join [ ".", [ !Ref TagSchedOpsTagCodeName, "py", "zip" ] ]
-        S3ObjectVersion: !If [ TagSchedOpsTagCodeNoS3ObjVersion, !Ref "AWS::NoValue", !Ref TagSchedOpsTagCodeS3VersionID ]
+        S3Key: !Join [ ".", [ !Ref TagSchedOpsAgeCodeName, "py", "zip" ] ]
+        S3ObjectVersion: !If [ TagSchedOpsAgeCodeNoS3ObjVersion, !Ref "AWS::NoValue", !Ref TagSchedOpsAgeCodeS3VersionID ]
       Runtime: "python3.6"
-      Handler: !Join [ ".", [ !Ref TagSchedOpsTagCodeName, "lambda_handler" ] ]
+      Handler: !Join [ ".", [ !Ref TagSchedOpsAgeCodeName, "lambda_handler" ] ]
       ReservedConcurrentExecutions: 5  # Multiple simultaneous runs possible
-      Timeout: !Ref TagSchedOpsTagTimeoutSecs
-      MemorySize: !Ref TagSchedOpsTagMemoryMB
+      Timeout: !Ref TagSchedOpsAgeTimeoutSecs
+      MemorySize: !Ref TagSchedOpsAgeMemoryMB
 
 
   TagSchedOpsPerformLogGrp:
@@ -402,15 +402,15 @@ Resources:
       RetentionInDays: !Ref TagSchedOpsPerformLogRetainDays
 
 
-  TagSchedOpsTagLogGrp:
+  TagSchedOpsAgeLogGrp:
     Type: "AWS::Logs::LogGroup"
     DeletionPolicy: Retain  # Might want to review after function is deleted
     Properties:
       # AWS Lambda functions log to streams named after them,
       # so a stream name assigned by CloudFormation would not work.
       # Disadvantage: Custom name prevents modification by CloudFormation.
-      LogGroupName: !Join [ "/", [ "", "aws", "lambda", !Ref TagSchedOpsTagLambdaFn ] ]
-      RetentionInDays: !Ref TagSchedOpsTagLogRetainDays
+      LogGroupName: !Join [ "/", [ "", "aws", "lambda", !Ref TagSchedOpsAgeLambdaFn ] ]
+      RetentionInDays: !Ref TagSchedOpsAgeLogRetainDays
 
 
   TagSchedOpsPerformLog:
@@ -431,16 +431,16 @@ Resources:
             # ARN is the log group's name, which in this case is
             # the final name of the AWS Lambda function, including
             # the random string appended by CloudFormation:
-            Resource: !Join [ ":", [ !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
+            Resource: !Join [ ":", [ !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
 
 
-  TagSchedOpsTagLog:
+  TagSchedOpsAgeLog:
     Type: "AWS::IAM::ManagedPolicy"
     DeletionPolicy: Delete
     Properties:
-      Description: "TagSchedOpsTag log streams: create, and put events. Required when executing that AWS Lambda function."
+      Description: "TagSchedOpsAge log streams: create, and put events. Required when executing that AWS Lambda function."
       Roles:
-        - !Ref TagSchedOpsTagLambdaRole
+        - !Ref TagSchedOpsAgeLambdaRole
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -452,7 +452,7 @@ Resources:
             # ARN is the log group's name, which in this case is
             # the final name of the AWS Lambda function, including
             # the random string appended by CloudFormation:
-            Resource: !Join [ ":", [ !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsTagLogGrp.Arn ] ], "log-stream", "*" ] ]
+            Resource: !Join [ ":", [ !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsAgeLogGrp.Arn ] ], "log-stream", "*" ] ]
 
 
   TagSchedOpsPerform10MinEventRule:
@@ -519,7 +519,7 @@ Resources:
               - "lambda:DeleteFunctionConcurrency"
             Resource:
               - !GetAtt TagSchedOpsPerformLambdaFn.Arn
-              - !GetAtt TagSchedOpsTagLambdaFn.Arn
+              - !GetAtt TagSchedOpsAgeLambdaFn.Arn
 
           - Effect: Deny
             Action: "lambda:CreateEventSourceMapping"
@@ -528,7 +528,7 @@ Resources:
               "ForAnyValue:ArnEquals":
                 "lambda:FunctionArn":
                   - !GetAtt TagSchedOpsPerformLambdaFn.Arn
-                  - !GetAtt TagSchedOpsTagLambdaFn.Arn
+                  - !GetAtt TagSchedOpsAgeLambdaFn.Arn
 
           - Effect: Deny
             Action:
@@ -537,7 +537,7 @@ Resources:
               - "logs:PutRetentionPolicy"
             Resource:
               - !GetAtt TagSchedOpsPerformLogGrp.Arn
-              - !GetAtt TagSchedOpsTagLogGrp.Arn
+              - !GetAtt TagSchedOpsAgeLogGrp.Arn
 
           - Effect: Deny
             Action: "logs:DeleteLogStream"
@@ -546,8 +546,8 @@ Resources:
             # the final name of the AWS Lambda function, including
             # the random string appended by CloudFormation:
             Resource:
-              - !Join [ ":", [ !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
-              - !Join [ ":", [ !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsTagLogGrp.Arn ] ], "log-stream", "*" ] ]
+              - !Join [ ":", [ !Sub "arn:${AWS::Partition}:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
+              - !Join [ ":", [ !Sub "arn:${AWS::Partition}:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsAgeLogGrp.Arn ] ], "log-stream", "*" ] ]
 
           - Effect: Deny
             Action:
@@ -562,7 +562,7 @@ Resources:
             # privileges for all CloudWatch Events rules, but the alternative
             # would require remembering to apply one protection policy
             # for each event rule, of which there could be many for the
-            # TagSchedOpsTag Lambda function. Also, even if IAM supports
+            # TagSchedOpsAge Lambda function. Also, even if IAM supports
             # wildcards in resource ARNs for "events:" actions, there is no
             # way to identify the target Lambda function from the rule ARN.
             # Resource:
@@ -579,7 +579,7 @@ Resources:
               - "iam:PassRole"
             Resource:
               - !GetAtt TagSchedOpsPerformLambdaRole.Arn
-              - !GetAtt TagSchedOpsTagLambdaRole.Arn
+              - !GetAtt TagSchedOpsAgeLambdaRole.Arn
 
           - Effect: Deny
             Action:
@@ -588,13 +588,13 @@ Resources:
               - "iam:DeletePolicyVersion"
             Resource:
               - !Ref TagSchedOpsPerformLog
-              - !Ref TagSchedOpsTagLog
+              - !Ref TagSchedOpsAgeLog
               - !Ref Ec2TagSchedOpsTagForDeletion
               - !Ref RdsTagSchedOpsTagForDeletion
               # !Ref TagSchedOpsPerformLambdaFnProtect
               # produces a "Circular dependency between resources" error.
               # Work-around:
-              - !Sub "arn:aws:iam::${AWS::AccountId}:policy/${AWS::StackName}-TagSchedOpsLambdaFnsProtect*"
+              - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${AWS::StackName}-TagSchedOpsLambdaFnsProtect*"
 
 
   Ec2TagSchedOpsAdminister:
@@ -602,7 +602,7 @@ Resources:
     Condition: UserIamPoliciesCreate
     DeletionPolicy: Delete
     Properties:
-      Description: "All EC2 instances, EBS volumes: describe; view tags; add, delete tags for scheduled operations. All EC2 images, EBS snapshots: describe; view tags; cannot delete images or snapshots, or tag for deletion. All CloudWatch events: describe. Event for TagSchedOpsPerform: enable and disable."
+      Description: "All EC2 instances, EBS volumes: describe; view tags; add, delete tags for scheduled operations. All EC2 images, EBS snapshots: describe; view tags; add, delete 'managed-delete' tag; cannot delete images or snapshots. All CloudWatch Events rules: describe, add, enable, disable; change, delete (except TagSchedOpsPerform rule). Rule for TagSchedOpsPerform: enable, disable."
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -620,7 +620,7 @@ Resources:
             Action:
               - "ec2:CreateTags"
               - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:*:${AWS::AccountId}:instance/*"
+            Resource: !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:instance/*"
             Condition:
               "ForAllValues:StringEquals":
                 "aws:TagKeys":
@@ -647,7 +647,7 @@ Resources:
             Action:
               - "ec2:CreateTags"
               - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:*:${AWS::AccountId}:volume/*"
+            Resource: !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:volume/*"
             Condition:
               "ForAllValues:StringEquals":
                 "aws:TagKeys":
@@ -658,15 +658,17 @@ Resources:
                   # One-time schedule tags:
                   - "managed-snapshot-once"
 
-          # Security: an entity that schedules backups cannot tag for deletion
+          # Security: An entity that can prevent backups from being taken in
+          # in the first place (by changing -periodic schedule tags) might as
+          # well be able to mark backups for deletion!
 
-          - Effect: Deny
+          - Effect: Allow
             Action:
               - "ec2:CreateTags"
               - "ec2:DeleteTags"
             Resource:
-              - !Sub "arn:aws:ec2:*::image/*"
-              - !Sub "arn:aws:ec2:*::snapshot/*"
+              - !Sub "arn:${AWS::Partition}:ec2:*::image/*"
+              - !Sub "arn:${AWS::Partition}:ec2:*::snapshot/*"
             Condition:
               "ForAnyValue:StringEquals":
                 "aws:TagKeys":
@@ -697,8 +699,8 @@ Resources:
             # the final name of the AWS Lambda function, including
             # the random string appended by CloudFormation:
             Resource:
-              - !Join [ ":", [ !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
-              - !Join [ ":", [ !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsTagLogGrp.Arn ] ], "log-stream", "*" ] ]
+              - !Join [ ":", [ !Sub "arn:${AWS::Partition}:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
+              - !Join [ ":", [ !Sub "arn:${AWS::Partition}:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsAgeLogGrp.Arn ] ], "log-stream", "*" ] ]
 
           # Diagnose permissions errors
 
@@ -729,7 +731,7 @@ Resources:
     Condition: UserIamPoliciesCreate
     DeletionPolicy: Delete
     Properties:
-      Description: "All RDS instances: describe; view tags; add, delete tags for scheduled operations. All RDS snapshots: describe; view tags; cannot delete snapshots, or tag for deletion.  All CloudWatch events: describe. Event for TagSchedOpsPerform: enable and disable. Due to an AWS limitation, ANY tag can be added with an intended tag. Withholding all RDS tagging privileges is safer than relying on this policy."
+      Description: "All RDS instances: describe; view tags; add, delete tags for scheduled operations. All RDS snapshots: describe; view tags; add, delete 'managed-delete' tag; cannot delete snapshots. All CloudWatch Events rules: describe; add, enable, disable; change, delete (except TagSchedOpsPerform rule). TagSchedOpsPerform rule: enable, disable. Due to an AWS limitation, ANY tag can be added with an intended tag. If your workflow depends on RDS database tags other than the 'managed-' tags, do not attach this policy to entities not trusted to manipulate those other tags."
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -742,8 +744,8 @@ Resources:
           - Effect: Allow
             Action: "rds:ListTagsForResource"
             Resource:
-              - !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
-              - !Sub "arn:aws:rds:*:${AWS::AccountId}:snapshot:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:snapshot:*"
 
           # The "rds:req-tag/..." Condition key supported by RDS is equivalent
           # to the "aws:RequestTag/..." Condition key supported by EC2. These
@@ -768,7 +770,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-start": "*"
@@ -776,7 +778,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-reboot": "*"
@@ -784,7 +786,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-reboot-failover": "*"
@@ -792,7 +794,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-stop": "*"
@@ -800,7 +802,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-snapshot": "*"
@@ -808,7 +810,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-snapshot-stop": "*"
@@ -817,7 +819,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-start-periodic": "*"
@@ -825,7 +827,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-reboot-periodic": "*"
@@ -833,7 +835,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-reboot-failover-periodic": "*"
@@ -841,7 +843,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-snapshot-periodic": "*"
@@ -849,7 +851,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-stop-periodic": "*"
@@ -857,7 +859,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-snapshot-stop-periodic": "*"
@@ -866,7 +868,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-start-once": "*"
@@ -874,7 +876,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-reboot-once": "*"
@@ -882,7 +884,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-reboot-failover-once": "*"
@@ -890,7 +892,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-snapshot-once": "*"
@@ -898,7 +900,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-stop-once": "*"
@@ -906,25 +908,29 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-snapshot-stop-once": "*"
 
-          # Security: An entity that can schedule backups
-          #           cannot delete them, or tag them for deletion.
+          # Security: An entity that can prevent backups from being taken in
+          # in the first place (by changing -periodic schedule tags) might as
+          # well be able to mark backups for deletion!
 
-          - Effect: Deny
+          - Effect: Allow
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:snapshot:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:snapshot:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-delete": "*"
+
+          # Security: an entity that tags for deletion cannot delete
+
           - Effect: Deny
             Action: "rds:DeleteDBSnapshot"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:snapshot:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:snapshot:*"
 
           # See effects of tags
 
@@ -942,8 +948,8 @@ Resources:
             # the final name of the AWS Lambda function, including
             # the random string appended by CloudFormation:
             Resource:
-              - !Join [ ":", [ !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
-              - !Join [ ":", [ !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsTagLogGrp.Arn ] ], "log-stream", "*" ] ]
+              - !Join [ ":", [ !Sub "arn:${AWS::Partition}:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
+              - !Join [ ":", [ !Sub "arn:${AWS::Partition}:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsAgeLogGrp.Arn ] ], "log-stream", "*" ] ]
 
           # Diagnose permissions errors
 
@@ -991,7 +997,7 @@ Resources:
             Action:
               - "ec2:CreateTags"
               - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:*:${AWS::AccountId}:instance/*"
+            Resource: !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:instance/*"
             Condition:
               StringLike:
                 "ec2:ResourceTag/managed-start": "*"
@@ -1002,7 +1008,7 @@ Resources:
             Action:
               - "ec2:CreateTags"
               - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:*:${AWS::AccountId}:instance/*"
+            Resource: !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:instance/*"
             Condition:
               StringLike:
                 "ec2:ResourceTag/managed-reboot": "*"
@@ -1013,7 +1019,7 @@ Resources:
             Action:
               - "ec2:CreateTags"
               - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:*:${AWS::AccountId}:instance/*"
+            Resource: !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:instance/*"
             Condition:
               StringLike:
                 "ec2:ResourceTag/managed-reboot-image": "*"
@@ -1024,7 +1030,7 @@ Resources:
             Action:
               - "ec2:CreateTags"
               - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:*:${AWS::AccountId}:instance/*"
+            Resource: !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:instance/*"
             Condition:
               StringLike:
                 "ec2:ResourceTag/managed-image": "*"
@@ -1035,7 +1041,7 @@ Resources:
             Action:
               - "ec2:CreateTags"
               - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:*:${AWS::AccountId}:instance/*"
+            Resource: !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:instance/*"
             Condition:
               StringLike:
                 "ec2:ResourceTag/managed-stop": "*"
@@ -1047,7 +1053,7 @@ Resources:
             Action:
               - "ec2:CreateTags"
               - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:*:${AWS::AccountId}:volume/*"
+            Resource: !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:volume/*"
             Condition:
               StringLike:
                 "ec2:ResourceTag/managed-snapshot": "*"
@@ -1061,7 +1067,7 @@ Resources:
             Action:
               - "ec2:CreateTags"
               - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:*:${AWS::AccountId}:instance/*"
+            Resource: !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:instance/*"
             Condition:
               "ForAnyValue:StringEquals":
                 "aws:TagKeys":
@@ -1081,7 +1087,7 @@ Resources:
             Action:
               - "ec2:CreateTags"
               - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:*:${AWS::AccountId}:volume/*"
+            Resource: !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:volume/*"
             Condition:
               "ForAnyValue:StringEquals":
                 "aws:TagKeys":
@@ -1106,8 +1112,8 @@ Resources:
               - "ec2:CreateTags"
               - "ec2:DeleteTags"
             Resource:
-              - !Sub "arn:aws:ec2:*::image/*"
-              - !Sub "arn:aws:ec2:*::snapshot/*"
+              - !Sub "arn:${AWS::Partition}:ec2:*::image/*"
+              - !Sub "arn:${AWS::Partition}:ec2:*::snapshot/*"
             Condition:
               "ForAnyValue:StringEquals":
                 "aws:TagKeys":
@@ -1129,8 +1135,8 @@ Resources:
             # the final name of the AWS Lambda function, including
             # the random string appended by CloudFormation:
             Resource:
-              - !Join [ ":", [ !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
-              - !Join [ ":", [ !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsTagLogGrp.Arn ] ], "log-stream", "*" ] ]
+              - !Join [ ":", [ !Sub "arn:${AWS::Partition}:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
+              - !Join [ ":", [ !Sub "arn:${AWS::Partition}:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsAgeLogGrp.Arn ] ], "log-stream", "*" ] ]
 
           # Diagnose permissions errors
 
@@ -1144,7 +1150,7 @@ Resources:
     Condition: UserIamPoliciesCreate
     DeletionPolicy: Delete
     Properties:
-      Description: "RDS instances tagged to enable a managed operation: add, delete one-time schedule tags for that operation. All RDS instances: describe; view tags; cannot add or delete operation-enabling or repetitive schedule tags. All RDS snapshots: describe; view tags; cannot delete, or tag for deletion. Due to an AWS limitation, ANY tag can be added with an intended tag. Withholding all RDS tagging privileges is safer than relying on this policy."
+      Description: "RDS instances tagged to enable a managed operation: add, delete one-time schedule tags for that operation. All RDS instances: describe; view tags; cannot add or delete operation-enabling or repetitive schedule tags. All RDS snapshots: describe; view tags; cannot delete, or tag for deletion. Due to an AWS limitation, ANY tag can be added with an intended tag. If your workflow depends on RDS database tags other than the 'managed-' tags, do not attach this policy to entities not trusted to manipulate those other tags."
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -1157,116 +1163,150 @@ Resources:
           - Effect: Allow
             Action: "rds:ListTagsForResource"
             Resource:
-              - !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
-              - !Sub "arn:aws:rds:*:${AWS::AccountId}:snapshot:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:snapshot:*"
 
           - Effect: Allow
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:db-tag/managed-start": "*"
                 "rds:req-tag/managed-start-once": "*"
+              StringNotLike:
+                "rds:req-tag/managed-reboot-once": "*"
+                "rds:req-tag/managed-reboot-failover-once": "*"
+                "rds:req-tag/managed-stop-once": "*"
+                "rds:req-tag/managed-snapshot-once": "*"
+                "rds:req-tag/managed-snapshot-stop-once": "*"
           - Effect: Allow
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:db-tag/managed-reboot": "*"
                 "rds:req-tag/managed-reboot-once": "*"
+              StringNotLike:
+                "rds:req-tag/managed-start-once": "*"
+                "rds:req-tag/managed-reboot-failover-once": "*"
+                "rds:req-tag/managed-stop-once": "*"
+                "rds:req-tag/managed-snapshot-once": "*"
+                "rds:req-tag/managed-snapshot-stop-once": "*"
           - Effect: Allow
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:db-tag/managed-reboot-failover": "*"
                 "rds:req-tag/managed-reboot-failover-once": "*"
+              StringNotLike:
+                "rds:req-tag/managed-start-once": "*"
+                "rds:req-tag/managed-reboot-once": "*"
+                "rds:req-tag/managed-stop-once": "*"
+                "rds:req-tag/managed-snapshot-once": "*"
+                "rds:req-tag/managed-snapshot-stop-once": "*"
           - Effect: Allow
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:db-tag/managed-stop": "*"
                 "rds:req-tag/managed-stop-once": "*"
+              StringNotLike:
+                "rds:req-tag/managed-start-once": "*"
+                "rds:req-tag/managed-reboot-once": "*"
+                "rds:req-tag/managed-reboot-failover-once": "*"
+                "rds:req-tag/managed-snapshot-once": "*"
+                "rds:req-tag/managed-snapshot-stop-once": "*"
           - Effect: Allow
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:db-tag/managed-snapshot": "*"
                 "rds:req-tag/managed-snapshot-once": "*"
+              StringNotLike:
+                "rds:req-tag/managed-start-once": "*"
+                "rds:req-tag/managed-reboot-once": "*"
+                "rds:req-tag/managed-reboot-failover-once": "*"
+                "rds:req-tag/managed-stop-once": "*"
+                "rds:req-tag/managed-snapshot-stop-once": "*"
           - Effect: Allow
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:db-tag/managed-snapshot-stop": "*"
                 "rds:req-tag/managed-snapshot-stop-once": "*"
+              StringNotLike:
+                "rds:req-tag/managed-start-once": "*"
+                "rds:req-tag/managed-reboot-once": "*"
+                "rds:req-tag/managed-reboot-failover-once": "*"
+                "rds:req-tag/managed-stop-once": "*"
+                "rds:req-tag/managed-snapshot-once": "*"
 
           # Deny addition/modification/deletion of operation-enabling tags
 
-          # DISABLED due to potential RDS IAM bug
-          #
-          # - Effect: Deny
-          #   Action:
-          #     - "rds:AddTagsToResource"
-          #     - "rds:RemoveTagsFromResource"
-          #   Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
-          #   Condition:
-          #     StringLike:
-          #       "rds:req-tag/managed-start": "*"
-          # - Effect: Deny
-          #   Action:
-          #     - "rds:AddTagsToResource"
-          #     - "rds:RemoveTagsFromResource"
-          #   Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
-          #   Condition:
-          #     StringLike:
-          #       "rds:req-tag/managed-reboot": "*"
-          # - Effect: Deny
-          #   Action:
-          #     - "rds:AddTagsToResource"
-          #     - "rds:RemoveTagsFromResource"
-          #   Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
-          #   Condition:
-          #     StringLike:
-          #       "rds:req-tag/managed-reboot-failover": "*"
-          # - Effect: Deny
-          #   Action:
-          #     - "rds:AddTagsToResource"
-          #     - "rds:RemoveTagsFromResource"
-          #   Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
-          #   Condition:
-          #     StringLike:
-          #       "rds:req-tag/managed-stop": "*"
-          # - Effect: Deny
-          #   Action:
-          #     - "rds:AddTagsToResource"
-          #     - "rds:RemoveTagsFromResource"
-          #   Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
-          #   Condition:
-          #     StringLike:
-          #       "rds:req-tag/managed-snapshot": "*"
-          # - Effect: Deny
-          #   Action:
-          #     - "rds:AddTagsToResource"
-          #     - "rds:RemoveTagsFromResource"
-          #   Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
-          #   Condition:
-          #     StringLike:
-          #       "rds:req-tag/managed-snapshot-stop": "*"
+          - Effect: Deny
+            Action:
+              - "rds:AddTagsToResource"
+              - "rds:RemoveTagsFromResource"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
+            Condition:
+              StringLike:
+                "rds:req-tag/managed-start": "*"
+          - Effect: Deny
+            Action:
+              - "rds:AddTagsToResource"
+              - "rds:RemoveTagsFromResource"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
+            Condition:
+              StringLike:
+                "rds:req-tag/managed-reboot": "*"
+          - Effect: Deny
+            Action:
+              - "rds:AddTagsToResource"
+              - "rds:RemoveTagsFromResource"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
+            Condition:
+              StringLike:
+                "rds:req-tag/managed-reboot-failover": "*"
+          - Effect: Deny
+            Action:
+              - "rds:AddTagsToResource"
+              - "rds:RemoveTagsFromResource"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
+            Condition:
+              StringLike:
+                "rds:req-tag/managed-stop": "*"
+          - Effect: Deny
+            Action:
+              - "rds:AddTagsToResource"
+              - "rds:RemoveTagsFromResource"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
+            Condition:
+              StringLike:
+                "rds:req-tag/managed-snapshot": "*"
+          - Effect: Deny
+            Action:
+              - "rds:AddTagsToResource"
+              - "rds:RemoveTagsFromResource"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
+            Condition:
+              StringLike:
+                "rds:req-tag/managed-snapshot-stop": "*"
 
           # Deny addition/modification/deletion of repetitive schedule tags
 
@@ -1274,7 +1314,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-start-periodic": "*"
@@ -1282,7 +1322,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-reboot-periodic": "*"
@@ -1290,7 +1330,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-reboot-failover-periodic": "*"
@@ -1298,7 +1338,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-stop-periodic": "*"
@@ -1306,7 +1346,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-snapshot-periodic": "*"
@@ -1314,7 +1354,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-snapshot-stop-periodic": "*"
@@ -1326,13 +1366,13 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:snapshot:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:snapshot:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-delete": "*"
           - Effect: Deny
             Action: "rds:DeleteDBSnapshot"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:snapshot:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:snapshot:*"
 
           # See effects of tags
 
@@ -1350,340 +1390,8 @@ Resources:
             # the final name of the AWS Lambda function, including
             # the random string appended by CloudFormation:
             Resource:
-              - !Join [ ":", [ !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
-              - !Join [ ":", [ !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsTagLogGrp.Arn ] ], "log-stream", "*" ] ]
-
-          # Diagnose permissions errors
-
-          - Effect: Allow
-            Action: "sts:DecodeAuthorizationMessage"
-            Resource: "*"
-
-
-  Ec2TagSchedOpsSchedulePeriodic:
-    Type: "AWS::IAM::ManagedPolicy"
-    Condition: UserIamPoliciesCreate
-    DeletionPolicy: Delete
-    Properties:
-      Description: "EC2 instances, EBS volumes tagged to enable a managed operation: add, delete repetitive schedule tags for that operation. All EC2 instances, EBS volumes: describe; view tags; cannot add or delete operation-enabling tags. All EC2 images, EBS snapshots: describe; view tags; cannot delete, or tag for deletion."
-      PolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-
-          - Effect: Allow
-            Action:
-              - "ec2:DescribeInstances"
-              - "ec2:DescribeVolumes"
-              - "ec2:DescribeImages"
-              - "ec2:DescribeSnapshots"
-              - "ec2:DescribeTags"
-            Resource: "*"
-
-          - Effect: Allow
-            Action:
-              - "ec2:CreateTags"
-              - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:*:${AWS::AccountId}:instance/*"
-            Condition:
-              StringLike:
-                "ec2:ResourceTag/managed-start": "*"
-              "ForAllValues:StringLike":
-                "aws:TagKeys":
-                  - "managed-start-periodic"
-          - Effect: Allow
-            Action:
-              - "ec2:CreateTags"
-              - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:*:${AWS::AccountId}:instance/*"
-            Condition:
-              StringLike:
-                "ec2:ResourceTag/managed-reboot": "*"
-              "ForAllValues:StringLike":
-                "aws:TagKeys":
-                  - "managed-reboot-periodic"
-          - Effect: Allow
-            Action:
-              - "ec2:CreateTags"
-              - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:*:${AWS::AccountId}:instance/*"
-            Condition:
-              StringLike:
-                "ec2:ResourceTag/managed-reboot-image": "*"
-              "ForAllValues:StringLike":
-                "aws:TagKeys":
-                  - "managed-reboot-image-periodic"
-          - Effect: Allow
-            Action:
-              - "ec2:CreateTags"
-              - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:*:${AWS::AccountId}:instance/*"
-            Condition:
-              StringLike:
-                "ec2:ResourceTag/managed-image": "*"
-              "ForAllValues:StringLike":
-                "aws:TagKeys":
-                  - "managed-image-periodic"
-          - Effect: Allow
-            Action:
-              - "ec2:CreateTags"
-              - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:*:${AWS::AccountId}:instance/*"
-            Condition:
-              StringLike:
-                "ec2:ResourceTag/managed-stop": "*"
-              "ForAllValues:StringLike":
-                "aws:TagKeys":
-                  - "managed-stop-periodic"
-          - Effect: Allow
-            Action:
-              - "ec2:CreateTags"
-              - "ec2:DeleteTags"
-
-            Resource: !Sub "arn:aws:ec2:*:${AWS::AccountId}:volume/*"
-            Condition:
-              StringLike:
-                "ec2:ResourceTag/managed-snapshot": "*"
-              "ForAllValues:StringLike":
-                "aws:TagKeys":
-                  - "managed-snapshot-periodic"
-
-          # Deny addition/modification/deletion of operation-enabling tags
-
-          - Effect: Deny
-            Action:
-              - "ec2:CreateTags"
-              - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:*:${AWS::AccountId}:instance/*"
-            Condition:
-              "ForAnyValue:StringEquals":
-                "aws:TagKeys":
-                  - "managed-start"
-                  - "managed-reboot"
-                  - "managed-reboot-image"
-                  - "managed-image"
-                  - "managed-stop"
-
-          - Effect: Deny
-            Action:
-              - "ec2:CreateTags"
-              - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:*:${AWS::AccountId}:volume/*"
-            Condition:
-              "ForAnyValue:StringEquals":
-                "aws:TagKeys":
-                  - "managed-snapshot"
-
-          # Security: An entity that schedules backups cannot delete
-
-          - Effect: Deny
-            Action: "ec2:DeregisterImage"
-            Resource: "*"
-          - Effect: Deny
-            Action: "ec2:DeleteSnapshot"
-            Resource: "*"
-
-          # Security: an entity that schedules backups cannot tag for deletion
-
-          - Effect: Deny
-            Action:
-              - "ec2:CreateTags"
-              - "ec2:DeleteTags"
-            Resource:
-              - !Sub "arn:aws:ec2:*::image/*"
-              - !Sub "arn:aws:ec2:*::snapshot/*"
-            Condition:
-              "ForAnyValue:StringEquals":
-                "aws:TagKeys":
-                  - "managed-delete"
-
-          # See effects of tags
-
-          - Effect: Allow
-            Action:
-              - "logs:DescribeLogGroups"
-              - "logs:DescribeLogStreams"
-            Resource: "*"
-          - Effect: Allow
-            Action:
-              - "logs:GetLogEvents"
-              - "logs:FilterLogEvents"
-            # Field 6 (counting from 0) of a CloudWatch log group
-            # ARN is the log group's name, which in this case is
-            # the final name of the AWS Lambda function, including
-            # the random string appended by CloudFormation:
-            Resource:
-              - !Join [ ":", [ !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
-              - !Join [ ":", [ !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsTagLogGrp.Arn ] ], "log-stream", "*" ] ]
-
-          # Diagnose permissions errors
-
-          - Effect: Allow
-            Action: "sts:DecodeAuthorizationMessage"
-            Resource: "*"
-
-
-  RdsTagSchedOpsSchedulePeriodic:
-    Type: "AWS::IAM::ManagedPolicy"
-    Condition: UserIamPoliciesCreate
-    DeletionPolicy: Delete
-    Properties:
-      Description: "RDS instances tagged to enable a managed operation: add, delete repetitive schedule tags for that operation. All RDS instances: describe; view tags; cannot add or delete operation-enabling tags. All RDS snapshots: describe; view tags; cannot delete, or tag for deletion. Due to an AWS limitation, ANY tag can be added with an intended tag. Withholding all RDS tagging privileges is safer than relying on this policy."
-      PolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-
-          - Effect: Allow
-            Action:
-              - "rds:DescribeDBInstances"
-              - "rds:DescribeDBSnapshots"
-            Resource: "*"
-          - Effect: Allow
-            Action: "rds:ListTagsForResource"
-            Resource:
-              - !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
-              - !Sub "arn:aws:rds:*:${AWS::AccountId}:snapshot:*"
-
-          - Effect: Allow
-            Action:
-              - "rds:AddTagsToResource"
-              - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
-            Condition:
-              StringLike:
-                "rds:db-tag/managed-start": "*"
-                "rds:req-tag/managed-start-periodic": "*"
-          - Effect: Allow
-            Action:
-              - "rds:AddTagsToResource"
-              - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
-            Condition:
-              StringLike:
-                "rds:db-tag/managed-reboot": "*"
-                "rds:req-tag/managed-reboot-periodic": "*"
-          - Effect: Allow
-            Action:
-              - "rds:AddTagsToResource"
-              - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
-            Condition:
-              StringLike:
-                "rds:db-tag/managed-reboot-failover": "*"
-                "rds:req-tag/managed-reboot-failover-periodic": "*"
-          - Effect: Allow
-            Action:
-              - "rds:AddTagsToResource"
-              - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
-            Condition:
-              StringLike:
-                "rds:db-tag/managed-stop": "*"
-                "rds:req-tag/managed-stop-periodic": "*"
-          - Effect: Allow
-            Action:
-              - "rds:AddTagsToResource"
-              - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
-            Condition:
-              StringLike:
-                "rds:db-tag/managed-snapshot": "*"
-                "rds:req-tag/managed-snapshot-periodic": "*"
-          - Effect: Allow
-            Action:
-              - "rds:AddTagsToResource"
-              - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
-            Condition:
-              StringLike:
-                "rds:db-tag/managed-snapshot-stop": "*"
-                "rds:req-tag/managed-snapshot-stop-periodic": "*"
-
-          # Deny addition/modification/deletion of operation-enabling tags
-
-          # DISABLED due to potential RDS IAM bug
-
-          # - Effect: Deny
-          #   Action:
-          #     - "rds:AddTagsToResource"
-          #     - "rds:RemoveTagsFromResource"
-          #   Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
-          #   Condition:
-          #     StringLike:
-          #       "rds:req-tag/managed-start": "*"
-          # - Effect: Deny
-          #   Action:
-          #     - "rds:AddTagsToResource"
-          #     - "rds:RemoveTagsFromResource"
-          #   Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
-          #   Condition:
-          #     StringLike:
-          #       "rds:req-tag/managed-reboot": "*"
-          # - Effect: Deny
-          #   Action:
-          #     - "rds:AddTagsToResource"
-          #     - "rds:RemoveTagsFromResource"
-          #   Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
-          #   Condition:
-          #     StringLike:
-          #       "rds:req-tag/managed-reboot-failover": "*"
-          # - Effect: Deny
-          #   Action:
-          #     - "rds:AddTagsToResource"
-          #     - "rds:RemoveTagsFromResource"
-          #   Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
-          #   Condition:
-          #     StringLike:
-          #       "rds:req-tag/managed-stop": "*"
-          # - Effect: Deny
-          #   Action:
-          #     - "rds:AddTagsToResource"
-          #     - "rds:RemoveTagsFromResource"
-          #   Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
-          #   Condition:
-          #     StringLike:
-          #       "rds:req-tag/managed-snapshot": "*"
-          # - Effect: Deny
-          #   Action:
-          #     - "rds:AddTagsToResource"
-          #     - "rds:RemoveTagsFromResource"
-          #   Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
-          #   Condition:
-          #     StringLike:
-          #       "rds:req-tag/managed-snapshot-stop": "*"
-
-          # Security: An entity that can schedule backups
-          #           cannot delete them, or tag them for deletion.
-
-          - Effect: Deny
-            Action:
-              - "rds:AddTagsToResource"
-              - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:snapshot:*"
-            Condition:
-              StringLike:
-                "rds:req-tag/managed-delete": "*"
-          - Effect: Deny
-            Action: "rds:DeleteDBSnapshot"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:snapshot:*"
-
-          # See effects of tags
-
-          - Effect: Allow
-            Action:
-              - "logs:DescribeLogGroups"
-              - "logs:DescribeLogStreams"
-            Resource: "*"
-          - Effect: Allow
-            Action:
-              - "logs:GetLogEvents"
-              - "logs:FilterLogEvents"
-            # Field 6 (counting from 0) of a CloudWatch log group
-            # ARN is the log group's name, which in this case is
-            # the final name of the AWS Lambda function, including
-            # the random string appended by CloudFormation:
-            Resource:
-              - !Join [ ":", [ !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
-              - !Join [ ":", [ !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsTagLogGrp.Arn ] ], "log-stream", "*" ] ]
+              - !Join [ ":", [ !Sub "arn:${AWS::Partition}:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsPerformLogGrp.Arn ] ], "log-stream", "*" ] ]
+              - !Join [ ":", [ !Sub "arn:${AWS::Partition}:logs:*:${AWS::AccountId}:log-group", !Select [ 6, !Split [ ":", !GetAtt TagSchedOpsAgeLogGrp.Arn ] ], "log-stream", "*" ] ]
 
           # Diagnose permissions errors
 
@@ -1716,8 +1424,8 @@ Resources:
               - "ec2:CreateTags"
               - "ec2:DeleteTags"
             Resource:
-              - !Sub "arn:aws:ec2:*::image/*"
-              - !Sub "arn:aws:ec2:*::snapshot/*"
+              - !Sub "arn:${AWS::Partition}:ec2:*::image/*"
+              - !Sub "arn:${AWS::Partition}:ec2:*::snapshot/*"
             Condition:
               "ForAllValues:StringEquals":
                 "aws:TagKeys":
@@ -1747,7 +1455,7 @@ Resources:
             Action:
               - "ec2:CreateTags"
               - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:*:${AWS::AccountId}:instance/*"
+            Resource: !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:instance/*"
             Condition:
               "ForAnyValue:StringEquals":
                 "aws:TagKeys":
@@ -1774,7 +1482,7 @@ Resources:
             Action:
               - "ec2:CreateTags"
               - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:*:${AWS::AccountId}:volume/*"
+            Resource: !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:volume/*"
             Condition:
               "ForAnyValue:StringEquals":
                 "aws:TagKeys":
@@ -1797,7 +1505,7 @@ Resources:
     Condition: UserIamPoliciesCreate
     DeletionPolicy: Delete
     Properties:
-      Description: "All RDS snapshots: describe; view tags; add, delete tags for deletion, but cannot delete snapshots. All RDS instances: describe; view tags; cannot add or delete operational-enabling, one-time schedule, or repetitive schedule tags. Due to an AWS limitation, ANY tag can be added with an intended tag. Withholding all RDS tagging privileges is safer than relying on this policy."
+      Description: "All RDS snapshots: describe; view tags; add, delete tags for deletion, but cannot delete snapshots. All RDS instances: describe; view tags; cannot add or delete operational-enabling, one-time schedule, or repetitive schedule tags. If your workflow depends on RDS snapshot tags other than 'managed-delete', do not attach this policy to entities not trusted to manipulate those other tags."
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -1810,30 +1518,30 @@ Resources:
           - Effect: Allow
             Action: "rds:ListTagsForResource"
             Resource:
-              - !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
-              - !Sub "arn:aws:rds:*:${AWS::AccountId}:snapshot:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:snapshot:*"
 
           - Effect: Allow  # Security: an entity that tags for deletion...
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:snapshot:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:snapshot:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-delete": "*"
           - Effect: Deny  # Security: ...cannot create...
             Action: "rds:CreateDBSnapshot"
             Resource:
-              - !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
-              - !Sub "arn:aws:rds:*:${AWS::AccountId}:snapshot:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:snapshot:*"
           - Effect: Deny  # [another way to create RDS snapshots]
             Action: "rds:StopDBInstance"  # With snapshot option
             Resource:
-              - !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
-              - !Sub "arn:aws:rds:*:${AWS::AccountId}:snapshot:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:snapshot:*"
           - Effect: Deny  # Security: ...and cannot delete.
             Action: "rds:DeleteDBSnapshot"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:snapshot:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:snapshot:*"
 
           # Deny addition/modification/deletion of operation-enabling tags
 
@@ -1841,7 +1549,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-start": "*"
@@ -1849,7 +1557,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-reboot": "*"
@@ -1857,7 +1565,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-reboot-failover": "*"
@@ -1865,7 +1573,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-stop": "*"
@@ -1873,7 +1581,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-snapshot": "*"
@@ -1881,7 +1589,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-snapshot-stop": "*"
@@ -1892,7 +1600,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-start-once": "*"
@@ -1900,7 +1608,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-reboot-once": "*"
@@ -1908,7 +1616,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-reboot-failover-once": "*"
@@ -1916,7 +1624,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-stop-once": "*"
@@ -1924,7 +1632,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-snapshot-once": "*"
@@ -1932,7 +1640,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-snapshot-stop-once": "*"
@@ -1943,7 +1651,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-start-periodic": "*"
@@ -1951,7 +1659,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-reboot-periodic": "*"
@@ -1959,7 +1667,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-reboot-failover-periodic": "*"
@@ -1967,7 +1675,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-stop-periodic": "*"
@@ -1975,7 +1683,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-snapshot-periodic": "*"
@@ -1983,7 +1691,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-snapshot-stop-periodic": "*"
@@ -2034,8 +1742,8 @@ Resources:
               - "ec2:CreateTags"
               - "ec2:DeleteTags"
             Resource:
-              - !Sub "arn:aws:ec2:*::image/*"
-              - !Sub "arn:aws:ec2:*::snapshot/*"
+              - !Sub "arn:${AWS::Partition}:ec2:*::image/*"
+              - !Sub "arn:${AWS::Partition}:ec2:*::snapshot/*"
             Condition:
               "ForAnyValue:StringEquals":
                 "aws:TagKeys":
@@ -2045,7 +1753,7 @@ Resources:
             Action:
               - "ec2:CreateTags"
               - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:*:${AWS::AccountId}:instance/*"
+            Resource: !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:instance/*"
             Condition:
               "ForAnyValue:StringEquals":
                 "aws:TagKeys":
@@ -2072,7 +1780,7 @@ Resources:
             Action:
               - "ec2:CreateTags"
               - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:*:${AWS::AccountId}:volume/*"
+            Resource: !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:volume/*"
             Condition:
               "ForAnyValue:StringEquals":
                 "aws:TagKeys":
@@ -2099,10 +1807,10 @@ Resources:
             Resource: "*"
           - Effect: Allow
             Action: "rds:ListTagsForResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:snapshot:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:snapshot:*"
           - Effect: Allow
             Action: "rds:DeleteDBSnapshot"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:snapshot:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:snapshot:*"
             Condition:
               StringLike:
                 "rds:snapshot-tag/managed-delete": "*"
@@ -2110,18 +1818,18 @@ Resources:
           - Effect: Deny  # Security: an entity that deletes cannot create...
             Action: "rds:CreateDBSnapshot"
             Resource:
-              - !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
-              - !Sub "arn:aws:rds:*:${AWS::AccountId}:snapshot:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:snapshot:*"
           - Effect: Deny  # [another way to create RDS snapshots]
             Action: "rds:StopDBInstance"  # With snapshot option
             Resource:
-              - !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
-              - !Sub "arn:aws:rds:*:${AWS::AccountId}:snapshot:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:snapshot:*"
           - Effect: Deny  # ...and cannot tag for deletion
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:snapshot:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:snapshot:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-delete": "*"
@@ -2132,7 +1840,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-start": "*"
@@ -2140,7 +1848,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-reboot": "*"
@@ -2148,7 +1856,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-reboot-failover": "*"
@@ -2156,7 +1864,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-stop": "*"
@@ -2164,7 +1872,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-snapshot": "*"
@@ -2172,7 +1880,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-snapshot-stop": "*"
@@ -2183,7 +1891,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-start-once": "*"
@@ -2191,7 +1899,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-reboot-once": "*"
@@ -2199,7 +1907,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-reboot-failover-once": "*"
@@ -2207,7 +1915,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-stop-once": "*"
@@ -2215,7 +1923,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-snapshot-once": "*"
@@ -2223,7 +1931,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-snapshot-stop-once": "*"
@@ -2234,7 +1942,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-start-periodic": "*"
@@ -2242,7 +1950,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-reboot-periodic": "*"
@@ -2250,7 +1958,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-reboot-failover-periodic": "*"
@@ -2258,7 +1966,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-stop-periodic": "*"
@@ -2266,7 +1974,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-snapshot-periodic": "*"
@@ -2274,7 +1982,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-snapshot-stop-periodic": "*"
@@ -2294,7 +2002,7 @@ Resources:
             Action:
               - "ec2:CreateTags"
               - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:*:${AWS::AccountId}:instance/*"
+            Resource: !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:instance/*"
             Condition:
               "ForAnyValue:StringEquals":
                 "aws:TagKeys":
@@ -2321,7 +2029,7 @@ Resources:
             Action:
               - "ec2:CreateTags"
               - "ec2:DeleteTags"
-            Resource: !Sub "arn:aws:ec2:*:${AWS::AccountId}:volume/*"
+            Resource: !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:volume/*"
             Condition:
               "ForAnyValue:StringEquals":
                 "aws:TagKeys":
@@ -2339,8 +2047,8 @@ Resources:
               - "ec2:CreateTags"
               - "ec2:DeleteTags"
             Resource:
-              - !Sub "arn:aws:ec2:*::image/*"
-              - !Sub "arn:aws:ec2:*::snapshot/*"
+              - !Sub "arn:${AWS::Partition}:ec2:*::image/*"
+              - !Sub "arn:${AWS::Partition}:ec2:*::snapshot/*"
             Condition:
               "ForAnyValue:StringEquals":
                 "aws:TagKeys":
@@ -2372,7 +2080,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-start": "*"
@@ -2380,7 +2088,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-reboot": "*"
@@ -2388,7 +2096,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-reboot-failover": "*"
@@ -2396,7 +2104,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-stop": "*"
@@ -2404,7 +2112,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-snapshot": "*"
@@ -2412,7 +2120,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-snapshot-stop": "*"
@@ -2423,7 +2131,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-start-once": "*"
@@ -2431,7 +2139,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-reboot-once": "*"
@@ -2439,7 +2147,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-reboot-failover-once": "*"
@@ -2447,7 +2155,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-stop-once": "*"
@@ -2455,7 +2163,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-snapshot-once": "*"
@@ -2463,7 +2171,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-snapshot-stop-once": "*"
@@ -2474,7 +2182,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-start-periodic": "*"
@@ -2482,7 +2190,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-reboot-periodic": "*"
@@ -2490,7 +2198,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-stop-periodic": "*"
@@ -2498,7 +2206,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-snapshot-periodic": "*"
@@ -2506,7 +2214,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:db:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-snapshot-stop-periodic": "*"
@@ -2517,7 +2225,7 @@ Resources:
             Action:
               - "rds:AddTagsToResource"
               - "rds:RemoveTagsFromResource"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:snapshot:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:snapshot:*"
             Condition:
               StringLike:
                 "rds:req-tag/managed-delete": "*"
@@ -2526,19 +2234,13 @@ Resources:
 
           - Effect: Deny
             Action: "rds:DeleteDBSnapshot"
-            Resource: !Sub "arn:aws:rds:*:${AWS::AccountId}:snapshot:*"
+            Resource: !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:snapshot:*"
 
 
 Outputs:
 
-  TagSchedOpsTagLambdaFnId:
-    Value: !Ref TagSchedOpsTagLambdaFn
-    Description: "TagSchedOpsTag Lambda function name"
+  TagSchedOpsAgeLambdaFnArn:
+    Value: !GetAtt TagSchedOpsAgeLambdaFn.Arn
+    Description: "TagSchedOpsAge Lambda function ARN"
     Export:
-      Name: "LambdaFn-TagSchedOpsTag-Name"
-
-  TagSchedOpsTagLambdaFnArn:
-    Value: !GetAtt TagSchedOpsTagLambdaFn.Arn
-    Description: "TagSchedOpsTag Lambda function ARN"
-    Export:
-      Name: "LambdaFn-TagSchedOpsTag-Arn"
+      Name: "LambdaFn-TagSchedOpsAge-Arn"
