@@ -26,14 +26,14 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
 1. Log in to the [AWS Web Console](https://signin.aws.amazon.com/console) as a privileged user.
 
-   _Security Tip:_ To see what you'll be installing, look in the [CloudFormation template](/cloudformation/aws_tag_sched_ops.yaml). <br/>`grep 'Type: "AWS::' aws_tag_sched_ops.yaml | sort | uniq` works well.
+   _Security Tip:_ To see what you'll be installing, look in the [CloudFormation template](/cloudformation/aws_tag_sched_ops.yaml). <br/><kbd>grep 'Type: "AWS::' aws_tag_sched_ops.yaml | sort | uniq</kbd> works well.
 
 2. Go to [Instances](https://console.aws.amazon.com/ec2/v2/home#Instances) in the EC2 Console. Right-click the Name or ID of an instance, select Instance Settings, and then select Add/Edit Tags. Add:
 
    |Key|Value|Note|
    |--|--|--|
-   |`managed-image`||Leave value blank|
-   |`managed-image-periodic`|`d=* H:M=11:30`|Replace `11:30` with [current UTC time](https://www.timeanddate.com/worldclock/timezone/utc) + 20 minutes|
+   |<kbd>managed-image</kbd>||Leave value blank|
+   |<kbd>managed-image-periodic</kbd>|<kbd>d=\*&nbsp;H:M=11:30</kbd>|Replace 11:30 with [current UTC time](https://www.timeanddate.com/worldclock/timezone/utc) + 20 minutes|
 
 3. Go to the [S3 Console](https://console.aws.amazon.com/s3/home). Click the name of the bucket where you keep AWS Lambda function source code. (This may be the same bucket where you keep CloudFormation templates.) If you are creating the bucket now, be sure to create it in the region where you intend to install TagSchedOps; appending the region to the bucket name (for example, `my-bucket-us-east-1`) is recommended. Upload the compressed source code of the AWS Lambda function, [`aws-lambda/aws_tag_sched_ops_perform.py.zip`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/aws-lambda/aws_tag_sched_ops_perform.py.zip)
 
@@ -45,9 +45,9 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
    |Item|Value|
    |--|--|
-   |Stack name|`TagSchedOps`|
+   |Stack name|<kbd>TagSchedOps</kbd>|
    |LambdaCodeS3Bucket|Name of your S3 bucket|
-   |MainRegion|Current region, if other than `us-east-1`|
+   |MainRegion|Current region, if other than <kbd>us-east-1</kbd>|
 
    For all other paramters, keep the default values.
 
@@ -79,9 +79,9 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
   | |Start|Create Image|Reboot then Create Image|Reboot then Fail Over|Reboot|Create Snapshot|Create Snapshot then Stop|Stop|
   |--|--|--|--|--|--|--|--|--|
-  |[EC2 compute instance](https://console.aws.amazon.com/ec2/v2/home#Instances)|`managed-start`|`managed-image`|`managed-reboot-image`| |`managed-reboot`| | |`managed-stop`|
-  |[EC2 EBS disk volume](https://console.aws.amazon.com/ec2/v2/home#Volumes)| | | | | |`managed-snapshot`| | |
-  |[RDS database instance](https://console.aws.amazon.com/rds/home#dbinstances:)|`managed-start`| | |`managed-reboot-failover`|`managed-reboot`|`managed-snapshot`|`managed-snapshot-stop`|`managed-stop`|
+  |[EC2 compute instance](https://console.aws.amazon.com/ec2/v2/home#Instances)|<kbd>managed&#x2011;start</kbd>|<kbd>managed&#x2011;image</kbd>|<kbd>managed&#x2011;reboot-image</kbd>| |<kbd>managed&#x2011;reboot</kbd>| | |<kbd>managed&#x2011;stop</kbd>|
+  |[EC2 EBS disk volume](https://console.aws.amazon.com/ec2/v2/home#Volumes)| | | | | |<kbd>managed&#x2011;snapshot</kbd>| | |
+  |[RDS database instance](https://console.aws.amazon.com/rds/home#dbinstances:)|<kbd>managed&#x2011;start</kbd>| | |<kbd>managed&#x2011;reboot-failover</kbd>|<kbd>managed&#x2011;reboot</kbd>|<kbd>managed&#x2011;snapshot</kbd>|<kbd>managed&#x2011;snapshot-stop</kbd>|<kbd>managed&#x2011;stop</kbd>|
 
 * Also add tags for [repetitive (`-periodic`)](#repetitive-schedules) and/or [one-time (`-once`)](#one-time-schedules) schedules. Prefix with the operation.
 * If there are no corresponding schedule tags, an enabling tag will be ignored, and the operation will never occur.
@@ -90,67 +90,67 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
   |All tags|Operation occurs?|Comment|
   |--|--|--|
-  |managed&#x2011;snapshot:&nbsp;&empty;<br/>managed&#x2011;snapshot&#x2011;periodic:&nbsp;u=1&nbsp;H=09&nbsp;M=05|Yes||
-  |managed&#x2011;snapshot:&nbsp;&empty;<br/>managed&#x2011;snapshot&#x2011;once:&nbsp;2017-12-31T09:05|Yes||
-  |managed&#x2011;snapshot:&nbsp;&empty;<br/>managed&#x2011;snapshot&#x2011;periodic:&nbsp;u=1&nbsp;H=09&nbsp;M=05 <br/>managed&#x2011;snapshot&#x2011;once:&nbsp;2017-12-31T09:05|Yes|Both repetitive and one-time schedule tags are allowed|
-  |managed&#x2011;snapshot:&nbsp;No <br/>managed&#x2011;snapshot&#x2011;periodic:&nbsp;u=1&nbsp;H=09&nbsp;M=05|Yes|The value of an enabling tag is always ignored|
-  |managed&#x2011;snapshot:&nbsp;&empty;|No|No schedule tag is present|
-  |managed&#x2011;snapshot&#x2011;once:&nbsp;2017-12-31T09:05|No|No enabling tag is present (operation is suspended)|
-  |managed&#x2011;snapshot:&nbsp;&empty;<br/>managed&#x2011;snapshot&#x2011;once:&nbsp;&empty;|No|Schedule is invalid (blank)|
-  |managed&#x2011;snapshot:&nbsp;&empty;<br/>managed&#x2011;snapshot&#x2011;periodic:&nbsp;Monday|No|Schedule is invalid|
-  |managed&#x2011;snapshot:&nbsp;&empty;<br/>managed&#x2011;stop&#x2011;periodic:&nbsp;u=1&nbsp;H=09&nbsp;M=05|No|The enabling tag and the schedule tag are for different operations|
+  |<kbd>managed&#x2011;snapshot:&nbsp;&empty;<br/>managed&#x2011;snapshot&#x2011;periodic:&nbsp;u=1&nbsp;H=09&nbsp;M=05</kbd>|Yes||
+  |<kbd>managed&#x2011;snapshot:&nbsp;&empty;<br/>managed&#x2011;snapshot&#x2011;once:&nbsp;2017-12-31T09:05</kbd>|Yes||
+  |<kbd>managed&#x2011;snapshot:&nbsp;&empty;<br/>managed&#x2011;snapshot&#x2011;periodic:&nbsp;u=1&nbsp;H=09&nbsp;M=05 <br/>managed&#x2011;snapshot&#x2011;once:&nbsp;2017-12-31T09:05</kbd>|Yes|Both repetitive and one-time schedule tags are allowed|
+  |<kbd>managed&#x2011;snapshot:&nbsp;No <br/>managed&#x2011;snapshot&#x2011;periodic:&nbsp;u=1&nbsp;H=09&nbsp;M=05</kbd>|Yes|The value of an enabling tag is always ignored|
+  |<kbd>managed&#x2011;snapshot:&nbsp;&empty;</kbd>|No|No schedule tag is present|
+  |<kbd>managed&#x2011;snapshot&#x2011;once:&nbsp;2017-12-31T09:05</kbd>|No|No enabling tag is present (operation is suspended)|
+  |<kbd>managed&#x2011;snapshot:&nbsp;&empty;<br/>managed&#x2011;snapshot&#x2011;once:&nbsp;&empty;</kbd>|No|Schedule is invalid (blank)|
+  |<kbd>managed&#x2011;snapshot:&nbsp;&empty;<br/>managed&#x2011;snapshot&#x2011;periodic:&nbsp;Monday|No|Schedule is invalid|
+  |<kbd>managed&#x2011;snapshot:&nbsp;&empty;<br/>managed&#x2011;stop&#x2011;periodic:&nbsp;u=1&nbsp;H=09&nbsp;M=05</kbd>|No|The enabling tag and the schedule tag are for different operations|
 
-  Each tag is shown in _key:value_ form. &empty; means that the value is blank.
+  Each tag is shown in <var>key</var>:&nbsp;<var>value</var> form. &empty; means that the value is blank.
 
 ## Scheduling Operations
 
  * All times are UTC, on a 24-hour clock.
- * The function runs once every 10 minutes. The last digit of the minute is always ignored. For example, `M=47` means _one time, between 40 and 50 minutes after the hour_.
+ * The function runs once every 10 minutes. The last digit of the minute is always ignored. For example, <kbd>M=47</kbd> means _one time, between 40 and 50 minutes after the hour_.
  * Month and minute values must have two digits. Use a leading zero if necessary. (Weekday numbers have only one digit.)
- * Use a comma (`,`) or a space (` `) to separate components. (RDS does not allow commas in tag values.) The order of components within a tag value does not matter.
+ * Use a comma (<kbd>,</kbd>) or a space (<kbd> </kbd>) to separate components. (RDS does not allow commas in tag values.) The order of components within a tag value does not matter.
  * `T` separates date from time; it is invariable.
- * [Repetitive (`-periodic`)](#repetitive-schedules) and [one-time (`-once`)](#one-time-schedules) schedule tags are supported. Prefix with the operation.
+ * [Repetitive (<kbd>-periodic</kbd>)](#repetitive-schedules) and [one-time (<kbd>-once</kbd>)](#one-time-schedules) schedule tags are supported. Prefix with the operation.
  * If the corresponding [enabling tag](#enabling-operations) is missing, schedule tags will be ignored, and the operation will never occur.
 
 ### Repetitive Schedules
 
-  * Tag suffix: `-periodic`
+  * Tag suffix: <kbd>-periodic</kbd>
 
   * Values: one or more of the following components:
 
     |Name|Minimum|Maximum|Wildcard|Combines With|
     |--|--|--|--|--|
-    |Day of month (`d`)|`d=01`|`d=31`|`d=*`|`H` and `M`, or `H:M`|
-    |Weekday (`u`)|`u=1` (Monday)|`u=7` (Sunday)||`H` and `M`, or `H:M`|
-    |Hour (`H`)|`H=00`|`H=23`|`H=*`|`d` or `u`, and `M`|
-    |Minute (`M`)|`M=00`|`M=59`||`d` or `u`, and `H`|
-    |Hour and minute (`H:M`)|`H:M=00:00`|`H:M=23:59`||`d` or `u`|
-    |Day of month, hour and minute (`dTH:M`)|`dTH:M=01T00:00`|`dTH:M=31T23:59`|||
-    |Weekday, hour and minute (`uTH:M`)|`uTH:M=1T00:00`|`uTH:M=7T23:59`|||
+    |Day of month (`d`)|<kbd>d=01</kbd>|<kbd>d=31</kbd>|<kbd>d=*</kbd>|<kbd>H` and `M`, or `H:M</kbd>|
+    |Weekday (`u`)|<kbd>u=1` (Monday)|<kbd>u=7` (Sunday)||<kbd>H` and `M`, or `H:M</kbd>|
+    |Hour (`H`)|<kbd>H=00</kbd>|<kbd>H=23</kbd>|<kbd>H=*</kbd>|<kbd>d` or `u`, and `M</kbd>|
+    |Minute (`M`)|<kbd>M=00</kbd>|<kbd>M=59</kbd>||<kbd>d` or `u`, and `H</kbd>|
+    |Hour and minute (`H:M`)|<kbd>H:M=00:00</kbd>|<kbd>H:M=23:59</kbd>||<kbd>d` or `u</kbd>|
+    |Day of month, hour and minute (`dTH:M`)|<kbd>dTH:M=01T00:00</kbd>|<kbd>dTH:M=31T23:59</kbd>|||
+    |Weekday, hour and minute (`uTH:M`)|<kbd>uTH:M=1T00:00</kbd>|<kbd>uTH:M=7T23:59</kbd>|||
 
       * To be valid, a component or combination of components must specify a day, hour and minute.
-      * Repeat a whole component to specify multiple values. For example, `d=01,d=11,d=21` means the 1st, 11th and 21st days of the month.
-      * The `*` wildcard is allowed for day (_every day of the month_) and hour (_every hour of the day_).
-      * For consistent one-day-a-month scheduling, avoid `d=29` through `d=31`.
-      * Label letters match [`strftime`](http://manpages.ubuntu.com/manpages/xenial/man3/strftime.3.html) and weekday numbers are [ISO 8601-standard](https://en.wikipedia.org/wiki/ISO_8601#Week_dates) (different from `cron`).
+      * Repeat a whole component to specify multiple values. For example, <kbd>d=01&nbsp;d=11&nbsp;d=21</kbd> means the 1st, 11th and 21st days of the month.
+      * The <kbd>*</kbd> wildcard is allowed for day (_every day of the month_) and hour (_every hour of the day_).
+      * For consistent one-day-a-month scheduling, avoid <kbd>d=29</kbd> through <kbd>=31</kbd>.
+      * Label letters match [strftime()](http://manpages.ubuntu.com/manpages/xenial/man3/strftime.3.html) and weekday numbers are [ISO 8601-standard](https://en.wikipedia.org/wiki/ISO_8601#Week_dates) (different from cron).
 
   * Examples:
 
     |Value of Repetitive Schedule Tag|Demonstrates|Operation Begins|
     |--|--|--|
-    |dTH:M=\*T14:25|Once-a-day event|Between 14:20 and 14:30, every day.|
-    |uTH:M=1T14:25|Once-a-week event|Between 14:20 and 14:30, every Monday.|
-    |dTH:M=28T14:25|Once-a-month event|Between 14:20 and 14:30 on the 28th day of every month.|
-    |d=1&nbsp;d=8&nbsp;d=15&nbsp;d=22&nbsp;H=03&nbsp;H=19&nbsp;M=01|`cron` schedule|Between 03:00 and 03:10 and again between 19:00 and 19:10, on the 1st, 8th, 15th, and 22nd days of every month.|
-    |d=\*&nbsp;H=\*&nbsp;M=15&nbsp;M=45&nbsp;H:M=08:50|Extra daily event|Between 10 and 20 minutes after the hour and 40 to 50 minutes after the hour, every hour of every day, _and also_ every day between 08:50 and 09:00.|
-    |d=\*&nbsp;H=11&nbsp;M=00&nbsp;uTH:M=2T03:30&nbsp;uTH:M=5T07:20|Two extra weekly events|Between 11:00 and 11:10 every day, _and also_ every Tuesday between 03:30 and 03:40 and every Friday between 07:20 and 7:30.|
-    |u=3&nbsp;H=22&nbsp;M=15&nbsp;dTH:M=01T05:20|Extra monthly event|Between 22:10 and 22:20 every Wednesday, _and also_ on the first day of every month between 05:20 and 05:30.|
+    |<kbd>dTH:M=\*T14:25</kbd>|Once-a-day event|Between 14:20 and 14:30, every day|
+    |uTH:M=1T14:25</kbd>|Once-a-week event|Between 14:20 and 14:30, every Monday.|
+    |<kbd>dTH:M=28T14:25</kbd>|Once-a-month event|Between 14:20 and 14:30 on the 28th day of every month|
+    |<kbd>d=1&nbsp;d=8&nbsp;d=15&nbsp;d=22&nbsp;H=03&nbsp;H=19&nbsp;M=01</kbd>|cron schedule|Between 03:00 and 03:10 and again between 19:00 and 19:10, on the 1st, 8th, 15th, and 22nd days of every month|
+    |<kbd>d=\*&nbsp;H=\*&nbsp;M=15&nbsp;M=45&nbsp;H:M=08:50</kbd>|Extra daily event|Between 10 and 20 minutes after the hour and 40 to 50 minutes after the hour, every hour of every day, _and also_ every day between 08:50 and 09:00|
+    |<kbd>d=\*&nbsp;H=11&nbsp;M=00&nbsp;uTH:M=2T03:30&nbsp;uTH:M=5T07:20</kbd>|Two extra weekly events|Between 11:00 and 11:10 every day, _and also_ every Tuesday between 03:30 and 03:40 and every Friday between 07:20 and 7:30|
+    |<kbd>u=3&nbsp;H=22&nbsp;M=15&nbsp;dTH:M=01T05:20</kbd>|Extra monthly event|Between 22:10 and 22:20 every Wednesday, _and also_ on the first day of every month between 05:20 and 05:30|
 
 ### One-Time Schedules
 
   * Tag suffix: `-once`
 
-  * Values: one or more [ISO 8601 combined date and time strings](https://en.wikipedia.org/wiki/ISO_8601#Combined_date_and_time_representations), of the form `2017-03-21T22:40` (March 21, 2017, in this example)
+  * Values: one or more [ISO 8601 combined date and time strings](https://en.wikipedia.org/wiki/ISO_8601#Combined_date_and_time_representations), of the form <kbd>2017-03-21T22:40</kbd> (March 21, 2017, in this example)
       * Remember, the code runs once every 10 minutes and the last digit of the minute is ignored
       * Omit seconds and fractions of seconds
       * Omit time zone; UTC is always used
@@ -187,7 +187,7 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
 ### Debugging Mode
 
-If the `DEBUG` environment variable is set, the function outputs internal reference data, including the regular expressions used to match schedule tags.
+If the DEBUG environment variable is set, the function outputs internal reference data, including the regular expressions used to match schedule tags.
 
 To use the debugging mode,
 
@@ -195,7 +195,7 @@ To use the debugging mode,
 
 2. Click on the [TagSchedOpsPerformLambdaFn AWS Lambda function](https://console.aws.amazon.com/lambda/home?region=us-east-1#/functions?f0=a3c%3D%3AVGFnU2NoZWRPcHNQZXJmb3JtTGFtYmRhRm4%3D).
 
-3. Open the Code tab and scroll to the bottom. In the "Environment variables" section, type `DEBUG` in the first empty Key box. Leave Value blank.
+3. Open the Code tab and scroll to the bottom. In the "Environment variables" section, type <kbd>DEBUG</kbd> in the first empty Key box. Leave Value blank.
 
 4. <a name="debug-step-4"></a>Scroll back to the top and click the white Save button. _Do not click the orange "Save and test" button_; that would cause the function to run more than once in the same 10-minute interval.
 
@@ -264,10 +264,10 @@ The Create Image + Reboot combination for EC2 instances is useful. For example, 
 
 |Tag|Value|
 |--|--|
-|`managed-image`||
-|`managed-image-periodic`|`d=*,H=*,M=59`|
-|`managed-reboot`||
-|`managed-reboot-periodic`|`d=*,H=23,M=59`|
+|<kbd>managed-image</kbd>||
+|<kbd>managed-image-periodic</kbd>|<kbd>d=\*&nbsp;H=\*&nbsp;M=59</kbd>|
+|<kbd>managed-reboot</kbd>||
+|<kbd>managed-reboot-periodic</kbd>|<kbd>d=\*&nbsp;H=23&nbsp;M=59</kbd>|
 
 23:59, which for the purposes of this project represents the last 10-minute interval of the day, is the unambiguous way to express _almost the end of some designated day_, on any system. 00:00 and 24:00 could refer to the start or the end of the designated day, and not all systems accept 24:00, in any case. Remember that all times are UTC; adjust for night-time in your time zone!
 
@@ -347,7 +347,7 @@ If you intend to install TagSchedOps in multiple regions,
 
    |Parameter|Value|
    |--|--|
-   |LambdaCodeS3Bucket|_Use the shared prefix; for example, if you created_ `my-bucket-us-east-1` _and_ `my-bucket-us-west-2` _, use_ `my-bucket`|
+   |LambdaCodeS3Bucket|_Use the shared prefix; for example, if you created_ `my-bucket-us-east-1` _and_ `my-bucket-us-west-2` _, use_ <kbd>my-bucket</kbd>|
    |MainRegion|_Always use the same value, to prevent the creation of duplicate sets of user policies_|
    |StackSetsOrMultiRegion|Yes|
    |TagSchedOpsPerformCodeS3VersionID|_Leave blank, because the value would differ in every region; only the latest version of the AWS Lambda function source code file in each region's S3 bucket can be used_|
@@ -360,7 +360,7 @@ If you intend to install TagSchedOps in multiple AWS accounts,
 
    |Item|Value|
    |--|--|
-   |Stack name|`TagSchedOpsInstall`|
+   |Stack name|<kbd>TagSchedOpsInstall</kbd>|
    |AWSCloudFormationStackSet*Exec*utionRoleStatus|_Choose carefully!_|
    |AdministratorAccountId|AWS account number of main (or only) account; leave blank if AWSCloudFormationStackSet*Exec*utionRole existed before this stack was created|
    |LambdaCodeS3Bucket|Name of AWS Lambda function source code bucket (shared prefix, in a multi-region scenario)|
@@ -407,8 +407,8 @@ If you intend to install TagSchedOps in multiple AWS accounts,
 
    |Item|Value|
    |--|--|
-   |StackSet name|`TagSchedOps`|
-   |LambdaCodeS3Bucket|_Use the shared prefix; for example, if you created_ `my-bucket-us-east-1` _, use use_ `my-bucket`|
+   |StackSet name|<kbd>TagSchedOps</kbd>|
+   |LambdaCodeS3Bucket|_Use the shared prefix; for example, if you created_ `my-bucket-us-east-1` _, use use_ <kbd>my-bucket</kbd>|
    |MainRegion|_Must be a StackSet target region_|
    |StackSetsOrMultiRegion|Yes|
    |TagSchedOpsPerformCodeS3VersionID|_In a multi-region scenario, leave blank_|
@@ -454,7 +454,7 @@ New versions of the AWS Lambda function source code and the CloudFormation templ
 
 4. Click the checkbox to the left of the newly-uploaded file. In the window that pops up, look below the Download button and reselect "Latest version". In the Overview section of the pop-up window, find the Link and copy the text _after_ `versionId=`. (The Version ID will not appear unless you expressly select "Latest version".)
 
-   _Security Tip:_ Download the file from S3 and verify it. (In some cases, you can simply compare the ETag reported by S3.) <br/>`md5sum aws-lambda/aws_tag_sched_ops_perform.py.zip` should match [`aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt`](aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt)
+   _Security Tip:_ Download the file from S3 and verify it. (In some cases, you can simply compare the ETag reported by S3.) <br/><kbd>md5sum aws-lambda/aws_tag_sched_ops_perform.py.zip</kbd> should match [`aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt`](aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt)
 
 5. Go to [Stacks](https://console.aws.amazon.com/cloudformation/home#/stacks) in the CloudFormation Console. Click the checkbox to the left of `TagSchedOps` (you might have given the stack a different name). From the Actions pop-up menu next to the blue Create Stack button, select Create Change Set For Current Stack.
 
