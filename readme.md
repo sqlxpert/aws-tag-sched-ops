@@ -55,7 +55,7 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
 6. Before deregistering (deleting) the sample image, note its ID, so that you can delete the associated [Snapshots](https://console.aws.amazon.com/ec2/v2/home#Snapshots:sort=desc:startTime). Also untag the instance.
 
-7. Go to [Users](https://console.aws.amazon.com/iam/home#/users) in the IAM Console. Click your regular (uprivileged) username. Click Add Permissions, then click "Attach existing policies directly". In the Search box, type `TagSchedOpsAdminister`. Add the two matching policies.
+7. Go to [Users](https://console.aws.amazon.com/iam/home#/users) in the IAM Console. Click your regular (uprivileged) username. Click Add Permissions, then click "Attach existing policies directly". In the Search box, type <kbd>TagSchedOpsAdminister</kbd>. Add the two matching policies.
 
    _Security Tip_: Review everyone's EC2 and RDS tagging privileges!
 
@@ -109,7 +109,7 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
  * The function runs once every 10 minutes. The last digit of the minute is always ignored. For example, <kbd>M=47</kbd> means _one time, between 40 and 50 minutes after the hour_.
  * Month and minute values must have two digits. Use a leading zero if necessary. (Weekday numbers have only one digit.)
  * Use a comma (<kbd>,</kbd>) or a space (<kbd>&nbsp;</kbd>) to separate components. (RDS does not allow commas in tag values.) The order of components within a tag value does not matter.
- * `T` separates date from time; it is invariable.
+ * <kbd>T</kbd> separates date from time; it is invariable.
  * [Repetitive (<kbd>-periodic</kbd>)](#repetitive-schedules) and [one-time (<kbd>-once</kbd>)](#one-time-schedules) schedule tags are supported. Prefix with the operation.
  * If the corresponding [enabling tag](#enabling-operations) is missing, schedule tags will be ignored, and the operation will never occur.
 
@@ -131,7 +131,7 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
   * To be valid, a component or combination of components must specify a day, hour and minute.
   * Repeat a whole component to specify multiple values. For example, <kbd>d=01&nbsp;d=11&nbsp;d=21</kbd> means the 1st, 11th and 21st days of the month.
-  * The <kbd>\*</kbd> wildcard is allowed for day (_every day of the month_) and hour (_every hour of the day_).
+  * Wildcards: <kbd>d=\*</kbd> means _every day of the month_ and <kbd>h=\*</kbd>, _every hour of the day_.
   * For consistent one-day-a-month scheduling, avoid <kbd>d=29</kbd> through <kbd>d=31</kbd>.
   * Label letters match [<code>strftime</code>](http://manpages.ubuntu.com/manpages/xenial/man3/strftime.3.html) and weekday numbers are [ISO 8601-standard](https://en.wikipedia.org/wiki/ISO_8601#Week_dates) (different from cron).
 
@@ -139,7 +139,7 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
   |Value of Repetitive Schedule Tag|Demonstrates|Operation Begins|
   |--|--|--|
-  |<samp>d=\* H:M=14:25</samp>|Once-a-day event|Between 14:20 and 14:30, every day|
+  |<samp>d=\*&nbsp;H:M=14:25</samp>|Once-a-day event|Between 14:20 and 14:30, every day|
   |<samp>uTH:M=1T14:25</samp>|Once-a-week event|Between 14:20 and 14:30, every Monday.|
   |<samp>dTH:M=28T14:25</samp>|Once-a-month event|Between 14:20 and 14:30 on the 28th day of every month|
   |<samp>d=1&nbsp;d=8&nbsp;d=15&nbsp;d=22&nbsp;H=03&nbsp;H=19&nbsp;M=01</samp>|cron schedule|Between 03:00 and 03:10 and again between 19:00 and 19:10, on the 1st, 8th, 15th, and 22nd days of every month|
@@ -158,7 +158,7 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
 ## Output
 
-* After logging in to the [AWS Web Console](https://signin.aws.amazon.com/console), go to the [Log Group for the AWS Lambda function](https://console.aws.amazon.com/cloudwatch/home#logs:prefix=/aws/lambda/TagSchedOps-TagSchedOpsPerformLambdaFn-), in the CloudWatch Logs Console. If you gave the CloudFormation stack a name other than `TagSchedOps`, check the list of [Log Groups for _all_ AWS Lambda functions](https://console.aws.amazon.com/cloudwatch/home#logs:prefix=/aws/lambda/) instead.
+* After logging in to the [AWS Web Console](https://signin.aws.amazon.com/console), go to the [Log Group for the AWS Lambda function](https://console.aws.amazon.com/cloudwatch/home#logs:prefix=/aws/lambda/TagSchedOps-TagSchedOpsPerformLambdaFn-), in the CloudWatch Logs Console. If you gave the CloudFormation stack a name other than <samp>TagSchedOps</samp>, check the list of [Log Groups for _all_ AWS Lambda functions](https://console.aws.amazon.com/cloudwatch/home#logs:prefix=/aws/lambda/) instead.
 
 * Sample output:
 
@@ -274,7 +274,7 @@ The Create Image + Reboot combination for EC2 instances is useful. For example, 
 
 ### Unsupported Combinations
 
-Resources tagged for unsupported combinations of operations are logged (with message `OPS_UNSUPPORTED`) and skipped.
+Resources tagged for unsupported combinations of operations are logged (with message <samp>OPS_UNSUPPORTED</samp>) and skipped.
 
 |Bad Combination|Reason|Example|
 |--|--|--|
@@ -340,9 +340,9 @@ Before starting a multi-region and/or multi-account installation, check all regi
 
 If you intend to install TagSchedOps in multiple regions,
 
-1. Create S3 buckets in all [regions](http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region) where you intend to install TagSchedOps. The bucket names must share the same prefix, followed by a hyphen (`-`) and a suffix for the region. The region in which each bucket is created _must_ match the suffix in the bucket's name.
+1. Create S3 buckets in all [regions](http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region) where you intend to install TagSchedOps. The bucket names must share the same prefix, followed by a hyphen (<kbd>-</kbd>) and a suffix for the region. The region in which each bucket is created _must_ match the suffix in the bucket's name.
 
-2. Upload [`aws-lambda/aws_tag_sched_ops_perform.py.zip`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/aws-lambda/aws_tag_sched_ops_perform.py.zip) to each bucket. The need for copies in multiple regions is an AWS Lambda limitation.
+2. Upload [<samp>aws-lambda/aws_tag_sched_ops_perform.py.zip</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/aws-lambda/aws_tag_sched_ops_perform.py.zip) to each bucket. The need for copies in multiple regions is an AWS Lambda limitation.
 
 3. Keep the following rules in mind when setting parameters, later:
 
@@ -357,7 +357,7 @@ If you intend to install TagSchedOps in multiple regions,
 
 If you intend to install TagSchedOps in multiple AWS accounts,
 
-1. In every target AWS account, create [`cloudformation/tag-sched-ops-install.yaml`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops-install.yaml). Set:
+1. In every target AWS account, create [<samp>cloudformation/tag-sched-ops-install.yaml</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops-install.yaml). Set:
 
    |Item|Value|
    |--|--|
@@ -404,7 +404,7 @@ If you intend to install TagSchedOps in multiple AWS accounts,
 
 4. In the AWS account with the AWSCloudFormationStackSet*Admin*istrationRole, go to the [StackSets Console](https://console.aws.amazon.com/cloudformation/stacksets/home#/stacksets).
 
-5. Click Create StackSet, then select "Upload a template to Amazon S3", then click Browse and select your locally downloaded copy of [`cloudformation/aws_tag_sched_ops.yaml`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
+5. Click Create StackSet, then select "Upload a template to Amazon S3", then click Browse and select your locally downloaded copy of [<samp>cloudformation/aws_tag_sched_ops.yaml</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
 
    |Item|Value|
    |--|--|
@@ -451,15 +451,15 @@ New versions of the AWS Lambda function source code and the CloudFormation templ
 2. Go to the [S3 Console](https://console.aws.amazon.com/s3/home). Click the name of the bucket where you keep CloudFormation templates and their dependencies. Open the Properties tab. If Versioning is disabled, click anywhere inside the box, select "Enable versioning", and click Save.
 
 3. Open the Overview tab. Upload the latest version of
-[`aws-lambda/aws_tag_sched_ops_perform.py.zip`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/aws-lambda/aws_tag_sched_ops_perform.py.zip) to S3.
+[<samp>aws-lambda/aws_tag_sched_ops_perform.py.zip</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/aws-lambda/aws_tag_sched_ops_perform.py.zip) to S3.
 
-4. Click the checkbox to the left of the newly-uploaded file. In the window that pops up, look below the Download button and reselect "Latest version". In the Overview section of the pop-up window, find the Link and copy the text _after_ `versionId=`. (The Version ID will not appear unless you expressly select "Latest version".)
+4. Click the checkbox to the left of the newly-uploaded file. In the window that pops up, look below the Download button and reselect "Latest version". In the Overview section of the pop-up window, find the Link and copy the text _after_ <samp>versionId=</samp>. (The Version ID will not appear unless you expressly select "Latest version".)
 
-   _Security Tip:_ Download the file from S3 and verify it. (In some cases, you can simply compare the ETag reported by S3.) <br/><kbd>md5sum aws-lambda/aws_tag_sched_ops_perform.py.zip</kbd> should match [`aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt`](aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt)
+   _Security Tip:_ Download the file from S3 and verify it. (In some cases, you can simply compare the ETag reported by S3.) <br/><kbd>md5sum aws-lambda/aws_tag_sched_ops_perform.py.zip</kbd> should match [<samp>aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt</samp>](aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt)
 
-5. Go to [Stacks](https://console.aws.amazon.com/cloudformation/home#/stacks) in the CloudFormation Console. Click the checkbox to the left of `TagSchedOps` (you might have given the stack a different name). From the Actions pop-up menu next to the blue Create Stack button, select Create Change Set For Current Stack.
+5. Go to [Stacks](https://console.aws.amazon.com/cloudformation/home#/stacks) in the CloudFormation Console. Click the checkbox to the left of <samp>TagSchedOps</samp> (you might have given the stack a different name). From the Actions pop-up menu next to the blue Create Stack button, select Create Change Set For Current Stack.
 
-6. Click Choose File, immediately below "Upload a template to Amazon S3", and navigate to your locally downloaded copy of the latest version of [`cloudformation/aws_tag_sched_ops.yaml`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
+6. Click Choose File, immediately below "Upload a template to Amazon S3", and navigate to your locally downloaded copy of the latest version of [<samp>cloudformation/aws_tag_sched_ops.yaml</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
 
    |Item|Value|
    |--|--|
@@ -480,7 +480,7 @@ New versions of the AWS Lambda function source code and the CloudFormation templ
 
 9. Click Execute, below the top-right corner of the CloudFormation Console window.
 
-10. Refresh until the stack's status shows `UPDATE_COMPLETE`, in green.
+10. Refresh until the stack's status shows <samp>UPDATE_COMPLETE</samp>, in green.
 
 11. If you had to detach any IAM policies, return to the IAM Console and attach the replacement policies to the original entities.
 
@@ -490,11 +490,11 @@ New versions of the AWS Lambda function source code and the CloudFormation templ
 
 Differences when updating a StackSet instead of an ordinary stack:
 
- * Click the radio button to the left of TagSchedOps, in the [list of StackSets](https://console.aws.amazon.com/cloudformation/stacksets/home#/stacksets). From the Actions pop-up menu next to the blue Create StackSet button, select "Manage stacks in StackSet". Then, select "Edit stacks". On the next page, select "Upload a template to Amazon S3" and upload the latest version of [`cloudformation/aws_tag_sched_ops.yaml`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml).
+ * Click the radio button to the left of TagSchedOps, in the [list of StackSets](https://console.aws.amazon.com/cloudformation/stacksets/home#/stacksets). From the Actions pop-up menu next to the blue Create StackSet button, select "Manage stacks in StackSet". Then, select "Edit stacks". On the next page, select "Upload a template to Amazon S3" and upload the latest version of [<samp>cloudformation/aws_tag_sched_ops.yaml</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml).
 
  * A single update covers all target regions and/or AWS target accounts.
 
- * The TagSchedOpsPerformCodeS3VersionID parameter must remain blank. So that CloudFormation will recognize new source code for the AWS Lambda function, rename `aws-lambda/aws_tag_sched_ops_perform.py.zip` to `aws-lambda/aws_tag_sched_ops_perform_20170924.py.zip` (substitute current date) before uploading the file to the regional S3 bucket(s). Change the TagSchedOpsPerformCodeName parameter accordingly.
+ * The TagSchedOpsPerformCodeS3VersionID parameter must remain blank. So that CloudFormation will recognize new source code for the AWS Lambda function, rename <samp>aws-lambda/aws_tag_sched_ops_perform.py.zip</samp> to <samp>aws-lambda/aws_tag_sched_ops_perform_20170924.py.zip</samp> (substitute current date) before uploading the file to the regional S3 bucket(s). Change the TagSchedOpsPerformCodeName parameter accordingly.
 
  * Change Sets are not supported. There is no preliminary feedback about the scope of changes.
 
@@ -502,7 +502,7 @@ Differences when updating a StackSet instead of an ordinary stack:
 
  * Automated testing, consisting of a CloudFormation template to create sample AWS resources, and a program (perhaps another AWS Lambda function!) to check whether the intended operations were performed. An AWS Lambda function would also be ideal for testing security policies, while cycling through different IAM roles.
 
- * Additional AWS Lambda function, to automatically delete backups tagged `managed-delete`
+ * Additional AWS Lambda function, to automatically delete backups tagged <samp>managed-delete</samp>
 
  * Makefile
 
@@ -522,4 +522,4 @@ This work is dedicated to [Ernie Salazar](https://github.com/ehsalazar), R&eacut
 
 Copyright 2018, Paul Marcelin
 
-Contact: `marcelin` at `cmu.edu` (replace at with `@`)
+Contact: <kbd>marcelin</kbd> at <kbd>cmu.edu</kbd> (replace at with <kbd>@</kbd>)
