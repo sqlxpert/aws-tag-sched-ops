@@ -100,6 +100,8 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
   |managed&#x2011;snapshot:&nbsp;&empty;<br/>managed&#x2011;snapshot&#x2011;periodic:&nbsp;Monday|No|Schedule is invalid|
   |managed&#x2011;snapshot:&nbsp;&empty;<br/>managed&#x2011;stop&#x2011;periodic:&nbsp;u=1&nbsp;H=09&nbsp;M=05|No|The enabling tag and the schedule tag are for different operations|
 
+  Each tag is shown in _key:value_ form. &empty; means that the value is blank.
+
 ## Scheduling Operations
 
  * All times are UTC, on a 24-hour clock.
