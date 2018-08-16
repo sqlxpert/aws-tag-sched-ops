@@ -33,7 +33,7 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
    |Key|Value|Note|
    |--|--|--|
    |`managed-image`||Leave value blank|
-   |`managed-image-periodic`|`d=*&nbsp;H:M=11:30`|Replace `11:30` with [current UTC time](https://www.timeanddate.com/worldclock/timezone/utc) + 20 minutes|
+   |`managed-image-periodic`|`d=* H:M=11:30`|Replace `11:30` with [current UTC time](https://www.timeanddate.com/worldclock/timezone/utc) + 20 minutes|
 
 3. Go to the [S3 Console](https://console.aws.amazon.com/s3/home). Click the name of the bucket where you keep AWS Lambda function source code. (This may be the same bucket where you keep CloudFormation templates.) If you are creating the bucket now, be sure to create it in the region where you intend to install TagSchedOps; appending the region to the bucket name (for example, `my-bucket-us-east-1`) is recommended. Upload the compressed source code of the AWS Lambda function, [`aws-lambda/aws_tag_sched_ops_perform.py.zip`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/aws-lambda/aws_tag_sched_ops_perform.py.zip)
 
@@ -90,15 +90,15 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
   |Set of Tags|Works?|Comment|
   |--|--|--|
-  |`managed-start` <br/>`managed-start-periodic`=`u=1&nbsp;H=09&nbsp;M=05`|Yes|Enabled and scheduled|
-  |`managed-start`=`No` <br/>`managed-start-periodic`=`u=1&nbsp;H=09&nbsp;M=05`|Yes|Value of enabling tag is always ignored|
+  |`managed-start` <br/>`managed-start-periodic`=`u=1 H=09 M=05`|Yes|Enabled and scheduled|
+  |`managed-start`=`No` <br/>`managed-start-periodic`=`u=1 H=09 M=05`|Yes|Value of enabling tag is always ignored|
   |`managed-start` <br/>`managed-start-once`=`2017-12-31T09:05`|Yes||
-  |`managed-start` <br/>`managed-start-periodic`=`u=1&nbsp;H=09&nbsp;M=05` <br/>`managed-start-once`=`2017-12-31T09:05`|Yes|Both repetitive and one-time schedule tags are allowed|
+  |`managed-start` <br/>`managed-start-periodic`=`u=1 H=09 M=05` <br/>`managed-start-once`=`2017-12-31T09:05`|Yes|Both repetitive and one-time schedule tags are allowed|
   |`managed-start`|No|No schedule tag|
   |`managed-start-once`=`2017-12-31T09:05`|No|No enabling tag (operation is suspended)|
   |`managed-start` <br/>`managed-start-once`|No|Blank schedule|
   |`managed-start` <br/>`managed-start-periodic`=`Monday`|No|Invalid schedule|
-  |`managed-start` <br/>`managed-stop-periodic`=`u=1&nbsp;H=09,M=05`|No|Enabling tag and schedule tag cover different operations|
+  |`managed-start` <br/>`managed-stop-periodic`=`u=1 H=09,M=05`|No|Enabling tag and schedule tag cover different operations|
 
 ## Scheduling Operations
  
@@ -136,11 +136,11 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
   
     |Value of `-periodic` Schedule Tag|Demonstrates|Operation Begins|
     |--|--|--|
-    |`d=28&nbsp;H=14&nbsp;M=25` _or_ `dTH:M=28T14:25`|Monthly event|Between 14:20 and 14:30 on the 28th day of every month.|
-    |`d=1&nbsp;d=8&nbsp;d=15&nbsp;d=22&nbsp;H=03&nbsp;H=19&nbsp;M=01`|`cron`-style schedule|Between 03:00 and 03:10 and again between 19:00 and 19:10, on the 1st, 8th, 15th, and 22nd days of every month.|
-    |`d=*&nbsp;H=*&nbsp;M=15&nbsp;M=45&nbsp;H:M=08:50`|Extra event in the day|Between 10 and 20 minutes after the hour and 40 to 50 minutes after the hour, every hour of every day, _and also_ every day between 08:50 and 09:00.|
-    |`d=*&nbsp;H=11&nbsp;M=00&nbsp;uTH:M=2T03:30&nbsp;uTH:M=5T07:20`|Extra weekly events|Between 11:00 and 11:10 every day, _and also_ every Tuesday between 03:30 and 03:40 and every Friday between 07:20 and 7:30.|
-    |`u=3&nbsp;H=22&nbsp;M=15&nbsp;dTH:M=01T05:20`|Extra monthly event|Between 22:10 and 22:20 every Wednesday, _and also_ on the first day of every month between 05:20 and 05:30.|
+    |`d=28 H=14 M=25` _or_ `dTH:M=28T14:25`|Monthly event|Between 14:20 and 14:30 on the 28th day of every month.|
+    |`d=1 d=8 d=15 d=22 H=03 H=19 M=01`|`cron`-style schedule|Between 03:00 and 03:10 and again between 19:00 and 19:10, on the 1st, 8th, 15th, and 22nd days of every month.|
+    |`d=* H=* M=15 M=45 H:M=08:50`|Extra event in the day|Between 10 and 20 minutes after the hour and 40 to 50 minutes after the hour, every hour of every day, _and also_ every day between 08:50 and 09:00.|
+    |`d=* H=11 M=00 uTH:M=2T03:30 uTH:M=5T07:20`|Extra weekly events|Between 11:00 and 11:10 every day, _and also_ every Tuesday between 03:30 and 03:40 and every Friday between 07:20 and 7:30.|
+    |`u=3 H=22 M=15 dTH:M=01T05:20`|Extra monthly event|Between 22:10 and 22:20 every Wednesday, _and also_ on the first day of every month between 05:20 and 05:30.|
     
 ### One-Time Schedules
  
