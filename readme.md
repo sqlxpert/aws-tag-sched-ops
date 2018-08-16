@@ -39,7 +39,7 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
    _Security Tip:_ Remove public read and write access from the S3 bucket. Carefully limit write access.
 
-   _Security Tip:_ Download the file from S3 and verify it. (In some cases, you can simply compare the ETag reported by S3.)<br/>`md5sum aws-lambda/aws_tag_sched_ops_perform.py.zip` should match [`aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt`](aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt)
+   _Security Tip:_ Download the file from S3 and verify it. (In some cases, you can simply compare the ETag reported by S3.)<br/><kbd>md5sum aws-lambda/aws_tag_sched_ops_perform.py.zip</kbd> should match [`aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt`](aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt)
 
 4. Go to the [CloudFormation Console](https://console.aws.amazon.com/cloudformation/home). Click Create Stack. Click Choose File, immediately below "Upload a template to Amazon S3", and navigate to your locally downloaded copy of [`cloudformation/aws_tag_sched_ops.yaml`](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
 
@@ -107,7 +107,7 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
  * All times are UTC, on a 24-hour clock.
  * The function runs once every 10 minutes. The last digit of the minute is always ignored. For example, <kbd>M=47</kbd> means _one time, between 40 and 50 minutes after the hour_.
  * Month and minute values must have two digits. Use a leading zero if necessary. (Weekday numbers have only one digit.)
- * Use a comma (<kbd>,</kbd>) or a space (<kbd> </kbd>) to separate components. (RDS does not allow commas in tag values.) The order of components within a tag value does not matter.
+ * Use a comma (<kbd>,</kbd>) or a space (<kbd>&nbsp;</kbd>) to separate components. (RDS does not allow commas in tag values.) The order of components within a tag value does not matter.
  * `T` separates date from time; it is invariable.
  * [Repetitive (<kbd>-periodic</kbd>)](#repetitive-schedules) and [one-time (<kbd>-once</kbd>)](#one-time-schedules) schedule tags are supported. Prefix with the operation.
  * If the corresponding [enabling tag](#enabling-operations) is missing, schedule tags will be ignored, and the operation will never occur.
@@ -120,17 +120,17 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
     |Name|Minimum|Maximum|Wildcard|Combines With|
     |--|--|--|--|--|
-    |Day of month (`d`)|<kbd>d=01</kbd>|<kbd>d=31</kbd>|<kbd>d=*</kbd>|<kbd>H` and `M`, or `H:M</kbd>|
-    |Weekday (`u`)|<kbd>u=1` (Monday)|<kbd>u=7` (Sunday)||<kbd>H` and `M`, or `H:M</kbd>|
-    |Hour (`H`)|<kbd>H=00</kbd>|<kbd>H=23</kbd>|<kbd>H=*</kbd>|<kbd>d` or `u`, and `M</kbd>|
-    |Minute (`M`)|<kbd>M=00</kbd>|<kbd>M=59</kbd>||<kbd>d` or `u`, and `H</kbd>|
-    |Hour and minute (`H:M`)|<kbd>H:M=00:00</kbd>|<kbd>H:M=23:59</kbd>||<kbd>d` or `u</kbd>|
-    |Day of month, hour and minute (`dTH:M`)|<kbd>dTH:M=01T00:00</kbd>|<kbd>dTH:M=31T23:59</kbd>|||
-    |Weekday, hour and minute (`uTH:M`)|<kbd>uTH:M=1T00:00</kbd>|<kbd>uTH:M=7T23:59</kbd>|||
+    |Day of month (<kbd>d</kbd>)|<kbd>d=01</kbd>|<kbd>d=31</kbd>|<kbd>d=*</kbd>|<kbd>H</kbd> and <kbd>M</kbd>, or <kbd>H:M</kbd>|
+    |Weekday (<kbd>u</kbd>)|<kbd>u=1</kbd> (Monday)|<kbd>u=7</kbd> (Sunday)||<kbd>H</kbd> and <kbd>M</kbd>, or <kbd>H:M</kbd>|
+    |Hour (<kbd>H</kbd>)|<kbd>H=00</kbd>|<kbd>H=23</kbd>|<kbd>H=*</kbd>|<kbd>d</kbd> or <kbd>u</kbd>, and <kbd>M</kbd>|
+    |Minute (<kbd>M</kbd>)|<kbd>M=00</kbd>|<kbd>M=59</kbd>||<kbd>d</kbd> or <kbd>u</kbd>, and <kbd>H</kbd>|
+    |Hour and minute (<kbd>H:M</kbd>)|<kbd>H:M=00:00</kbd>|<kbd>H:M=23:59</kbd>||<kbd>d</kbd> or <kbd>u</kbd>|
+    |Day of month, hour and minute (<kbd>dTH:M</kbd>)|<kbd>dTH:M=01T00:00</kbd>|<kbd>dTH:M=31T23:59</kbd>|||
+    |Weekday, hour and minute (<kbd>uTH:M</kbd>)|<kbd>uTH:M=1T00:00</kbd>|<kbd>uTH:M=7T23:59</kbd>|||
 
       * To be valid, a component or combination of components must specify a day, hour and minute.
       * Repeat a whole component to specify multiple values. For example, <kbd>d=01&nbsp;d=11&nbsp;d=21</kbd> means the 1st, 11th and 21st days of the month.
-      * The <kbd>*</kbd> wildcard is allowed for day (_every day of the month_) and hour (_every hour of the day_).
+      * The <kbd>\*</kbd> wildcard is allowed for day (_every day of the month_) and hour (_every hour of the day_).
       * For consistent one-day-a-month scheduling, avoid <kbd>d=29</kbd> through <kbd>=31</kbd>.
       * Label letters match [strftime()](http://manpages.ubuntu.com/manpages/xenial/man3/strftime.3.html) and weekday numbers are [ISO 8601-standard](https://en.wikipedia.org/wiki/ISO_8601#Week_dates) (different from cron).
 
@@ -148,7 +148,7 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
 ### One-Time Schedules
 
-  * Tag suffix: `-once`
+  * Tag suffix: <kbd>-once</kbd>
 
   * Values: one or more [ISO 8601 combined date and time strings](https://en.wikipedia.org/wiki/ISO_8601#Combined_date_and_time_representations), of the form <kbd>2017-03-21T22:40</kbd> (March 21, 2017, in this example)
       * Remember, the code runs once every 10 minutes and the last digit of the minute is ignored
@@ -161,16 +161,16 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
 * Sample output:
 
-  |`initiated`|`rsrc_id`|`op`|`child_rsrc_type`|`child`|`child_op`|`note`|
+  |<samp>initiated</samp>|<samp>rsrc_id</samp>|<samp>op</samp>|<samp>child_rsrc_type</samp>|<samp>child</samp>|<samp>child_op</samp>|<samp>note</samp>|
   |--|--|--|--|--|--|--|
-  |`9`||||||`2017-09-12T20:40`|
-  |`1`|`i-08abefc70375d36e8`|`reboot-image`|`Image`|`zm-my-server-20170912T2040-83xx7`|||
-  |`1`|`i-08abefc70375d36e8`|`reboot-image`|`Image`|`ami-bc9fcbc6`|`tag`||
-  |`1`|`i-04d2c0140da5bb13e`|`start`|||||
-  |`0`|`i-09cdea279388d35a2`|`start,stop`||||`OPS_UNSUPPORTED`|
-  |`0`|`my-database`|`reboot-failover`||||...`ForceFailover cannot be specified`...|
+  |<samp>9</samp>||||||<samp>2017-09-12T20:40</samp>|
+  |<samp>1</samp>|<samp>i-08abefc70375d36e8</samp>|<samp>reboot-image</samp>|<samp>Image</samp>|<samp>zm-my-server-20170912T2040-83xx7</samp>|||
+  |<samp>1</samp>|<samp>i-08abefc70375d36e8</samp>|<samp>reboot-image</samp>|<samp>Image</samp>|<samp>ami-bc9fcbc6</samp>|<samp>tag</samp>||
+  |<samp>1</samp>|<samp>i-04d2c0140da5bb13e</samp>|<samp>start</samp>|||||
+  |<samp>0</samp>|<samp>i-09cdea279388d35a2</samp>|<samp>start,stop</samp>||||<samp>OPS_UNSUPPORTED</samp>|
+  |<samp>0</samp>|<samp>my-database</samp>|<samp>reboot-failover</samp>||||...<samp>ForceFailover cannot be specified</samp>...|
 
-  _This run began September 12, 2017 between 20:40 and 20:50 UTC. An EC2 instance (ID prefix `i-`) is being rebooted and backed up, but the instance may not yet be ready again, and the image may not yet be complete; the image is named `zm-my-server-20170912T2040-83xx7`. The image has received ID `ami-bc9fcbc6`, and has been tagged. A different EC2 instance is starting up, but may not yet be ready. A third EC2 instance is tagged for simultaneous start and stop, a combination that is not supported. An RDS database instance (no `i-` or `vol-` ID prefix) could not be rebooted with fail-over. (The full error message goes on to explain that it is not multi-zone.)_
+  _This run began September 12, 2017 between 20:40 and 20:50 UTC. An EC2 instance (ID prefix <samp>i-</samp>) is being rebooted and backed up, but the instance may not yet be ready again, and the image may not yet be complete; the image is named <samp>zm-my-server-20170912T2040-83xx7</samp>. The image has received ID <samp>ami-bc9fcbc6</samp>, and has been tagged. A different EC2 instance is starting up, but may not yet be ready. A third EC2 instance is tagged for simultaneous start and stop, a combination that is not supported. An RDS database instance (no <samp>i-</samp> or <samp>vol-</samp> ID prefix) could not be rebooted with fail-over. (The full error message goes on to explain that it is not multi-zone.)_
 
 * There is a header line, an information line, and one line for each operation requested. (Tagging is usually a separate operation.)
 
@@ -178,10 +178,10 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
 * Columns and standard values:
 
-  |`initiated`|`rsrc_id`|`op`|`child_rsrc_type`|`child`|`child_op`|`note`|
+  |<samp>initiated</samp>|<samp>rsrc_id</samp>|<samp>op</samp>|<samp>child_rsrc_type</samp>|<samp>child</samp>|<samp>child_op</samp>|<samp>note</samp>|
   |--|--|--|--|--|--|--|
   |Operation initiated?|Resource ID|Operation|Child type|Pointer to child|Child operation|Message|
-  |`0`&nbsp;No <br/>`1`&nbsp;Yes <br/>`9`&nbsp;_Info.&nbsp;only_|`i-`&nbsp;EC2&nbsp;instance&nbsp;ID <br/>`vol-`&nbsp;EBS&nbsp;volume&nbsp;ID <br/>RDS&nbsp;instance&nbsp;name|_See_ [_table_](#enabling-operations)|`Image` <br/>`Snapshot` <br/>`DBSnapshot`|_Name, ID, or ARN, as available_|`tag`||
+  |<samp>0</samp>&nbsp;No <br/><samp>1</samp>&nbsp;Yes <br/><samp>9</samp>&nbsp;_Info.&nbsp;only_|<samp>i-</samp>&nbsp;EC2&nbsp;instance&nbsp;ID <br/><samp>vol-</samp>&nbsp;EBS&nbsp;volume&nbsp;ID <br/>RDS&nbsp;instance&nbsp;name|_See_ [_table_](#enabling-operations)|<samp>Image</samp> <br/><samp>Snapshot</samp> <br/><samp>DBSnapshot</samp>|_Name, ID, or ARN, as available_|<samp>tag</samp>||
 
 * Although the TagSchedOpsAdminister and TagSchedOpsTagSchedule policies authorize read-only access to the logs via the AWS API, and seem to be sufficient for using the links provided above, users who are not AWS administrators may also want [additional privileges for the CloudWatch Console](http://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/iam-identity-based-access-control-cwl.html#console-permissions-cwl).
 
@@ -223,13 +223,13 @@ Some operations create a child resource (image or snapshot) from a parent resour
 
   |#|Part|Example|Purpose|
   |--|--|--|--|
-  |1|Prefix|`zm`|Identifies and groups children created by this project, for interfaces that do not expose tags. `z` will sort after most manually-created images and snapshots. `m` stands for "managed".|
-  |2|Parent name or identifier|`webserver`|Conveniently indicates the parent. Derived from the `Name` tag (if not blank), the logical name (if supported), or the physical identifier (as a last resort). Multiple children of the same parent will sort together, by creation date (see next row).|
-  |3|Date/time|`20171231T1400Z`|Indicates when the child was created. Always includes the `Z` suffix to indicate UTC. The last digit of the minute is normalized to 0. The `-` and `:` separators are removed for brevity, and because AWS does not allow `:` in resource names. (The [`managed-date-time` tag](#tag-managed-date-time) preserves the separators.)|
-  |4|Random string|`g3a8a`|Guarantees unique names. Five characters are chosen from a small set of unambiguous letters and numbers.|
+  |1|Prefix|<samp>zm</samp>|Identifies and groups children created by this project, for interfaces that do not expose tags. <samp>z</samp> will sort after most manually-created images and snapshots. <samp>m</samp> stands for "managed".|
+  |2|Parent name or identifier|<samp>webserver</samp>|Conveniently indicates the parent. Derived from the `Name` tag (if not blank), the logical name (if supported), or the physical identifier (as a last resort). Multiple children of the same parent will sort together, by creation date (see next row).|
+  |3|Date/time|<samp>20171231T1400Z</samp>|Indicates when the child was created. Always includes the <samp>Z</samp> suffix to indicate UTC. The last digit of the minute is normalized to 0. The <samp>-</samp> and <samp>:</samp> separators are removed. (The [`managed-date-time` tag](#tag-managed-date-time) preserves them.)|
+  |4|Random string|<samp>g3a8a</samp>|Guarantees unique names. Five characters are chosen from a small set of unambiguous letters and numbers.|
 
 * If parsing is ever necessary, keep in mind that the second part may contain internal hyphens.
-* This project replaces characters forbidden by AWS with `X`.
+* Characters forbidden by AWS are replaced with <samp>X</samp>.
 * For some resource types, the description is also set to the name, in case interfaces expose only one or the other.
 
 ### Special Tags
@@ -301,7 +301,7 @@ Resources tagged for unsupported combinations of operations are logged (with mes
    |--|--|--|--|--|--|--|
    |_Scope &rarr;_|_Instances, Volumes_|_Instances, Volumes_|_Instances, Volumes_|_Instances, Volumes_|_Images, Snapshots_|_Images, Snapshots_|
    |TagSchedOpsAdminister|Allow|Allow|Allow|No effect|Deny|Deny|
-   |TagSchedOpsTagScheduleOnce|Deny [<sup>i</sup>](#policy-footnote-1)|Allow [<sup>ii</sup>](#policy-footnote-1)|Deny|No effect|Deny|Deny|
+   |TagSchedOpsTagScheduleOnce|Deny|Allow [<sup>i</sup>](#policy-footnote-1)|Deny|No effect|Deny|Deny|
    |TagSchedOpsTagForDeletion|Deny|Deny|Deny|Deny|Allow|Deny|
    |TagSchedOpsBackupDelete|Deny|Deny|Deny|Deny|Deny|Allow|
    |TagSchedOpsNoTag|Deny|Deny|Deny|No effect|Deny|Deny|
