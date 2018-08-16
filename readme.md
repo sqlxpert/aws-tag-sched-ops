@@ -90,15 +90,15 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
   |All tags|Operation occurs?|Comment|
   |--|--|--|
-  |<kbd>managed&#x2011;snapshot:&nbsp;&empty;<br/>managed&#x2011;snapshot&#x2011;periodic:&nbsp;u=1&nbsp;H=09&nbsp;M=05</kbd>|Yes||
-  |<kbd>managed&#x2011;snapshot:&nbsp;&empty;<br/>managed&#x2011;snapshot&#x2011;once:&nbsp;2017-12-31T09:05</kbd>|Yes||
-  |<kbd>managed&#x2011;snapshot:&nbsp;&empty;<br/>managed&#x2011;snapshot&#x2011;periodic:&nbsp;u=1&nbsp;H=09&nbsp;M=05 <br/>managed&#x2011;snapshot&#x2011;once:&nbsp;2017-12-31T09:05</kbd>|Yes|Both repetitive and one-time schedule tags are allowed|
-  |<kbd>managed&#x2011;snapshot:&nbsp;No <br/>managed&#x2011;snapshot&#x2011;periodic:&nbsp;u=1&nbsp;H=09&nbsp;M=05</kbd>|Yes|The value of an enabling tag is always ignored|
-  |<kbd>managed&#x2011;snapshot:&nbsp;&empty;</kbd>|No|No schedule tag is present|
-  |<kbd>managed&#x2011;snapshot&#x2011;once:&nbsp;2017-12-31T09:05</kbd>|No|No enabling tag is present (operation is suspended)|
-  |<kbd>managed&#x2011;snapshot:&nbsp;&empty;<br/>managed&#x2011;snapshot&#x2011;once:&nbsp;&empty;</kbd>|No|Schedule is invalid (blank)|
-  |<kbd>managed&#x2011;snapshot:&nbsp;&empty;<br/>managed&#x2011;snapshot&#x2011;periodic:&nbsp;Monday|No|Schedule is invalid|
-  |<kbd>managed&#x2011;snapshot:&nbsp;&empty;<br/>managed&#x2011;stop&#x2011;periodic:&nbsp;u=1&nbsp;H=09&nbsp;M=05</kbd>|No|The enabling tag and the schedule tag are for different operations|
+  |<kbd>managed&#x2011;snapshot</kbd>:&nbsp;&empty;<br/>managed&#x2011;snapshot&#x2011;periodic</kbd>:&nbsp;<kbd>u=1&nbsp;H=09&nbsp;M=05</kbd>|Yes||
+  |<kbd>managed&#x2011;snapshot</kbd>:&nbsp;&empty;<br/>managed&#x2011;snapshot&#x2011;once</kbd>:&nbsp;<kbd>2017-12-31T09:05</kbd>|Yes||
+  |<kbd>managed&#x2011;snapshot</kbd>:&nbsp;&empty;<br/>managed&#x2011;snapshot&#x2011;periodic</kbd>:&nbsp;<kbd>u=1&nbsp;H=09&nbsp;M=05 <br/>managed&#x2011;snapshot&#x2011;once</kbd>:&nbsp;<kbd>2017-12-31T09:05</kbd>|Yes|Both repetitive and one-time schedule tags are allowed|
+  |<kbd>managed&#x2011;snapshot</kbd>:&nbsp;<kbd>No</kbd> <br/>managed&#x2011;snapshot&#x2011;periodic</kbd>:&nbsp;<kbd>u=1&nbsp;H=09&nbsp;M=05</kbd>|Yes|The value of an enabling tag is always ignored|
+  |<kbd>managed&#x2011;snapshot</kbd>:&nbsp;&empty;</kbd>|No|No schedule tag is present|
+  |<kbd>managed&#x2011;snapshot&#x2011;once</kbd>:&nbsp;<kbd>2017-12-31T09:05</kbd>|No|No enabling tag is present (operation is suspended)|
+  |<kbd>managed&#x2011;snapshot</kbd>:&nbsp;&empty;<br/>managed&#x2011;snapshot&#x2011;once</kbd>:&nbsp;&empty;</kbd>|No|Schedule is invalid (blank)|
+  |<kbd>managed&#x2011;snapshot</kbd>:&nbsp;&empty;<br/>managed&#x2011;snapshot&#x2011;periodic</kbd>:&nbsp;<kbd>Monday</kbd>|No|Schedule is invalid|
+  |<kbd>managed&#x2011;snapshot</kbd>:&nbsp;&empty;<br/>managed&#x2011;stop&#x2011;periodic</kbd>:&nbsp;<kbd>u=1&nbsp;H=09&nbsp;M=05</kbd>|No|The enabling tag and the schedule tag are for different operations|
 
   Each tag is shown in <var>key</var>:&nbsp;<var>value</var> form. &empty; means that the value is blank.
 
@@ -163,12 +163,12 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
   |<samp>initiated</samp>|<samp>rsrc_id</samp>|<samp>op</samp>|<samp>child_rsrc_type</samp>|<samp>child</samp>|<samp>child_op</samp>|<samp>note</samp>|
   |--|--|--|--|--|--|--|
-  |<samp>9</samp>||||||<samp>2017-09-12T20:40</samp>|
-  |<samp>1</samp>|<samp>i&#x2011;08abefc70375d36e8</samp>|<samp>reboot-image</samp>|<samp>Image</samp>|<samp>zm-my-server-20170912T2040-83xx7</samp>|||
-  |<samp>1</samp>|<samp>i&#x2011;08abefc70375d36e8</samp>|<samp>reboot-image</samp>|<samp>Image</samp>|<samp>ami&#x2011;bc9fcbc6</samp>|<samp>tag</samp>||
+  |<samp>9</samp>||||||<samp>2017&#x2011;09&#x2011;12T20:40</samp>|
+  |<samp>1</samp>|<samp>i&#x2011;08abefc70375d36e8</samp>|<samp>reboot&#x2011;image</samp>|<samp>Image</samp>|<samp>zm-my-server-20170912T2040-83xx7</samp>|||
+  |<samp>1</samp>|<samp>i&#x2011;08abefc70375d36e8</samp>|<samp>reboot&#x2011;image</samp>|<samp>Image</samp>|<samp>ami&#x2011;bc9fcbc6</samp>|<samp>tag</samp>||
   |<samp>1</samp>|<samp>i&#x2011;04d2c0140da5bb13e</samp>|<samp>start</samp>|||||
   |<samp>0</samp>|<samp>i&#x2011;09cdea279388d35a2</samp>|<samp>start,stop</samp>||||<samp>OPS_UNSUPPORTED</samp>|
-  |<samp>0</samp>|<samp>my-database</samp>|<samp>reboot-failover</samp>||||...<samp>ForceFailover cannot be specified</samp>...|
+  |<samp>0</samp>|<samp>my-database</samp>|<samp>reboot&#x2011;failover</samp>||||...<samp>ForceFailover cannot be specified</samp>...|
 
   _This run began September 12, 2017 between 20:40 and 20:50 UTC. An EC2 instance (ID prefix <samp>i-</samp>) is being rebooted and backed up, but the instance may not yet be ready again, and the image may not yet be complete; the image is named <samp>zm-my-server-20170912T2040-83xx7</samp>. The image has received ID <samp>ami-bc9fcbc6</samp>, and has been tagged. A different EC2 instance is starting up, but may not yet be ready. A third EC2 instance is tagged for simultaneous start and stop, a combination that is not supported. An RDS database instance (no <samp>i-</samp> or <samp>vol-</samp> ID prefix) could not be rebooted with fail-over. (The full error message goes on to explain that it is not multi-zone.)_
 
@@ -201,7 +201,7 @@ To use the debugging mode,
 
 5. After 10 minutes, find the debugging information in [CloudWatch Logs](#output).
 
-6. Turn off debugging mode right away, because the extra information is lengthy. Back on the Code tab, scroll down and click Remove, to the far right of `DEBUG`. Repeat [Step 4](#debug-step-4) to save.
+6. Turn off debugging mode right away, because the extra information is lengthy. Back on the Code tab, scroll down and click Remove, to the far right of <samp>DEBUG</samp>. Repeat [Step 4](#debug-step-4) to save.
 
 ## On/Off Switch
 
@@ -244,7 +244,7 @@ Some operations create a child resource (image or snapshot) from a parent resour
   |<samp>managed&#x2011;origin</samp>|The operation (for example, `snapshot`) that created the child. Identifies resources created by this project. Also distinguishes special cases, such as whether an EC2 instance was or was not rebooted before an image was created.|
   |<a name="tag-managed-date-time"><samp>managed-date-time</samp></a>|Groups resources created during the same 10-minute interval. The last digit of the minute is normalized to 0, and <samp>Z</samp> is always appended, to indicate UTC. AWS stores the _exact_ time (too specific for grouping) in metadata, and the retrieval key and the format differ for each resource type!|
 
-* Tags other than operation-enabling tags, schedule tags, and the `Name` tag, are copied from parent to child. (The deletion tag, `managed-delete`, would not make sense on instances and volumes, but if it is present, it is not copied to images and snapshots.)
+* Tags other than operation-enabling tags, schedule tags, and the <samp>Name</samp> tag, are copied from parent to child. (The deletion tag, <samp>managed-delete</samp>, would not make sense on instances and volumes, but if it is present, it is not copied to images and snapshots.)
 
 ## Operation Combinations
 
@@ -264,10 +264,10 @@ The Create Image + Reboot combination for EC2 instances is useful. For example, 
 
 |Tag|Value|
 |--|--|
-|<kbd>managed-image</kbd>||
-|<kbd>managed-image-periodic</kbd>|<kbd>d=\*&nbsp;H=\*&nbsp;M=59</kbd>|
-|<kbd>managed-reboot</kbd>||
-|<kbd>managed-reboot-periodic</kbd>|<kbd>d=\*&nbsp;H=23&nbsp;M=59</kbd>|
+|<kbd>managed&#x2011;image</kbd>||
+|<kbd>managed&#x2011;image&#x2011;periodic</kbd>|<kbd>d=\*&nbsp;H=\*&nbsp;M=59</kbd>|
+|<kbd>managed&#x2011;reboot</kbd>||
+|<kbd>managed&#x2011;reboot&#x2011;periodic</kbd>|<kbd>d=\*&nbsp;H=23&nbsp;M=59</kbd>|
 
 23:59, which for the purposes of this project represents the last 10-minute interval of the day, is the unambiguous way to express _almost the end of some designated day_, on any system. 00:00 and 24:00 could refer to the start or the end of the designated day, and not all systems accept 24:00, in any case. Remember that all times are UTC; adjust for night-time in your time zone!
 
