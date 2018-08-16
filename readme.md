@@ -20,7 +20,7 @@ In July, 2018, Amazon [introduced Data Lifecycle Manager](https://aws.amazon.com
  * You can create snapshots of single volumes, but not images covering all of an EC2 instance's volumes. Also missing is an option to reboot first.
  * [The same IAM role](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/snapshot-lifecycle.html#dlm-permissions) confers authority to create _and_ delete snapshots, and [anyone who can update a lifecycle policy](https://docs.aws.amazon.com/IAM/latest/UserGuide/list_amazondatalifecyclemanager.html#amazondatalifecyclemanager-UpdateLifecyclePolicy) can reduce the retention period to delete snapshots. These are significant risks, especially in light of the data loss prevention provisions in the European Union General Data Protection Regulation.
 
-By all means, set up Data Lifecycle Manager if you have no automation in place, but consider this project for more flexibility!
+By all means, set up Data Lifecycle Manager if you have no automation in place, but consider TagSchedOps for more flexibility!
 
 ## Quick Start
 
@@ -71,7 +71,7 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
  * Be aware of AWS charges, including but not limited to: the costs of running the AWS Lambda function, storing CloudWatch logs, and storing images and snapshots; the whole-hour cost when you stop an RDS, EC2 Windows, or EC2 commercial Linux instance (but [other EC2 instances have a 1-minute minimum charge](https://aws.amazon.com/blogs/aws/new-per-second-billing-for-ec2-instances-and-ebs-volumes/)); the ongoing cost of storage for stopped instances; and costs that resume when AWS automatically starts an RDS instance that has been stopped for too many days.
 
- * Secure your own AWS environment. Test the provided AWS Lambda functions and IAM policies to make sure that they work correctly and meet your expectations. To help improve this project, please submit [bug reports and feature requests](https://github.com/sqlxpert/aws-tag-sched-ops/issues), as well as [proposed changes](https://github.com/sqlxpert/aws-tag-sched-ops/pulls).
+ * Secure your own AWS environment. Test the provided AWS Lambda functions and IAM policies to make sure that they work correctly and meet your expectations. To help improve TagSchedOps, please submit [bug reports and feature requests](https://github.com/sqlxpert/aws-tag-sched-ops/issues), as well as [proposed changes](https://github.com/sqlxpert/aws-tag-sched-ops/pulls).
 
 ## Enabling Operations
 
@@ -91,15 +91,15 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
   |All tags|Operation occurs?|Comment|
   |--|--|--|
-  |<samp>managed&#x2011;snapshot</samp>:&nbsp;&empty;<br/><samp>managed&#x2011;snapshot&#x2011;periodic</samp>:&nbsp;<samp>u=1&nbsp;H=09&nbsp;M=05</samp>|Yes||
-  |<samp>managed&#x2011;snapshot</samp>:&nbsp;&empty;<br/><samp>managed&#x2011;snapshot&#x2011;once</samp>:&nbsp;<samp>2017-12-31T09:05</samp>|Yes||
-  |<samp>managed&#x2011;snapshot</samp>:&nbsp;&empty;<br/><samp>managed&#x2011;snapshot&#x2011;periodic</samp>:&nbsp;<samp>u=1&nbsp;H=09&nbsp;M=05</samp> <br/><samp>managed&#x2011;snapshot&#x2011;once</samp>:&nbsp;<samp>2017-12-31T09:05</samp>|Yes|Both repetitive and one-time schedule tags are allowed|
+  |<samp>managed&#x2011;snapshot</samp>:&nbsp;&empty; <br/><samp>managed&#x2011;snapshot&#x2011;periodic</samp>:&nbsp;<samp>u=1&nbsp;H=09&nbsp;M=05</samp>|Yes||
+  |<samp>managed&#x2011;snapshot</samp>:&nbsp;&empty; <br/><samp>managed&#x2011;snapshot&#x2011;once</samp>:&nbsp;<samp>2017-12-31T09:05</samp>|Yes||
+  |<samp>managed&#x2011;snapshot</samp>:&nbsp;&empty; <br/><samp>managed&#x2011;snapshot&#x2011;periodic</samp>:&nbsp;<samp>u=1&nbsp;H=09&nbsp;M=05</samp> <br/><samp>managed&#x2011;snapshot&#x2011;once</samp>:&nbsp;<samp>2017-12-31T09:05</samp>|Yes|Both repetitive and one-time schedule tags are allowed|
   |<samp>managed&#x2011;snapshot</samp>:&nbsp;<samp>No</samp> <br/><samp>managed&#x2011;snapshot&#x2011;periodic</samp>:&nbsp;<samp>u=1&nbsp;H=09&nbsp;M=05</samp>|Yes|The value of an enabling tag is always ignored|
-  |<samp>managed&#x2011;snapshot</samp>:&nbsp;&empty;</samp>|No|No schedule tag is present|
+  |<samp>managed&#x2011;snapshot</samp>:&nbsp;&empty;|No|No schedule tag is present|
   |<samp>managed&#x2011;snapshot&#x2011;once</samp>:&nbsp;<samp>2017-12-31T09:05</samp>|No|No enabling tag is present (operation is suspended)|
-  |<samp>managed&#x2011;snapshot</samp>:&nbsp;&empty;<br/><samp>managed&#x2011;snapshot&#x2011;once</samp>:&nbsp;&empty;</samp>|No|Schedule is invalid (blank)|
-  |<samp>managed&#x2011;snapshot</samp>:&nbsp;&empty;<br/><samp>managed&#x2011;snapshot&#x2011;periodic</samp>:&nbsp;<samp>Monday</samp>|No|Schedule is invalid|
-  |<samp>managed&#x2011;snapshot</samp>:&nbsp;&empty;<br/><samp>managed&#x2011;stop&#x2011;periodic</samp>:&nbsp;<samp>u=1&nbsp;H=09&nbsp;M=05</samp>|No|The enabling tag and the schedule tag are for different operations|
+  |<samp>managed&#x2011;snapshot</samp>:&nbsp;&empty; <br/><samp>managed&#x2011;snapshot&#x2011;once</samp>:&nbsp;&empty; |No|Schedule is invalid (blank)|
+  |<samp>managed&#x2011;snapshot</samp>:&nbsp;&empty; <br/><samp>managed&#x2011;snapshot&#x2011;periodic</samp>:&nbsp;<samp>Monday</samp>|No|Schedule is invalid|
+  |<samp>managed&#x2011;snapshot</samp>:&nbsp;&empty; <br/><samp>managed&#x2011;stop&#x2011;periodic</samp>:&nbsp;<samp>u=1&nbsp;H=09&nbsp;M=05</samp>|No|The enabling tag and the schedule tag are for different operations|
 
   Each tag is shown in <var>key</var>:&nbsp;<var>value</var> form. &empty; means that the value is blank.
 
@@ -115,46 +115,46 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
 ### Repetitive Schedules
 
-  * Tag suffix: <kbd>-periodic</kbd>
+* Tag suffix: <kbd>-periodic</kbd>
 
-  * Values: one or more of the following components:
+* Values: one or more of the following components:
 
-    |Name|Minimum|Maximum|Wildcard|Combines With|
-    |--|--|--|--|--|
-    |Day of month (<kbd>d</kbd>)|<kbd>d=01</kbd>|<kbd>d=31</kbd>|<kbd>d=*</kbd>|<kbd>H</kbd> and <kbd>M</kbd>, or <kbd>H:M</kbd>|
-    |Weekday (<kbd>u</kbd>)|<kbd>u=1</kbd> (Monday)|<kbd>u=7</kbd> (Sunday)||<kbd>H</kbd> and <kbd>M</kbd>, or <kbd>H:M</kbd>|
-    |Hour (<kbd>H</kbd>)|<kbd>H=00</kbd>|<kbd>H=23</kbd>|<kbd>H=*</kbd>|<kbd>d</kbd> or <kbd>u</kbd>, and <kbd>M</kbd>|
-    |Minute (<kbd>M</kbd>)|<kbd>M=00</kbd>|<kbd>M=59</kbd>||<kbd>d</kbd> or <kbd>u</kbd>, and <kbd>H</kbd>|
-    |Hour and minute (<kbd>H:M</kbd>)|<kbd>H:M=00:00</kbd>|<kbd>H:M=23:59</kbd>||<kbd>d</kbd> or <kbd>u</kbd>|
-    |Day of month, hour and minute (<kbd>dTH:M</kbd>)|<kbd>dTH:M=01T00:00</kbd>|<kbd>dTH:M=31T23:59</kbd>|||
-    |Weekday, hour and minute (<kbd>uTH:M</kbd>)|<kbd>uTH:M=1T00:00</kbd>|<kbd>uTH:M=7T23:59</kbd>|||
+  |Name|Minimum|Maximum|Wildcard|Combines With|
+  |--|--|--|--|--|
+  |Day of month|<kbd>d=01</kbd>|<kbd>d=31</kbd>|<kbd>d=\*</kbd>|<kbd>H</kbd> and <kbd>M</kbd>, or <kbd>H:M</kbd>|
+  |Weekday|<kbd>u=1</kbd> (Monday)|<kbd>u=7</kbd> (Sunday)||<kbd>H</kbd> and <kbd>M</kbd>, or <kbd>H:M</kbd>|
+  |Hour|<kbd>H=00</kbd>|<kbd>H=23</kbd>|<kbd>H=\*</kbd>|<kbd>d</kbd> or <kbd>u</kbd>, and <kbd>M</kbd>|
+  |Minute|<kbd>M=00</kbd>|<kbd>M=59</kbd>||<kbd>d</kbd> or <kbd>u</kbd>, and <kbd>H</kbd>|
+  |Hour and minute|<kbd>H:M=00:00</kbd>|<kbd>H:M=23:59</kbd>||<kbd>d</kbd> or <kbd>u</kbd>|
+  |Day of month, hour and minute|<kbd>dTH:M=01T00:00</kbd>|<kbd>dTH:M=31T23:59</kbd>|||
+  |Weekday, hour and minute|<kbd>uTH:M=1T00:00</kbd>|<kbd>uTH:M=7T23:59</kbd>|||
 
-      * To be valid, a component or combination of components must specify a day, hour and minute.
-      * Repeat a whole component to specify multiple values. For example, <kbd>d=01&nbsp;d=11&nbsp;d=21</kbd> means the 1st, 11th and 21st days of the month.
-      * The <kbd>\*</kbd> wildcard is allowed for day (_every day of the month_) and hour (_every hour of the day_).
-      * For consistent one-day-a-month scheduling, avoid <kbd>d=29</kbd> through <kbd>d=31</kbd>.
-      * Label letters match [<code>strftime</code>](http://manpages.ubuntu.com/manpages/xenial/man3/strftime.3.html) and weekday numbers are [ISO 8601-standard](https://en.wikipedia.org/wiki/ISO_8601#Week_dates) (different from cron).
+  * To be valid, a component or combination of components must specify a day, hour and minute.
+  * Repeat a whole component to specify multiple values. For example, <kbd>d=01&nbsp;d=11&nbsp;d=21</kbd> means the 1st, 11th and 21st days of the month.
+  * The <kbd>\*</kbd> wildcard is allowed for day (_every day of the month_) and hour (_every hour of the day_).
+  * For consistent one-day-a-month scheduling, avoid <kbd>d=29</kbd> through <kbd>d=31</kbd>.
+  * Label letters match [<code>strftime</code>](http://manpages.ubuntu.com/manpages/xenial/man3/strftime.3.html) and weekday numbers are [ISO 8601-standard](https://en.wikipedia.org/wiki/ISO_8601#Week_dates) (different from cron).
 
-  * Examples:
+* Examples:
 
-    |Value of Repetitive Schedule Tag|Demonstrates|Operation Begins|
-    |--|--|--|
-    |<samp>dTH:M=\*T14:25</samp>|Once-a-day event|Between 14:20 and 14:30, every day|
-    |<samp>uTH:M=1T14:25</samp>|Once-a-week event|Between 14:20 and 14:30, every Monday.|
-    |<samp>dTH:M=28T14:25</samp>|Once-a-month event|Between 14:20 and 14:30 on the 28th day of every month|
-    |<samp>d=1&nbsp;d=8&nbsp;d=15&nbsp;d=22&nbsp;H=03&nbsp;H=19&nbsp;M=01</samp>|cron schedule|Between 03:00 and 03:10 and again between 19:00 and 19:10, on the 1st, 8th, 15th, and 22nd days of every month|
-    |<samp>d=\*&nbsp;H=\*&nbsp;M=15&nbsp;M=45&nbsp;H:M=08:50</samp>|Extra daily event|Between 10 and 20 minutes after the hour and 40 to 50 minutes after the hour, every hour of every day, _and also_ every day between 08:50 and 09:00|
-    |<samp>d=\*&nbsp;H=11&nbsp;M=00&nbsp;uTH:M=2T03:30&nbsp;uTH:M=5T07:20</samp>|Two extra weekly events|Between 11:00 and 11:10 every day, _and also_ every Tuesday between 03:30 and 03:40 and every Friday between 07:20 and 7:30|
-    |<samp>u=3&nbsp;H=22&nbsp;M=15&nbsp;dTH:M=01T05:20</samp>|Extra monthly event|Between 22:10 and 22:20 every Wednesday, _and also_ on the first day of every month between 05:20 and 05:30|
+  |Value of Repetitive Schedule Tag|Demonstrates|Operation Begins|
+  |--|--|--|
+  |<samp>d=\* H:M=14:25</samp>|Once-a-day event|Between 14:20 and 14:30, every day|
+  |<samp>uTH:M=1T14:25</samp>|Once-a-week event|Between 14:20 and 14:30, every Monday.|
+  |<samp>dTH:M=28T14:25</samp>|Once-a-month event|Between 14:20 and 14:30 on the 28th day of every month|
+  |<samp>d=1&nbsp;d=8&nbsp;d=15&nbsp;d=22&nbsp;H=03&nbsp;H=19&nbsp;M=01</samp>|cron schedule|Between 03:00 and 03:10 and again between 19:00 and 19:10, on the 1st, 8th, 15th, and 22nd days of every month|
+  |<samp>d=\*&nbsp;H=\*&nbsp;M=15&nbsp;M=45&nbsp;H:M=08:50</samp>|Extra daily event|Between 10 and 20 minutes after the hour and 40 to 50 minutes after the hour, every hour of every day, _and also_ every day between 08:50 and 09:00|
+  |<samp>d=\*&nbsp;H=11&nbsp;M=00&nbsp;uTH:M=2T03:30&nbsp;uTH:M=5T07:20</samp>|Two extra weekly events|Between 11:00 and 11:10 every day, _and also_ every Tuesday between 03:30 and 03:40 and every Friday between 07:20 and 7:30|
+  |<samp>u=3&nbsp;H=22&nbsp;M=15&nbsp;dTH:M=01T05:20</samp>|Extra monthly event|Between 22:10 and 22:20 every Wednesday, _and also_ on the first day of every month between 05:20 and 05:30|
 
 ### One-Time Schedules
 
-  * Tag suffix: <kbd>-once</kbd>
+* Tag suffix: <kbd>-once</kbd>
 
-  * Values: one or more [ISO 8601 combined date and time strings](https://en.wikipedia.org/wiki/ISO_8601#Combined_date_and_time_representations), of the form <kbd>2017-03-21T22:40</kbd> (March 21, 2017, in this example)
-      * Remember, the code runs once every 10 minutes and the last digit of the minute is ignored
-      * Omit seconds and fractions of seconds
-      * Omit time zone; UTC is always used
+* Values: one or more [ISO 8601 combined date and time strings](https://en.wikipedia.org/wiki/ISO_8601#Combined_date_and_time_representations), of the form <kbd>2017-03-21T22:40</kbd> (March 21, 2017, in this example)
+  * Remember, the code runs once every 10 minutes and the last digit of the minute is ignored
+  * Omit seconds and fractions of seconds
+  * Omit time zone; UTC is always used
 
 ## Output
 
@@ -224,9 +224,9 @@ Some operations create a child resource (image or snapshot) from a parent resour
 
   |#|Part|Example|Purpose|
   |--|--|--|--|
-  |1|Prefix|<samp>zm</samp>|Identifies and groups children created by this project, for interfaces that do not expose tags. <samp>z</samp> will sort after most manually-created images and snapshots. <samp>m</samp> stands for "managed".|
-  |2|Parent name or identifier|<samp>webserver</samp>|Conveniently indicates the parent. Derived from the `Name` tag (if not blank), the logical name (if supported), or the physical identifier (as a last resort). Multiple children of the same parent will sort together, by creation date (see next row).|
-  |3|Date/time|<samp>20171231T1400Z</samp>|Indicates when the child was created. Always includes the <samp>Z</samp> suffix to indicate UTC. The last digit of the minute is normalized to 0. The <samp>-</samp> and <samp>:</samp> separators are removed. (The [`managed-date-time` tag](#tag-managed-date-time) preserves them.)|
+  |1|Prefix|<samp>zm</samp>|Identifies and groups children created by TagSchedOps, for interfaces that do not expose tags. <samp>z</samp> will sort after most manually-created images and snapshots. <samp>m</samp> stands for "managed".|
+  |2|Parent name or identifier|<samp>webserver</samp>|Conveniently indicates the parent. Derived from the <samp>Name</samp> tag (if not blank), the logical name (if supported), or the physical identifier (as a last resort). Multiple children of the same parent will sort together, by creation date (see next row).|
+  |3|Date/time|<samp>20171231T1400Z</samp>|Indicates when the child was created. Always includes the <samp>Z</samp> suffix to indicate UTC. The last digit of the minute is normalized to 0. The <samp>-</samp> and <samp>:</samp> separators are removed. (The [<samp>managed-date-time</samp> tag](#tag-managed-date-time) preserves them.)|
   |4|Random string|<samp>g3a8a</samp>|Guarantees unique names. Five characters are chosen from a small set of unambiguous letters and numbers.|
 
 * If parsing is ever necessary, keep in mind that the second part may contain internal hyphens.
@@ -239,10 +239,10 @@ Some operations create a child resource (image or snapshot) from a parent resour
 
   |Tag(s)|Purpose|
   |--|--|
-  |<samp>Name</samp>|Supplements EC2 resource identifier. The key is renamed <samp>managed-parent-name</samp> when the value is passed from parent to child, because the child has a <samp>Name</samp> tag of its own. The code handles `Name` specially for both EC2 and RDS, in case AWS someday extends EC2-style tag semantics to RDS.|
+  |<samp>Name</samp>|Supplements EC2 resource identifier. The key is renamed <samp>managed-parent-name</samp> when the value is passed from parent to child, because the child has a <samp>Name</samp> tag of its own. The code handles <samp>Name</samp> specially for both EC2 and RDS, in case AWS someday extends EC2-style tag semantics to RDS.|
   |<samp>managed&#x2011;parent&#x2011;name</samp>|The <samp>Name</samp> tag value from the parent. May be blank.|
   |<samp>managed&#x2011;parent&#x2011;id</samp>|The identifier of the parent instance or volume. AWS stores this in metadata for some but not all resource types, and the retrieval key differs for each resource type.|
-  |<samp>managed&#x2011;origin</samp>|The operation (for example, <samp>snapshot</samp>) that created the child. Identifies resources created by this project. Also distinguishes special cases, such as whether an EC2 instance was or was not rebooted before an image was created.|
+  |<samp>managed&#x2011;origin</samp>|The operation (for example, <samp>snapshot</samp>) that created the child. Identifies resources created by TagSchedOps. Also distinguishes special cases, such as whether an EC2 instance was or was not rebooted before an image was created.|
   |<a name="tag-managed-date-time"><samp>managed-date-time</samp></a>|Groups resources created during the same 10-minute interval. The last digit of the minute is normalized to 0, and <samp>Z</samp> is always appended, to indicate UTC. AWS stores the _exact_ time (too specific for grouping) in metadata, and the retrieval key and the format differ for each resource type!|
 
 * Tags other than operation-enabling tags, schedule tags, and the <samp>Name</samp> tag, are copied from parent to child. (The deletion tag, <samp>managed-delete</samp>, would not make sense on instances and volumes, but if it is present, it is not copied to images and snapshots.)
@@ -262,6 +262,7 @@ If two or more operations on the same resource are scheduled for the same 10-min
 |RDS instance|Stop + Create Snapshot|Create Snapshot then Stop|
 
 The Create Image + Reboot combination for EC2 instances is useful. For example, you could take hourly backups but reboot only in conjunction with the midnight backup. The midnight backup would be guaranteed to be coherent for all files, but you could safely retrieve static files as of any given hour, from the other backups. To set up this example:
+
 |Tag|Value|
 |--|--|
 |<kbd>managed&#x2011;image</kbd>||
@@ -269,7 +270,7 @@ The Create Image + Reboot combination for EC2 instances is useful. For example, 
 |<kbd>managed&#x2011;reboot</kbd>||
 |<kbd>managed&#x2011;reboot&#x2011;periodic</kbd>|<kbd>d=\*&nbsp;H=23&nbsp;M=59</kbd>|
 
-23:59, which for the purposes of this project represents the last 10-minute interval of the day, is the unambiguous way to express _almost the end of some designated day_, on any system. 00:00 and 24:00 could refer to the start or the end of the designated day, and not all systems accept 24:00, in any case. Remember that all times are UTC; adjust for night-time in your time zone!
+23:59, which for the purposes of TagSchedOps represents the last 10-minute interval of the day, is the unambiguous way to express _almost the end of some designated day_, on any system. 00:00 and 24:00 could refer to the start or the end of the designated day, and not all systems accept 24:00, in any case. Remember that all times are UTC; adjust for night-time in your time zone!
 
 ### Unsupported Combinations
 
@@ -293,14 +294,14 @@ Resources tagged for unsupported combinations of operations are logged (with mes
 
  * Tag backups for deletion, but let a special IAM user or role actually delete them. To mark images and snapshots for (manual) deletion, add the <kbd>managed-delete</kbd> tag.
 
- * Do not allow the same IAM users and roles that create backups to delete backups (or even to tag them for deletion).
+ * Do not let a non-administrative IAM user or role that can create backups delete backups (or even tag them for deletion).
 
  * Choose from a library of IAM policies:
 
    |Policy Name|Manage Enabling Tags|Manage One-Time Schedule Tags|Manage Repetitive Schedule Tags|Back Up|Manage Deletion Tag|Delete|
    |--|--|--|--|--|--|--|
    |_Scope_&nbsp;&rarr;|_Instances, Volumes_|_Instances, Volumes_|_Instances, Volumes_|_Instances, Volumes_|_Images, Snapshots_|_Images, Snapshots_|
-   |TagSchedOpsAdminister|Allow|Allow|Allow|No effect|Deny|Deny|
+   |TagSchedOpsAdminister|Allow|Allow|Allow|No effect|Allow|Deny|
    |TagSchedOpsTagScheduleOnce|Deny|Allow [<sup>i</sup>](#policy-footnote-1)|Deny|No effect|Deny|Deny|
    |TagSchedOpsTagForDeletion|Deny|Deny|Deny|Deny|Allow|Deny|
    |TagSchedOpsBackupDelete|Deny|Deny|Deny|Deny|Deny|Allow|
