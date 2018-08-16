@@ -88,17 +88,17 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 * To temporarily suspend an operation, delete its enabling tag. You may leave its schedule tag(s) in place.
 * Examples (for an EC2 or RDS instance):
 
-  |Tags _Tag:Value_|Operation occurs?|Comment|
+  |All tags|Operation occurs?|Comment|
   |--|--|--|
-  |managed-snapshot:&nbsp;&empty;<br/>managed-snapshot-periodic:&nbsp;u=1&nbsp;H=09&nbsp;M=05|Yes||
-  |managed-snapshot:&nbsp;&empty;<br/>managed-snapshot-once:&nbsp;2017-12-31T09:05|Yes||
-  |managed-snapshot:&nbsp;&empty;<br/>managed-snapshot-periodic:&nbsp;u=1&nbsp;H=09&nbsp;M=05 <br/>managed-snapshot-once:&nbsp;2017-12-31T09:05|Yes|Both repetitive and one-time schedule tags are allowed|
-  |managed-snapshot:&nbsp;No <br/>managed-snapshot-periodic:&nbsp;u=1&nbsp;H=09&nbsp;M=05|Yes|The value of an enabling tag is always ignored|
-  |managed-snapshot:&nbsp;&empty;|No|No schedule tag is present|
-  |managed-snapshot-once:&nbsp;2017-12-31T09:05|No|No enabling tag is present (operation is suspended)|
-  |managed-snapshot:&nbsp;&empty;<br/>managed-snapshot-once:&nbsp;&empty;|No|Schedule is invalid (blank)|
-  |managed-snapshot:&nbsp;&empty;<br/>managed-snapshot-periodic:&nbsp;Monday|No|Schedule is invalid|
-  |managed-snapshot:&nbsp;&empty;<br/>managed-stop-periodic:&nbsp;u=1&nbsp;H=09&nbsp;M=05|No|The enabling tag and the schedule tag are for different operations|
+  |managed&#x2011;snapshot:&nbsp;&empty;<br/>managed&#x2011;snapshot&#x2011;periodic:&nbsp;u=1&nbsp;H=09&nbsp;M=05|Yes||
+  |managed&#x2011;snapshot:&nbsp;&empty;<br/>managed&#x2011;snapshot&#x2011;once:&nbsp;2017-12-31T09:05|Yes||
+  |managed&#x2011;snapshot:&nbsp;&empty;<br/>managed&#x2011;snapshot&#x2011;periodic:&nbsp;u=1&nbsp;H=09&nbsp;M=05 <br/>managed&#x2011;snapshot&#x2011;once:&nbsp;2017-12-31T09:05|Yes|Both repetitive and one-time schedule tags are allowed|
+  |managed&#x2011;snapshot:&nbsp;No <br/>managed&#x2011;snapshot&#x2011;periodic:&nbsp;u=1&nbsp;H=09&nbsp;M=05|Yes|The value of an enabling tag is always ignored|
+  |managed&#x2011;snapshot:&nbsp;&empty;|No|No schedule tag is present|
+  |managed&#x2011;snapshot&#x2011;once:&nbsp;2017-12-31T09:05|No|No enabling tag is present (operation is suspended)|
+  |managed&#x2011;snapshot:&nbsp;&empty;<br/>managed&#x2011;snapshot&#x2011;once:&nbsp;&empty;|No|Schedule is invalid (blank)|
+  |managed&#x2011;snapshot:&nbsp;&empty;<br/>managed&#x2011;snapshot&#x2011;periodic:&nbsp;Monday|No|Schedule is invalid|
+  |managed&#x2011;snapshot:&nbsp;&empty;<br/>managed&#x2011;stop&#x2011;periodic:&nbsp;u=1&nbsp;H=09&nbsp;M=05|No|The enabling tag and the schedule tag are for different operations|
 
 ## Scheduling Operations
 
