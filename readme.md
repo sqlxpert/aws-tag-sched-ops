@@ -405,7 +405,7 @@ If you intend to install TagSchedOps in multiple AWS accounts,
 
 4. In the AWS account with the AWSCloudFormationStackSet*Admin*istrationRole, go to the [StackSets Console](https://console.aws.amazon.com/cloudformation/stacksets/home#/stacksets).
 
-5. Click Create StackSet, then select <samp>Upload a template to Amazon S3</samp>, then click Browse and select your locally downloaded copy of [<samp>cloudformation/aws_tag_sched_ops.yaml</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
+5. Click Create StackSet, then select <samp>Upload a template to Amazon S3</samp>, then click Browse and select your local copy of [<samp>cloudformation/aws_tag_sched_ops.yaml</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
 
    |Section|Item|Value|
    |--|--|--|
@@ -461,7 +461,7 @@ New versions of the AWS Lambda function source code and the CloudFormation templ
 
 5. Go to [Stacks](https://console.aws.amazon.com/cloudformation/home#/stacks) in the CloudFormation Console. Click the checkbox to the left of <samp>TagSchedOps</samp> (you might have given the stack a different name). From the Actions pop-up menu next to the blue Create Stack button, select Create Change Set For Current Stack.
 
-6. Click Choose File, immediately below <samp>Upload a template to Amazon S3</samp>, and navigate to your locally downloaded copy of the latest version of [<samp>cloudformation/aws_tag_sched_ops.yaml</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
+6. Click Choose File, immediately below <samp>Upload a template to Amazon S3</samp>, and navigate to your local copy of the latest version of [<samp>cloudformation/aws_tag_sched_ops.yaml</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
 
    |Section|Item|Value|
    |--|--|--|
