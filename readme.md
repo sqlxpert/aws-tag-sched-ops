@@ -14,11 +14,11 @@ Jump to: [Installation](#quick-start) &bull; [Operation Tags](#enabling-operatio
 
 In July, 2018, Amazon [introduced Data Lifecycle Manager](https://aws.amazon.com/blogs/aws/new-lifecycle-management-for-amazon-ebs-snapshots/). It's a start, but...
 
- * Tags determine _which_ volumes will be backed up, not _when_. There is a new, single-purpose API for scheduling.
+ * Tags determine _which_ volumes will be backed up, not _when_. Scheduling is done with a new, single-purpose interface.
  * Snapshots are taken only every 12 or 24 hours.
- * "Last _x_" snapshot retention is not flexible enough for true archival policies (e.g., keep daily snapshots for a month, plus monthly snapshots for a year).
- * You can create snapshots of single volumes, but not images covering all of an EC2 instance's volumes. Also missing is an option to reboot first.
- * [The same IAM role](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/snapshot-lifecycle.html#dlm-permissions) confers authority to create _and_ delete snapshots, and [anyone who can update a lifecycle policy](https://docs.aws.amazon.com/IAM/latest/UserGuide/list_amazondatalifecyclemanager.html#amazondatalifecyclemanager-UpdateLifecyclePolicy) can reduce the retention period to delete snapshots. These are significant risks, especially in light of the data loss prevention provisions in the European Union General Data Protection Regulation.
+ * "Last _x_" is not a flexible backup retention policy.
+ * You cannot create images covering all of an EC2 instance's volumes. Also missing is an option to reboot first.
+ * [One IAM role](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/snapshot-lifecycle.html#dlm-permissions) confers authority to create _and_ delete snapshots. [Anyone who can update a lifecycle policy](https://docs.aws.amazon.com/IAM/latest/UserGuide/list_amazondatalifecyclemanager.html#amazondatalifecyclemanager-UpdateLifecyclePolicy) can shorten the retention period to delete snapshots. These are risks, especially in light of the data loss prevention provisions in the European Union General Data Protection Regulation.
 
 By all means, set up Data Lifecycle Manager if you have no automation in place, but consider TagSchedOps for more flexibility!
 
@@ -26,7 +26,7 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
 1. Log in to the [AWS Web Console](https://signin.aws.amazon.com/console) as a privileged user.
 
-   _Security Tip:_ To see what you'll be installing, look in the [CloudFormation template](/cloudformation/aws_tag_sched_ops.yaml). <br/><kbd>grep 'Type: "AWS::' aws_tag_sched_ops.yaml | sort | uniq</kbd> works well.
+   _Security Tip:_ To see what you'll be installing, look in the [CloudFormation template](/cloudformation/aws_tag_sched_ops.yaml). <br/><kbd>grep 'Type: "AWS::' cloudformation/aws_tag_sched_ops.yaml | sort | uniq</kbd> works well.
 
 2. Go to the [list of EC2 instances](https://console.aws.amazon.com/ec2/v2/home#Instances). Right-click the Name or ID of an instance, select Instance Settings, and then select Add/Edit Tags. Add:
 
@@ -35,9 +35,9 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
    |<kbd>managed-image</kbd>||Leave value blank|
    |<kbd>managed-image-periodic</kbd>|<kbd>d=\*&nbsp;H:M=11:30</kbd>|Replace 11:30 with [current UTC time](https://www.timeanddate.com/worldclock/timezone/utc) + 20 minutes|
 
-3. Go to the [S3 Console](https://console.aws.amazon.com/s3/home). Click the name of the bucket where you keep AWS Lambda function source code. It may be the same bucket where you keep CloudFormation templates. If you are creating it now, create it in the region where you want to install TagSchedOps, and put the region at the end of the bucket name (for example, <kbd>my-bucket-us-east-1</kbd>). Upload the compressed source code of the AWS Lambda function, [<samp>aws-lambda/aws_tag_sched_ops_perform.py.zip</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/aws-lambda/aws_tag_sched_ops_perform.py.zip)
+3. Go to the [S3 Console](https://console.aws.amazon.com/s3/home). Click the name of the bucket where you keep AWS Lambda function source code. It may be the same bucket where you keep CloudFormation templates. If you are creating the bucket now, create it in the region where you want to install TagSchedOps, and put the region at the end of the bucket name (for example, <kbd>my-lambda-bucket-us-east-1</kbd>). Upload the compressed source code of the AWS Lambda function, [<samp>aws-lambda/aws_tag_sched_ops_perform.py.zip</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/aws-lambda/aws_tag_sched_ops_perform.py.zip)
 
-   _Security Tip:_ Remove public read and write access from the S3 bucket. Carefully limit write access.
+   _Security Tip:_ Remove public read and write access from the S3 bucket. Limit write access.
 
    _Security Tip:_ Download the file from S3 and verify it, or compare the <samp>Etag</samp> reported by S3. <kbd>md5sum aws-lambda/aws_tag_sched_ops_perform.py.zip</kbd> should match [<samp>aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt</samp>](aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt)
 
@@ -55,7 +55,7 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
 6. Before deregistering (deleting) the sample image, note its ID, so that you can delete the associated [EBS snapshots](https://console.aws.amazon.com/ec2/v2/home#Snapshots:sort=desc:startTime). Also untag the instance.
 
-7. Go to the [list of IAM users](https://console.aws.amazon.com/iam/home#/users). Click your regular, uprivileged username. Click <samp>Add permissions</samp> and then <samp>Attach existing policies directly</samp>. In the Search box, type <kbd>TagSchedOpsAdminister</kbd>. Add the two matching policies.
+7. Go to the [list of IAM users](https://console.aws.amazon.com/iam/home#/users). Click your regular, uprivileged username. Click <samp>Add permissions</samp> and then <samp>Attach existing policies directly</samp>. In the <samp>Search</samp> box, type <kbd>TagSchedOpsAdminister</kbd>. Add the two matching policies.
 
    _Security Tip_: Review all users' EC2 and RDS tagging privileges!
 
@@ -71,15 +71,15 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
  * Be aware of AWS charges, including but not limited to: the costs of running the AWS Lambda function, storing CloudWatch logs, and storing images and snapshots; the whole-hour cost when you stop an RDS, EC2 Windows, or EC2 commercial Linux instance (but [other EC2 instances have a 1-minute minimum charge](https://aws.amazon.com/blogs/aws/new-per-second-billing-for-ec2-instances-and-ebs-volumes/)); the ongoing cost of storage for stopped instances; and costs that resume when AWS automatically starts an RDS instance that has been stopped for too many days.
 
- * Secure your own AWS environment. Test the provided AWS Lambda functions and IAM policies to make sure that they work correctly and meet your expectations. To help improve TagSchedOps, please submit [bug reports and feature requests](https://github.com/sqlxpert/aws-tag-sched-ops/issues), as well as [proposed changes](https://github.com/sqlxpert/aws-tag-sched-ops/pulls).
+ * Test the provided AWS Lambda functions and IAM policies in your own AWS environment. To help improve TagSchedOps, please submit [bug reports and feature requests](https://github.com/sqlxpert/aws-tag-sched-ops/issues), as well as [proposed changes](https://github.com/sqlxpert/aws-tag-sched-ops/pulls).
 
 ## Enabling Operations
 
-* To enable an operation, add a tag from the table. Leave the value blank.
+* To enable an operation, add a tag from the table. Leave the tag value blank.
 
   | |Start|Create Image|Reboot then Create Image|Reboot then Fail Over|Reboot|Create Snapshot|Create Snapshot then Stop|Stop|
   |--|--|--|--|--|--|--|--|--|
-  |_Tags_&nbsp;&rarr;|<kbd>managed-start</kbd>|<kbd>managed-image</kbd>|<kbd>managed-reboot-image</kbd>|<kbd>managed-reboot-failover</kbd>|<kbd>managed-reboot</kbd>|<kbd>managed-snapshot</kbd>|<kbd>managed-snapshot-stop</kbd>|<kbd>managed-stop</kbd>|
+  |_Enabling&nbsp;Tag_&nbsp;&rarr;|<kbd>managed-start</kbd>|<kbd>managed-image</kbd>|<kbd>managed-reboot-image</kbd>|<kbd>managed-reboot-failover</kbd>|<kbd>managed-reboot</kbd>|<kbd>managed-snapshot</kbd>|<kbd>managed-snapshot-stop</kbd>|<kbd>managed-stop</kbd>|
   |[EC2&nbsp;instance](https://console.aws.amazon.com/ec2/v2/home#Instances)|&check;|&check;|&check;||&check;|||&check;|
   |[EBS&nbsp;volume](https://console.aws.amazon.com/ec2/v2/home#Volumes)||||||&check;|||
   |[RDS&nbsp;instance](https://console.aws.amazon.com/rds/home#dbinstances:)|&check;|||&check;|&check;|&check;|&check;|&check;|
@@ -89,26 +89,26 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 * To temporarily suspend an operation, delete its enabling tag. You may leave its schedule tag(s) in place.
 * Examples (for an EBS volume or and RDS instance):
 
-  |All tags|Operation occurs?|Comment|
+  |Set of tags|Operation occurs?|Comment|
   |--|--|--|
-  |<samp>managed&#x2011;snapshot</samp>:&nbsp;&empty; <br/><samp>managed&#x2011;snapshot&#x2011;periodic</samp>:&nbsp;<samp>u=1&nbsp;H=09&nbsp;M=05</samp>|Yes||
+  |<samp>managed&#x2011;snapshot</samp>:&nbsp;&empty; <br/><samp>managed&#x2011;snapshot&#x2011;periodic</samp>:&nbsp;<samp>d=01&nbsp;H=09&nbsp;M=05</samp>|Yes||
   |<samp>managed&#x2011;snapshot</samp>:&nbsp;&empty; <br/><samp>managed&#x2011;snapshot&#x2011;once</samp>:&nbsp;<samp>2017-12-31T09:05</samp>|Yes||
-  |<samp>managed&#x2011;snapshot</samp>:&nbsp;&empty; <br/><samp>managed&#x2011;snapshot&#x2011;periodic</samp>:&nbsp;<samp>u=1&nbsp;H=09&nbsp;M=05</samp> <br/><samp>managed&#x2011;snapshot&#x2011;once</samp>:&nbsp;<samp>2017-12-31T09:05</samp>|Yes|Both repetitive and one-time schedule tags are allowed|
-  |<samp>managed&#x2011;snapshot</samp>:&nbsp;<samp>No</samp> <br/><samp>managed&#x2011;snapshot&#x2011;periodic</samp>:&nbsp;<samp>u=1&nbsp;H=09&nbsp;M=05</samp>|Yes|The value of an enabling tag is always ignored|
+  |<samp>managed&#x2011;snapshot</samp>:&nbsp;&empty; <br/><samp>managed&#x2011;snapshot&#x2011;periodic</samp>:&nbsp;<samp>u=1&nbsp;H=09&nbsp;M=05</samp> <br/><samp>managed&#x2011;snapshot&#x2011;once</samp>:&nbsp;<samp>2017-12-31T09:05</samp>|Yes|Both repetitive and one-time schedules are allowed|
+  |<samp>managed&#x2011;snapshot</samp>:&nbsp;<samp>No</samp> <br/><samp>managed&#x2011;snapshot&#x2011;periodic</samp>:&nbsp;<samp>u=1&nbsp;H=09&nbsp;M=05</samp>|Yes|The value of an enabling tag is ignored|
   |<samp>managed&#x2011;snapshot</samp>:&nbsp;&empty;|No|No schedule tag is present|
   |<samp>managed&#x2011;snapshot&#x2011;once</samp>:&nbsp;<samp>2017-12-31T09:05</samp>|No|No enabling tag is present (operation is suspended)|
   |<samp>managed&#x2011;snapshot</samp>:&nbsp;&empty; <br/><samp>managed&#x2011;snapshot&#x2011;once</samp>:&nbsp;&empty; |No|Schedule is invalid (blank)|
   |<samp>managed&#x2011;snapshot</samp>:&nbsp;&empty; <br/><samp>managed&#x2011;snapshot&#x2011;periodic</samp>:&nbsp;<samp>Monday</samp>|No|Schedule is invalid|
-  |<samp>managed&#x2011;snapshot</samp>:&nbsp;&empty; <br/><samp>managed&#x2011;stop&#x2011;periodic</samp>:&nbsp;<samp>u=1&nbsp;H=09&nbsp;M=05</samp>|No|The enabling tag and the schedule tag are for different operations|
+  |<samp>managed&#x2011;snapshot</samp>:&nbsp;&empty; <br/><samp>managed&#x2011;stop&#x2011;periodic</samp>:&nbsp;<samp>u=1&nbsp;H=09&nbsp;M=05</samp>|No|The enabling and schedule tags are for different operations|
 
   Each tag is shown in <var>key</var>:&nbsp;<var>value</var> form. &empty; means that the value is blank.
 
 ## Scheduling Operations
 
  * All times are UTC, on a 24-hour clock.
- * The function runs once every 10 minutes. The last digit of the minute is always ignored. For example, <kbd>M=47</kbd> means _one time, between 40 and 50 minutes after the hour_.
+ * The TagSchedOpsPerform AWS Lambda function runs once every 10 minutes. It ignores the last digit of the minute. For example, <kbd>M=47</kbd> means _one time, between 40 and 50 minutes after the hour_.
  * Month and minute values must have two digits. Use a leading zero if necessary. (Weekday numbers have only one digit.)
- * Use a comma (<kbd>,</kbd>) or a space (<kbd>&nbsp;</kbd>) to separate components. (RDS does not allow commas in tag values.) The order of components within a tag value does not matter.
+ * Separate schedule components with a comma (<kbd>,</kbd>) or a space (<kbd>&nbsp;</kbd>). (RDS does not allow commas in tag values.) The order of components within a tag value does not matter.
  * <kbd>T</kbd> separates date from time; it is invariable.
  * [Repetitive (<kbd>-periodic</kbd>)](#repetitive-schedules) and [one-time (<kbd>-once</kbd>)](#one-time-schedules) schedule tags are supported. Prefix with the operation.
  * If the corresponding [enabling tag](#enabling-operations) is missing, schedule tags will be ignored, and the operation will never occur.
@@ -117,7 +117,7 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
 * Tag suffix: <kbd>-periodic</kbd>
 
-* Values: one or more of the following components:
+* Values: one or more components:
 
   |Name|Minimum|Maximum|Wildcard|Combines With|
   |--|--|--|--|--|
@@ -129,15 +129,15 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
   |Day of month, hour and minute|<kbd>dTH:M=01T00:00</kbd>|<kbd>dTH:M=31T23:59</kbd>|||
   |Weekday, hour and minute|<kbd>uTH:M=1T00:00</kbd>|<kbd>uTH:M=7T23:59</kbd>|||
 
-  * To be valid, a component or combination of components must specify a day, hour and minute.
-  * Repeat a whole component to specify multiple values. For example, <kbd>d=01&nbsp;d=11&nbsp;d=21</kbd> means the 1st, 11th and 21st days of the month.
+  * Day, hour and minute must _all_ be specified in the tag value.
+  * To specify multiple values, repeat a component. For example, <kbd>d=01&nbsp;d=11&nbsp;d=21</kbd> means _the 1st, 11th and 21st days of the month_.
   * Wildcards: <kbd>d=\*</kbd> means _every day of the month_ and <kbd>h=\*</kbd>, _every hour of the day_.
   * For consistent one-day-a-month scheduling, avoid <kbd>d=29</kbd> through <kbd>d=31</kbd>.
-  * Label letters match [<code>strftime</code>](http://manpages.ubuntu.com/manpages/xenial/man3/strftime.3.html) and weekday numbers are [ISO 8601-standard](https://en.wikipedia.org/wiki/ISO_8601#Week_dates) (different from cron).
+  * The letters match [<code>strftime</code>](http://manpages.ubuntu.com/manpages/xenial/man3/strftime.3.html) and the weekday numbers are [ISO 8601-standard](https://en.wikipedia.org/wiki/ISO_8601#Week_dates) (differs from cron).
 
 * Examples:
 
-  |Value of Repetitive Schedule Tag|Demonstrates|Operation Begins|
+  |Value of Repetitive Schedule Tag|Demonstrates|Timing|
   |--|--|--|
   |<samp>d=\*&nbsp;H:M=14:25</samp>|Once-a-day event|Between 14:20 and 14:30, every day|
   |<samp>uTH:M=1T14:25</samp>|Once-a-week event|Between 14:20 and 14:30, every Monday.|
@@ -151,14 +151,13 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
 * Tag suffix: <kbd>-once</kbd>
 
-* Values: one or more [ISO 8601 combined date and time strings](https://en.wikipedia.org/wiki/ISO_8601#Combined_date_and_time_representations), of the form <kbd>2017-03-21T22:40</kbd> (March 21, 2017, in this example)
-  * Remember, the code runs once every 10 minutes and the last digit of the minute is ignored
-  * Omit seconds and fractions of seconds
-  * Omit time zone; UTC is always used
+* Values: one or more [ISO 8601 combined date/time strings](https://en.wikipedia.org/wiki/ISO_8601#Combined_date_and_time_representations), of the form <kbd>2017-03-21T22:40</kbd> (March 21, 2017, in this example)
+  * Remember, TagSchedOpsPerform runs once every 10 minutes and ignores the last digit of the minute.
+  * Leave out seconds, microseconds, and timezone (always UTC).
 
 ## Output
 
-* After logging in to the [AWS Web Console](https://signin.aws.amazon.com/console), go to the [Log Group for the AWS Lambda function](https://console.aws.amazon.com/cloudwatch/home#logs:prefix=/aws/lambda/TagSchedOps-TagSchedOpsPerformLambdaFn-), in the CloudWatch Logs Console. If you gave the CloudFormation stack a name other than <samp>TagSchedOps</samp>, check the list of [Log Groups for _all_ AWS Lambda functions](https://console.aws.amazon.com/cloudwatch/home#logs:prefix=/aws/lambda/) instead.
+* After logging in to the [AWS Web Console](https://signin.aws.amazon.com/console), go to the [TagSchedOpsPerform CloudWatch log group](https://console.aws.amazon.com/cloudwatch/home#logs:prefix=/aws/lambda/TagSchedOps-TagSchedOpsPerformLambdaFn-). If you gave the CloudFormation stack a name other than <samp>TagSchedOps</samp>, check the [log groups for _all_ AWS Lambda functions](https://console.aws.amazon.com/cloudwatch/home#logs:prefix=/aws/lambda/) instead.
 
 * Sample output:
 
@@ -171,11 +170,11 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
   |<samp>0</samp>|<samp>i&#x2011;09cdea279388d35a2</samp>|<samp>start,stop</samp>||||<samp>OPS_UNSUPPORTED</samp>|
   |<samp>0</samp>|<samp>my-database</samp>|<samp>reboot&#x2011;failover</samp>||||...<samp>ForceFailover cannot be specified</samp>...|
 
-  _This run began September 12, 2017 between 20:40 and 20:50 UTC. An EC2 instance (ID prefix <samp>i-</samp>) is being rebooted and backed up, but the instance may not yet be ready again, and the image may not yet be complete; the image is named <samp>zm-my-server-20170912T2040-83xx7</samp>. The image has received ID <samp>ami-bc9fcbc6</samp>, and has been tagged. A different EC2 instance is starting up, but may not yet be ready. A third EC2 instance is tagged for simultaneous start and stop, a combination that is not supported. An RDS database instance (no <samp>i-</samp> or <samp>vol-</samp> ID prefix) could not be rebooted with fail-over. (The full error message goes on to explain that it is not multi-zone.)_
+  _This run began September 12, 2017 between 20:40 and 20:50 UTC. An EC2 instance (ID prefix <samp>i-</samp>) is being rebooted and backed up, but the instance may not yet be ready, and the image may not yet be complete. The image is named <samp>zm-my-server-20170912T2040-83xx7</samp>, its ID is <samp>ami-bc9fcbc6</samp>, and it has been tagged. A different EC2 instance is starting, but may not yet be ready. A third EC2 instance is tagged for simultaneous start and stop, an impossible combination. An RDS database instance (no <samp>i-</samp> or <samp>vol-</samp> ID prefix) could not be rebooted with fail-over. (The full error message goes on to explain that it is not multi-zone.)_
 
-* There is a header line, an information line, and one line for each operation requested. (Tagging is usually a separate operation.)
+* There is a header line, an information line, and one line for each operation.
 
-* Values are tab-separated (but the CloudWatch Logs Console seems to collapse multiple tabs).
+* Values are tab-separated (but the CloudWatch Logs Console collapses multiple tabs).
 
 * Columns and standard values:
 
@@ -184,35 +183,33 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
   |Operation initiated?|Resource ID|Operation|Child type|Pointer to child|Child operation|Message|
   |<samp>0</samp>&nbsp;No <br/><samp>1</samp>&nbsp;Yes <br/><samp>9</samp>&nbsp;_Info.&nbsp;only_|<samp>i-</samp>&nbsp;EC2&nbsp;instance&nbsp;ID <br/><samp>vol-</samp>&nbsp;EBS&nbsp;volume&nbsp;ID <br/>RDS&nbsp;instance&nbsp;name|_See_ [_table_](#enabling-operations)|<samp>Image</samp> <br/><samp>Snapshot</samp> <br/><samp>DBSnapshot</samp>|_Name, ID, or ARN, as available_|<samp>tag</samp>||
 
-* Although the TagSchedOpsAdminister and TagSchedOpsTagSchedule policies authorize read-only access to the logs via the AWS API, and seem to be sufficient for using the links provided above, users who are not AWS administrators may also want [additional privileges for the CloudWatch Console](http://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/iam-identity-based-access-control-cwl.html#console-permissions-cwl).
+* Although the TagSchedOpsAdminister and TagSchedOpsTagSchedule policies authorize read-only access to the logs via the AWS API, and seem to be sufficient for using the links provided above, users who are not AWS administrators may also want [additional CloudWatch privileges](http://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/iam-identity-based-access-control-cwl.html#console-permissions-cwl).
 
 ### Debugging Mode
 
-If the DEBUG environment variable is set, the function outputs internal reference data, including the regular expressions used to match schedule tags.
-
-To use the debugging mode,
+If the <code>DEBUG</code> environment variable is set, TagSchedOpsPerform outputs internal reference data, including the regular expressions used to match schedule tags.
 
 1. Log in to the [AWS Web Console](https://signin.aws.amazon.com/console) as a privileged user. AWS Lambda treats changes to environment variables like changes to code.
 
-2. Click on the [TagSchedOpsPerformLambdaFn AWS Lambda function](https://console.aws.amazon.com/lambda/home?region=us-east-1#/functions?f0=a3c%3D%3AVGFnU2NoZWRPcHNQZXJmb3JtTGFtYmRhRm4%3D).
+2. Click on the [TagSchedOpsPerform AWS Lambda function](https://console.aws.amazon.com/lambda/home?region=us-east-1#/functions?f0=a3c%3D%3AVGFnU2NoZWRPcHNQZXJmb3JtTGFtYmRhRm4%3D).
 
-3. Open the Code tab and scroll to the bottom. In the <samp>Environment variables</samp> section, type <kbd>DEBUG</kbd> in the first empty Key box. Leave Value blank.
+3. Scroll down. In the <samp>Environment variables</samp> section, type <kbd>DEBUG</kbd> in the first empty <samp>Key</samp> box. Leave the <samp>Value</samp> blank.
 
-4. <a name="debug-step-4"></a>Scroll back to the top and click the white Save button. _Do not click the orange_ <samp>Save and test</samp> _button_; that would cause the function to run more than once in the same 10-minute interval.
+4. <a name="debug-step-4"></a>Scroll back to the top and click <samp>Save</samp>.
 
-5. After 10 minutes, find the debugging information in [CloudWatch Logs](#output).
+5. After 10 minutes, find debugging information in [CloudWatch Logs](#output).
 
-6. Turn off debugging mode right away, because the extra information is lengthy. Back on the Code tab, scroll down and click Remove, to the far right of <samp>DEBUG</samp>. Repeat [Step 4](#debug-step-4) to save.
+6. Turn off debugging mode right away, because the extra information is long. Scroll down, click <samp>Remove</samp>, to the far right of <samp>DEBUG</samp>, scroll back up, and click <samp>Save</samp>.
 
 ## On/Off Switch
 
-* The TagSchedOpsAdminister policies authorize turning the function on or off completely.
+* The TagSchedOpsAdminister policies authorize turning TagSchedOpsPerform on or off completely.
 
-* After logging in to the [AWS Web Console](https://signin.aws.amazon.com/console), go to [Rules](https://console.aws.amazon.com/cloudwatch/home#rules:) in the CloudWatch Events Console. Click the radio button to the left of TagSchedOpsPerform10MinEventRule, then select Enable or Disable from the Actions pop-up menu, next to the blue <samp>Create rule</samp> button.
+* After logging in to the [AWS Web Console](https://signin.aws.amazon.com/console), go to [CloudWatch event rules](https://console.aws.amazon.com/cloudwatch/home#rules:). Click the radio button to the left of <samp>TagSchedOpsPerform10MinEventRule</samp>, then select <samp>Enable</samp> or <samp>Disable</samp> from the <samp>Actions</samp> pop-up menu, next to the blue <samp>Create rule</samp> button.
 
-* This toggle is per-region and per-AWS-account.
+* This switch is per-region and per-AWS-account.
 
-* Missed operations will not occur when the function is turned back on; there is no queue or backlog.
+* Missed operations will not occur when the function is turned back on; there is no queue.
 
 ## Child Resources
 
@@ -225,8 +222,8 @@ Some operations create a child resource (image or snapshot) from a parent resour
   |#|Part|Example|Purpose|
   |--|--|--|--|
   |1|Prefix|<samp>zm</samp>|Identifies and groups children created by TagSchedOps, for interfaces that do not expose tags. <samp>z</samp> will sort after most manually-created images and snapshots. <samp>m</samp> stands for "managed".|
-  |2|Parent name or identifier|<samp>webserver</samp>|Conveniently indicates the parent. Derived from the <samp>Name</samp> tag (if not blank), the logical name (if supported), or the physical identifier (as a last resort). Multiple children of the same parent will sort together, by creation date (see next row).|
-  |3|Date/time|<samp>20171231T1400Z</samp>|Indicates when the child was created. Always includes the <samp>Z</samp> suffix to indicate UTC. The last digit of the minute is normalized to 0. The <samp>-</samp> and <samp>:</samp> separators are removed. (The [<samp>managed-date-time</samp> tag](#tag-managed-date-time) preserves them.)|
+  |2|Parent name or identifier|<samp>webserver</samp>|Conveniently indicates the parent. Derived from the <samp>Name</samp> tag, the logical name, or the physical identifier. Multiple children of the same parent will sort together, by creation date.|
+  |3|Date/time|<samp>20171231T1400Z</samp>|Indicates when the child was created. Always includes the <samp>Z</samp> suffix, for UTC. The last digit of the minute is 0. The <samp>-</samp> and <samp>:</samp> separators are removed. (The [<samp>managed-date-time</samp> tag](#tag-managed-date-time) preserves them.)|
   |4|Random string|<samp>g3a8a</samp>|Guarantees unique names. Five characters are chosen from a small set of unambiguous letters and numbers.|
 
 * If parsing is ever necessary, keep in mind that the second part may contain internal hyphens.
@@ -242,8 +239,8 @@ Some operations create a child resource (image or snapshot) from a parent resour
   |<samp>Name</samp>|Supplements EC2 resource identifier. The key is renamed <samp>managed-parent-name</samp> when the value is passed from parent to child, because the child has a <samp>Name</samp> tag of its own. The code handles <samp>Name</samp> specially for both EC2 and RDS, in case AWS someday extends EC2-style tag semantics to RDS.|
   |<samp>managed&#x2011;parent&#x2011;name</samp>|The <samp>Name</samp> tag value from the parent. May be blank.|
   |<samp>managed&#x2011;parent&#x2011;id</samp>|The identifier of the parent instance or volume. AWS stores this in metadata for some but not all resource types, and the retrieval key differs for each resource type.|
-  |<samp>managed&#x2011;origin</samp>|The operation (for example, <samp>snapshot</samp>) that created the child. Identifies resources created by TagSchedOps. Also distinguishes special cases, such as whether an EC2 instance was or was not rebooted before an image was created.|
-  |<a name="tag-managed-date-time"><samp>managed-date-time</samp></a>|Groups resources created during the same 10-minute interval. The last digit of the minute is normalized to 0, and <samp>Z</samp> is always appended, to indicate UTC. AWS stores the _exact_ time (too specific for grouping) in metadata, and the retrieval key and the format differ for each resource type!|
+  |<samp>managed&#x2011;origin</samp>|The operation (for example, <samp>snapshot</samp>) that created the child. Identifies resources created by TagSchedOps. Also distinguishes special cases, such as whether an EC2 instance was rebooted before an image was created.|
+  |<a name="tag-managed-date-time"><samp>managed-date-time</samp></a>|Groups resources created during the same 10-minute interval. The last digit of the minute 0, and <samp>Z</samp> is always appended, for UTC. AWS stores the _exact_ time (too specific for grouping) in metadata, and the retrieval key and the format differ for each resource type!|
 
 * Tags other than operation-enabling tags, schedule tags, and the <samp>Name</samp> tag, are copied from parent to child. (The deletion tag, <samp>managed-delete</samp>, would not make sense on instances and volumes, but if it is present, it is not copied to images and snapshots.)
 
@@ -253,7 +250,7 @@ Multiple _non-simultaneous_ operations on the same resource are allowed.
 
 ### Supported Combinations
 
-If two or more operations on the same resource are scheduled for the same 10-minute interval, the function combines them, where possible:
+If two or more operations on the same resource are scheduled for the same 10-minute interval, TagSchedOpsPerform tries to combine them:
 
 |Resource|Simultaneous Operations|Effect|
 |--|--|--|
@@ -270,7 +267,7 @@ The Create Image + Reboot combination for EC2 instances is useful. For example, 
 |<kbd>managed&#x2011;reboot</kbd>||
 |<kbd>managed&#x2011;reboot&#x2011;periodic</kbd>|<kbd>d=\*&nbsp;H=23&nbsp;M=59</kbd>|
 
-23:59, which for the purposes of TagSchedOps represents the last 10-minute interval of the day, is the unambiguous way to express _almost the end of some designated day_, on any system. 00:00 and 24:00 could refer to the start or the end of the designated day, and not all systems accept 24:00, in any case. Remember that all times are UTC; adjust for night-time in your time zone!
+23:59, which for the purposes of TagSchedOps represents the last 10-minute interval of the day, is the unambiguous way to express _almost the end of some designated day_, on any system. 00:00 and 24:00 could refer to the start or the end of the designated day, and not all systems accept 24:00, in any case. Remember that all times are UTC; adjust for midnight in your timezone!
 
 ### Unsupported Combinations
 
@@ -278,21 +275,21 @@ Resources tagged for unsupported combinations of operations are logged (with mes
 
 |Bad Combination|Reason|Example|
 |--|--|--|
-|Mutually exclusive operations|The operations conflict.|Start + Stop|
-|Choice of operation depends on current state of instance|The state of the instance could change between the status query and the operation request.|Start + Reboot|
-|Sequential or dependent operations|The logical order cannot always be inferred. Also, operations proceed asynchronously; one might not complete in time for another to begin. Note that Reboot then Create Image (EC2 instance) and Create Snapshot then Stop (RDS instance) are _single_ AWS operations.|Start + Create Image|
+|Mutually exclusive operations|The operations conflict.|Start and Stop|
+|Choice of operation depends on current state of instance|The state of the instance could change between the status query and the operation request.|Start or Reboot|
+|Sequential or dependent operations|The logical order cannot always be inferred. Also, operations proceed asynchronously; one might not complete in time for another to begin. Note that Reboot then Create Image (EC2 instance) and Create Snapshot then Stop (RDS instance) are _single_ AWS operations.|Start then Create Image|
 
 ## Security Model
 
- * Prevent unauthorized changes to the AWS Lambda function by attaching the TagSchedOpsPerformLambdaFnProtect IAM policy to most IAM users and roles with write privileges for:
-     * AWS Lambda
-     * CloudFormation Events
-     * CloudFormation Logs
-     * IAM (roles and/or policies)
+ * Prevent unauthorized changes to the AWS Lambda functions by attaching the TagSchedOpsLambdaFnProtect policy to most IAM users and roles with write privileges for:
+   * AWS Lambda
+   * CloudFormation Events
+   * CloudFormation Logs
+   * IAM (roles and/or policies)
 
- * Allow only a few trusted users to tag EC2 and RDS resources, because tags determine which resources are started, backed up, rebooted, and stopped.
+ * Allow only a few trusted users to tag EC2 and RDS resources, because tags determine which resources are started, backed up, rebooted, and stopped, and when.
 
- * Tag backups for deletion, but let a special IAM user or role actually delete them. To mark images and snapshots for (manual) deletion, add the <kbd>managed-delete</kbd> tag.
+ * Tag images and snapshots for deletion, but let a separate IAM user or role actually delete them. Add the <kbd>managed-delete</kbd> tag.
 
  * Do not let a non-administrative IAM user or role that can create backups delete backups (or even tag them for deletion).
 
@@ -307,40 +304,40 @@ Resources tagged for unsupported combinations of operations are logged (with mes
    |TagSchedOpsBackupDelete|Deny|Deny|Deny|Deny|Deny|Allow|
    |TagSchedOpsNoTag|Deny|Deny|Deny|No effect|Deny|Deny|
 
-   Footnotes:
+   Note:
 
      1. <a name="policy-footnote-1"></a>Enabling tag required. For example, a user could add <kbd>managed-image-once</kbd> to an EC2 instance only if the <samp>managed-image</samp> tag were already present.
 
-   These policies cover all regions. If you use regions to differentiate production and non-production resources, modify copies of the provided policies.
+   These policies cover all regions. For different behavior in different regions, modify copies of the provided policies.
 
    Because <code>Deny</code> always takes precendence in IAM, some policy combinations conflict.
 
    In some cases, you must add, change or delete one tag at a time.
 
- * Although the TagSchedOpsAdminister and TagSchedOpsTag policies authorize tagging via the AWS API, users who are not AWS administrators may also want:
+ * Although the TagSchedOpsAdminister and TagSchedOpsTag policies authorize tagging via the AWS API, users who are not AWS administrators may also want console access:
 
-     * [AmazonEC2ReadOnlyAccess](https://console.aws.amazon.com/iam/home#policies/arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess), to use the EC2 Console
-     * [AmazonRDSReadOnlyAccess](https://console.aws.amazon.com/iam/home#policies/arn:aws:iam::aws:policy/AmazonRDSReadOnlyAccess), to use the RDS Console
+     * [AmazonEC2ReadOnlyAccess](https://console.aws.amazon.com/iam/home#policies/arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess)
+     * [AmazonRDSReadOnlyAccess](https://console.aws.amazon.com/iam/home#policies/arn:aws:iam::aws:policy/AmazonRDSReadOnlyAccess)
 
  * You may have to [decode authorization errors](http://docs.aws.amazon.com/cli/latest/reference/sts/decode-authorization-message.html). The TagSchedOpsAdminister and TagSchedOpsTag policies grant the necessary privilege.
 
- * Note these AWS technical limitations/oversights:
+ * Note these AWS limitations:
 
-    * An IAM user or role that can create an image of an EC2 instance can force a reboot by omitting the <code>NoReboot</code> option. (Explicitly denying the reboot privilege does not help.) The unavoidable pairing of a harmless privilege, taking a backup, with a risky one, rebooting, is unfortunate.
+    * Authority to create an EC2 instance image includes authority to reboot. (Explicitly denying the reboot privilege does not help.) A harmless privilege, taking a backup, is married with a risky one, rebooting.
 
-    * Tags are ignored when deleting EC2 images and snapshots. Limit EC2 image and snapshot deletion privileges -- even Ec2TagSchedOpsDelete -- to highly-trusted IAM users and roles.
+    * Tags are ignored when deleting EC2 images and snapshots. Limit EC2 image and snapshot deletion privileges to highly-trusted IAM users and roles.
 
-    * In RDS, an IAM user or role that can add specific tags can add _any other_ tags in the same request. The provided policies prevent this with <code>Deny</code> statements, which have the effect of blocking legitimate RDS database and/or snapshot tagging privileges, if you have granted any.
+    * In RDS, an IAM user or role that can add specific tags can add _any other_ tags at the same time. The provided policies prevent this with <code>Deny</code> statements, which unfortunately block legitimate RDS database and/or snapshot tagging privileges, if you have granted any.
 
 ## Advanced Installation
 
-Before starting a multi-region and/or multi-account installation, check all regions, in all AWS accounts, for TagSchedOps CloudFormation stacks created using the Quick Start instructions. Delete them now.
+Before starting a multi-region and/or multi-account installation, delete the ordinary TagSchedOps CloudFormation stack in all regions, in all AWS accounts.
 
 ### Multi-Region Configuration
 
 If you intend to install TagSchedOps in multiple regions,
 
-1. Create S3 buckets in all [regions](http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region) where you intend to install TagSchedOps. The bucket names must share the same prefix, followed by a hyphen (<kbd>-</kbd>) and a suffix for the region. The region in which each bucket is created _must_ match the suffix in the bucket's name.
+1. Create S3 buckets in all [regions](http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region) where you intend to install TagSchedOps. The bucket names must all share the same prefix, which will be followed by a region suffix (e.g. <kbd>-us-east-1</kbd>). The region in which each bucket is created _must_ match the suffix at the end of the bucket's name.
 
 2. Upload [<samp>aws-lambda/aws_tag_sched_ops_perform.py.zip</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/aws-lambda/aws_tag_sched_ops_perform.py.zip) to each bucket. The need for copies in multiple regions is an AWS Lambda limitation.
 
@@ -358,7 +355,7 @@ If you intend to install TagSchedOps in multiple regions,
 
 If you intend to install TagSchedOps in multiple AWS accounts,
 
-1. In every target AWS account, create [<samp>cloudformation/tag-sched-ops-install.yaml</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops-install.yaml). Set:
+1. In every target AWS account, create the [pre-installation stack](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops-install.yaml). Set:
 
    |Item|Value|
    |--|--|
@@ -367,7 +364,7 @@ If you intend to install TagSchedOps in multiple AWS accounts,
    |AdministratorAccountId|AWS account number of main (or only) account; leave blank if AWSCloudFormationStackSet*Exec*utionRole existed before this stack was created|
    |LambdaCodeS3Bucket|Name of AWS Lambda function source code bucket (shared prefix, in a multi-region scenario)|
 
-2. For the AWS Lambda function source code S3 bucket in *each region*, create a bucket policy allowing access by *every target AWS account*'s AWSCloudFormationStackSetExecutionRole (StackSet installation) or TagSchedOpsCloudFormation role (manual installation with ordinary CloudFormation). The full name of the TagSchedOpsCloudFormation role will vary; for every target AWS account, look up the random suffix in the [list of IAM roles](https://console.aws.amazon.com/iam/home#/roles) or by selecting the TagSchedOpsInstall stack in the [list of CloudFormation stacks](https://us-east-2.console.aws.amazon.com/cloudformation/home#/stacks) and drilling down to  Resources. S3 bucket policy template:
+2. For the AWS Lambda function source code S3 bucket in *each region*, create a bucket policy allowing access by *every target AWS account*'s AWSCloudFormationStackSetExecutionRole (StackSet installation) or TagSchedOpsCloudFormation role (manual installation with ordinary CloudFormation). The full name of the TagSchedOpsCloudFormation role will vary; for every target AWS account, look up the random suffix in [IAM roles](https://console.aws.amazon.com/iam/home#/roles), or by selecting the TagSchedOpsInstall stack in [CloudFormation stacks](https://us-east-2.console.aws.amazon.com/cloudformation/home#/stacks) and drilling down to <samp>Resources</samp>. S3 bucket policy template:
 
    ```json
    {
@@ -405,7 +402,7 @@ If you intend to install TagSchedOps in multiple AWS accounts,
 
 4. In the AWS account with the AWSCloudFormationStackSet*Admin*istrationRole, go to the [StackSets Console](https://console.aws.amazon.com/cloudformation/stacksets/home#/stacksets).
 
-5. Click Create StackSet, then select <samp>Upload a template to Amazon S3</samp>, then click Browse and select your local copy of [<samp>cloudformation/aws_tag_sched_ops.yaml</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
+5. Click <samp>Create StackSet</samp>, then select <samp>Upload a template to Amazon S3</samp>, then click <samp>Browse</samp> and select your local copy of [<samp>cloudformation/aws_tag_sched_ops.yaml</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
 
    |Section|Item|Value|
    |--|--|--|
@@ -413,8 +410,8 @@ If you intend to install TagSchedOps in multiple AWS accounts,
    |Basics|Main region|_Must be a StackSet target region_|
    |Basics|Lambda code S3 bucket|_Use the shared prefix; for example, if you created_ <samp>my-bucket-us-east-1</samp> _, use use_ <kbd>my-bucket</kbd>|
    |Basics|Multi-region or StackSets?|Yes|
-   |TagSchedOpsAge|S3 version ID|_In a multi-region scenario, leave blank_|
-   |TagSchedOpsPerform|S3 version ID|_In a multi-region scenario, leave blank_|
+   |TagSchedOpsAge|S3 version ID|_For multi-region, leave blank_|
+   |TagSchedOpsPerform|S3 version ID|_For multi-region, leave blank_|
 
 6. On the next page, specify the target AWS accounts, typically by entering account numbers below <samp>Deploy stacks in accounts</samp>. Then, move the target region(s) from <samp>Available regions</samp> to <samp>Deployment order</samp>. It is a good idea to put the main region first.
 
@@ -430,7 +427,7 @@ Manual installation is adequate if the number of installations is small, but kee
 
     * In a multi-account scenario, select the TagSchedOpsCloudFormation IAM Role during this step; CloudFormation may not be able to create the stack without assuming this role.
 
-      If the user invoking CloudFormation is not an administrator, attach the following policies to the user beforhand:
+      If the IAM user who will invoke CloudFormation is not an administrator, attach the following policies beforehand:
 
       |Policy|Source|
       |--|--|
@@ -444,48 +441,48 @@ Manual installation is adequate if the number of installations is small, but kee
 
 ## Software Updates
 
-New versions of the AWS Lambda function source code and the CloudFormation template will be released from time to time.
+New versions of AWS Lambda function source code and CloudFormation templates will be released from time to time.
 
 ### CloudFormation Stack Update
 
 1. Log in to the [AWS Web Console](https://signin.aws.amazon.com/console) as a privileged user.
 
-2. Go to the [S3 Console](https://console.aws.amazon.com/s3/home). Click the name of the bucket where you keep CloudFormation templates and their dependencies. Open the Properties tab. If Versioning is disabled, click anywhere inside the box, select <samp>Enable versioning</samp>, and click Save.
+2. Go to the [S3 Console](https://console.aws.amazon.com/s3/home). Click the name of the bucket where you keep CloudFormation templates and their dependencies. Open the <samp>Properties</samp> tab. If Versioning is disabled, enable it now.
 
-3. Open the Overview tab. Upload the latest version of
+3. Return to the <samp>Overview</samp> tab. Upload the latest version of
 [<samp>aws-lambda/aws_tag_sched_ops_perform.py.zip</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/aws-lambda/aws_tag_sched_ops_perform.py.zip) to S3.
 
 4. Click the name of the newly-uploaded object. Near the top of the page, click to open the <samp>Latest version</samp> pop-up menu and then click to select the <samp>Latest version</samp>. Copy the <samp>Version ID</samp>. (It will not appear unless you actually select <samp>Latest version</samp> from the pop-up.)
 
-   _Security Tip:_ Download the file from S3 and verify it, or compare the Etag reported by S3. <br/><kbd>md5sum aws-lambda/aws_tag_sched_ops_perform.py.zip</kbd> should match [<samp>aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt</samp>](aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt)
+   _Security Tip:_ Download the file from S3 and verify it, or compare the Etag reported by S3. <kbd>md5sum aws-lambda/aws_tag_sched_ops_perform.py.zip</kbd> should match [<samp>aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt</samp>](aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt)
 
-5. Go to [Stacks](https://console.aws.amazon.com/cloudformation/home#/stacks) in the CloudFormation Console. Click the checkbox to the left of <samp>TagSchedOps</samp> (you might have given the stack a different name). From the Actions pop-up menu next to the blue Create Stack button, select Create Change Set For Current Stack.
+5. Go to [CLoudFormation stacks](https://console.aws.amazon.com/cloudformation/home#/stacks). Click the checkbox to the left of <samp>TagSchedOps</samp> (you might have given the stack a different name). From the <samp>Actions</samp> pop-up menu next to the blue <samp>Create Stack</samp> button, select <samp>Create Change Set For Current Stack</samp>.
 
-6. Click Choose File, immediately below <samp>Upload a template to Amazon S3</samp>, and navigate to your local copy of the latest version of [<samp>cloudformation/aws_tag_sched_ops.yaml</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
+6. Click <samp>Choose File</samp>, immediately below <samp>Upload a template to Amazon S3</samp>, and navigate to your local copy of the latest version of [<samp>cloudformation/aws_tag_sched_ops.yaml</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
 
    |Section|Item|Value|
    |--|--|--|
    ||<samp>Change set name</samp>|_Type a name of your choice_|
-   |TagSchedOpsAdd|<samp>S3 version ID</samp>|_Paste the Version ID, from S3_|
-   |TagSchedOpsPerform|<samp>S3 version ID</samp>|_Paste the Version ID, from S3_|
+   |TagSchedOpsAdd|<samp>S3 version ID</samp>|_Paste the Version ID of <samp>age_backups.py.zip</samp>, from S3_|
+   |TagSchedOpsPerform|<samp>S3 version ID</samp>|_Paste the Version ID of <samp>aws_tag_sched_ops_perform.py.zip</samp>, from S3_|
 
-   _A different S3 Version ID makes CloudFormation recognize new AWS Lambda function source code. Once you are familiar with the full update procedure, you may skip Steps 2-5 and leave TagSchedOpsPerformCodeS3VersionID as it was, when you are certain that only the CloudFormation template, not the function source code, is changing._
+   _A different S3 Version ID makes CloudFormation recognize new source code. Once you are familiar with the full update procedure, you may skip Steps 2-5 and leave the Version IDs as they were, when you are certain that only the CloudFormation template, not the function source code, is changing._
 
 7. Click through the remaining steps. Finally, click <samp>Create change set</samp>.
 
-8. In the Changes section, check the Replacement column.
+8. In the <samp>Changes</samp> section, check the <samp>Replacement</samp> column.
 
-   If True is shown on any row, check the Logical ID.
+   If <samp>True</samp> is shown on any row, check the <samp>Logical ID</samp>.
 
    1. If the resource is for internal use, ignore it.
 
-   2. If, however, it a user policy, such as TagSchedOpsAdminister, open another Web browser window, go to [Policies](https://console.aws.amazon.com/iam/home#/policies) in the IAM Console, click the name of the policy, open the <samp>Attached entities</samp> tab, and detach the policy from all entities. Keep notes!
+   2. If, however, it a user policy, such as TagSchedOpsAdminister, open another Web browser window, go to [IAM policies](https://console.aws.amazon.com/iam/home#/policies), click the name of the policy, open the <samp>Attached entities</samp> tab, and detach the policy from all entities. Keep notes!
 
-9. Click Execute, below the top-right corner of the CloudFormation Console window.
+9. Click <samp>Execute</samp>, below the top-right corner of the CloudFormation Console window.
 
 10. Refresh until the stack's status shows <samp>UPDATE_COMPLETE</samp>, in green.
 
-11. If you had to detach any IAM policies, return to the IAM Console and attach the replacement policies to the original entities.
+11. If you had to detach any IAM policies, attach the replacement policies to the original entities.
 
 12. If TagSchedOps is installed in multiple regions, repeat the update steps in each region. The S3 Version IDs will differ.
 
@@ -493,13 +490,13 @@ New versions of the AWS Lambda function source code and the CloudFormation templ
 
 Differences when updating a StackSet instead of an ordinary stack:
 
- * Click the radio button to the left of TagSchedOps, in the [list of StackSets](https://console.aws.amazon.com/cloudformation/stacksets/home#/stacksets). From the Actions pop-up menu next to the blue Create StackSet button, select <samp>Manage stacks in StackSet</samp>. Then, select <samp>Edit stacks</samp>. On the next page, select <samp>Upload a template to Amazon S3</samp> and upload the latest version of [<samp>cloudformation/aws_tag_sched_ops.yaml</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml).
+ * Click the radio button to the left of TagSchedOps, in the [list of StackSets](https://console.aws.amazon.com/cloudformation/stacksets/home#/stacksets). From the <samp>Actions</samp> pop-up menu next to the blue <samp>Create StackSet</samp> button, select <samp>Manage stacks in StackSet</samp>. Then, select <samp>Edit stacks</samp>. On the next page, select <samp>Upload a template to Amazon S3</samp> and upload the latest version of [<samp>cloudformation/aws_tag_sched_ops.yaml</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml).
 
  * A single update covers all target regions and/or AWS target accounts.
 
- * The TagSchedOpsPerformCodeS3VersionID parameter must remain blank. So that CloudFormation will recognize new source code for the AWS Lambda function, rename <samp>aws-lambda/aws_tag_sched_ops_perform.py.zip</samp> to <samp>aws-lambda/aws_tag_sched_ops_perform_20170924.py.zip</samp> (substitute current date) before uploading the file to the regional S3 bucket(s). Change the TagSchedOpsPerformCodeName parameter accordingly.
+ * The S3 Version ID parameters must remain blank. So that CloudFormation will recognize new source code for the AWS Lambda functions, rename each ZIP file. (For example, change <samp>aws_tag_sched_ops_perform.py.zip</samp> to <samp>aws_tag_sched_ops_perform_20170924.py.zip</samp>.) Change the <samp>S3 object name</samp> parameters accordingly.
 
- * Change Sets are not supported. There is no preliminary feedback about the scope of changes.
+ * Change Sets are not supported. StackSets provides no preliminary feedback about the scope of changes.
 
 ## Future Work
 
