@@ -330,7 +330,7 @@ Resources tagged for unsupported combinations of operations are logged (with mes
 
     * Tags are ignored when deleting EC2 images and snapshots. Limit EC2 image and snapshot deletion privileges -- even Ec2TagSchedOpsDelete -- to highly-trusted IAM users and roles.
 
-    * In RDS, an IAM user or role that can add specific tags can add _any other_ tags in the same request. Limit RDS tagging privileges -- even the policies provided here -- to highly-trusted users and roles.
+    * In RDS, an IAM user or role that can add specific tags can add _any other_ tags in the same request. The provided policies prevent this with <code>Deny</code> statements, which have the effect of blocking legitimate RDS database and/or snapshot tagging privileges, if you have granted any.
 
 ## Advanced Installation
 
@@ -410,8 +410,8 @@ If you intend to install TagSchedOps in multiple AWS accounts,
    |Section|Item|Value|
    |--|--|--|
    ||StackSet name|<kbd>TagSchedOps</kbd>|
-   |Basics|Lambda code S3 bucket|_Use the shared prefix; for example, if you created_ <samp>my-bucket-us-east-1</samp> _, use use_ <kbd>my-bucket</kbd>|
    |Basics|Main region|_Must be a StackSet target region_|
+   |Basics|Lambda code S3 bucket|_Use the shared prefix; for example, if you created_ <samp>my-bucket-us-east-1</samp> _, use use_ <kbd>my-bucket</kbd>|
    |Basics|Multi-region or StackSets?|Yes|
    |TagSchedOpsAge|S3 version ID|_In a multi-region scenario, leave blank_|
    |TagSchedOpsPerform|S3 version ID|_In a multi-region scenario, leave blank_|

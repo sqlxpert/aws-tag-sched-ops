@@ -731,7 +731,7 @@ Resources:
     Condition: UserIamPoliciesCreate
     DeletionPolicy: Delete
     Properties:
-      Description: "All RDS instances: describe; view tags; add, delete tags for scheduled operations. All RDS snapshots: describe; view tags; add, delete 'managed-delete' tag; cannot delete snapshots. All CloudWatch Events rules: describe; add, enable, disable; change, delete (except TagSchedOpsPerform rule). TagSchedOpsPerform rule: enable, disable. Due to an AWS limitation, ANY tag can be added with an intended tag. If your workflow depends on RDS database tags other than the 'managed-' tags, do not attach this policy to entities not trusted to manipulate those other tags."
+      Description: "All RDS instances: describe; view tags; add, delete all tags for scheduled operations; cannot add or delete ANY other tags. All RDS snapshots: describe; view tags; add, delete 'managed-delete' tag; cannot add or delete ANY other tags; cannot delete snapshots. All CloudWatch Events rules: describe; add, enable, disable; change, delete (except TagSchedOpsPerform rule). TagSchedOpsPerform rule: enable, disable."
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -765,6 +765,78 @@ Resources:
           #
           # RDS (comparison operators like "streq" have since been renamed):
           # https://aws.amazon.com/blogs/security/a-primer-on-rds-resource-level-permissions/
+          #
+          # One solution is to use negation. This is overbroad, because the
+          # Deny effect overrides any other tagging privileges that the
+          # entity might have. Still, it is a wise safeguard. Examples below:
+
+          # Prevent adding/deleting/changing miscellaneous RDS database tags
+          - Effect: Deny
+            Action:
+              - "rds:AddTagsToResource"
+              - "rds:RemoveTagsFromResource"
+            NotResource:
+              # https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#arn-syntax-rds
+              # This set of resources will be negated, so comment-
+              # out the resources we WANT the policy to apply to:
+              # - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:snapshot:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:cluster:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:cluster-snapshot:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:og:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:pg:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:cluster-pg:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:secgrp:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:subgrp:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:es:*"
+            Condition:
+              StringNotLike:
+                # List the tags we WANT the entity to be able to set:
+
+                "rds:req-tag/managed-start": "*"
+                "rds:req-tag/managed-reboot": "*"
+                "rds:req-tag/managed-reboot-failover": "*"
+                "rds:req-tag/managed-stop": "*"
+                "rds:req-tag/managed-snapshot": "*"
+                "rds:req-tag/managed-snapshot-stop": "*"
+
+                "rds:req-tag/managed-start-periodic": "*"
+                "rds:req-tag/managed-reboot-periodic": "*"
+                "rds:req-tag/managed-reboot-failover-periodic": "*"
+                "rds:req-tag/managed-stop-periodic": "*"
+                "rds:req-tag/managed-snapshot-periodic": "*"
+                "rds:req-tag/managed-snapshot-stop-periodic": "*"
+
+                "rds:req-tag/managed-start-once": "*"
+                "rds:req-tag/managed-reboot-once": "*"
+                "rds:req-tag/managed-reboot-failover-once": "*"
+                "rds:req-tag/managed-stop-once": "*"
+                "rds:req-tag/managed-snapshot-once": "*"
+                "rds:req-tag/managed-snapshot-stop-once": "*"
+
+          # Prevent adding/deleting/changing miscellaneous RDS snapshot tags
+          - Effect: Deny
+            Action:
+              - "rds:AddTagsToResource"
+              - "rds:RemoveTagsFromResource"
+            NotResource:
+              # https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#arn-syntax-rds
+              # This set of resources will be negated, so comment-
+              # out the resources we WANT the policy to apply to:
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
+              # - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:snapshot:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:cluster:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:cluster-snapshot:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:og:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:pg:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:cluster-pg:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:secgrp:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:subgrp:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:es:*"
+            Condition:
+              StringNotLike:
+                # List the tags we WANT the entity to be able to set:
+                "rds:req-tag/managed-delete": "*"
 
           - Effect: Allow
             Action:
@@ -1150,7 +1222,7 @@ Resources:
     Condition: UserIamPoliciesCreate
     DeletionPolicy: Delete
     Properties:
-      Description: "RDS instances tagged to enable a managed operation: add, delete one-time schedule tags for that operation. All RDS instances: describe; view tags; cannot add or delete operation-enabling or repetitive schedule tags. All RDS snapshots: describe; view tags; cannot delete, or tag for deletion. Due to an AWS limitation, ANY tag can be added with an intended tag. If your workflow depends on RDS database tags other than the 'managed-' tags, do not attach this policy to entities not trusted to manipulate those other tags."
+      Description: "RDS instances tagged to enable a managed operation: add, delete one-time schedule tags for that operation. All RDS instances: describe; view tags; cannot add or delete ANY tags other than one-time ('-once') schedule tags. All RDS snapshots: describe; view tags; cannot delete, or tag for deletion."
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -1165,6 +1237,35 @@ Resources:
             Resource:
               - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
               - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:snapshot:*"
+
+          # Prevent adding/deleting/changing miscellaneous RDS database tags
+          - Effect: Deny
+            Action:
+              - "rds:AddTagsToResource"
+              - "rds:RemoveTagsFromResource"
+            NotResource:
+              # https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#arn-syntax-rds
+              # This set of resources will be negated, so comment-
+              # out the resources we WANT the policy to apply to:
+              # - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:snapshot:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:cluster:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:cluster-snapshot:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:og:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:pg:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:cluster-pg:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:secgrp:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:subgrp:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:es:*"
+            Condition:
+              StringNotLike:
+                # List the tags we WANT the entity to be able to set:
+                "rds:req-tag/managed-start-once": "*"
+                "rds:req-tag/managed-reboot-once": "*"
+                "rds:req-tag/managed-reboot-failover-once": "*"
+                "rds:req-tag/managed-stop-once": "*"
+                "rds:req-tag/managed-snapshot-once": "*"
+                "rds:req-tag/managed-snapshot-stop-once": "*"
 
           - Effect: Allow
             Action:
@@ -1405,7 +1506,7 @@ Resources:
     Condition: UserIamPoliciesCreate
     DeletionPolicy: Delete
     Properties:
-      Description: "All EC2 images, EBS snapshots: describe; view tags; add, delete tags for deletion, but cannot delete images or snapshots. All EC2 instances, EBS volumes: describe; view tags; cannot add or delete operational-enabling, one-time schedule, or repetitive schedule tags."
+      Description: "All EC2 images, EBS snapshots: describe; view tags; add, delete 'managed-delete' tag; cannot delete images or snapshots. All EC2 instances, EBS volumes: describe; view tags; cannot add or delete ANY scheduled operation tags."
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -1505,7 +1606,7 @@ Resources:
     Condition: UserIamPoliciesCreate
     DeletionPolicy: Delete
     Properties:
-      Description: "All RDS snapshots: describe; view tags; add, delete tags for deletion, but cannot delete snapshots. All RDS instances: describe; view tags; cannot add or delete operational-enabling, one-time schedule, or repetitive schedule tags. If your workflow depends on RDS snapshot tags other than 'managed-delete', do not attach this policy to entities not trusted to manipulate those other tags."
+      Description: "All RDS snapshots: describe; view tags; add, delete 'managed-delete' tag; cannot add or delete ANY other tags; cannot delete snapshots. All RDS instances: describe; view tags; cannot add or delete ANY tags for scheduled operations."
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -1520,6 +1621,30 @@ Resources:
             Resource:
               - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
               - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:snapshot:*"
+
+          # Prevent adding/deleting/changing miscellaneous RDS snapshot tags
+          - Effect: Deny
+            Action:
+              - "rds:AddTagsToResource"
+              - "rds:RemoveTagsFromResource"
+            NotResource:
+              # https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#arn-syntax-rds
+              # This set of resources will be negated, so comment-
+              # out the resources we WANT the policy to apply to:
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:db:*"
+              # - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:snapshot:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:cluster:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:cluster-snapshot:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:og:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:pg:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:cluster-pg:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:secgrp:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:subgrp:*"
+              - !Sub "arn:${AWS::Partition}:rds:*:${AWS::AccountId}:es:*"
+            Condition:
+              StringNotLike:
+                # List the tags we WANT the entity to be able to set:
+                "rds:req-tag/managed-delete": "*"
 
           - Effect: Allow  # Security: an entity that tags for deletion...
             Action:
