@@ -28,20 +28,20 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
    _Security Tip:_ To see what you'll be installing, look in the [CloudFormation template](/cloudformation/aws_tag_sched_ops.yaml). <br/><kbd>grep 'Type: "AWS::' aws_tag_sched_ops.yaml | sort | uniq</kbd> works well.
 
-2. Go to [Instances](https://console.aws.amazon.com/ec2/v2/home#Instances) in the EC2 Console. Right-click the Name or ID of an instance, select Instance Settings, and then select Add/Edit Tags. Add:
+2. Go to the [list of EC2 instances](https://console.aws.amazon.com/ec2/v2/home#Instances). Right-click the Name or ID of an instance, select Instance Settings, and then select Add/Edit Tags. Add:
 
    |Key|Value|Note|
    |--|--|--|
    |<kbd>managed-image</kbd>||Leave value blank|
    |<kbd>managed-image-periodic</kbd>|<kbd>d=\*&nbsp;H:M=11:30</kbd>|Replace 11:30 with [current UTC time](https://www.timeanddate.com/worldclock/timezone/utc) + 20 minutes|
 
-3. Go to the [S3 Console](https://console.aws.amazon.com/s3/home). Click the name of the bucket where you keep AWS Lambda function source code. (This may be the same bucket where you keep CloudFormation templates.) If you are creating the bucket now, be sure to create it in the region where you intend to install TagSchedOps, and append the region (for example, <kbd>my-bucket-us-east-1</kbd>). Upload the compressed source code of the AWS Lambda function, [<samp>aws-lambda/aws_tag_sched_ops_perform.py.zip</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/aws-lambda/aws_tag_sched_ops_perform.py.zip)
+3. Go to the [S3 Console](https://console.aws.amazon.com/s3/home). Click the name of the bucket where you keep AWS Lambda function source code. It may be the same bucket where you keep CloudFormation templates. If you are creating it now, create it in the region where you want to install TagSchedOps, and put the region at the end of the bucket name (for example, <kbd>my-bucket-us-east-1</kbd>). Upload the compressed source code of the AWS Lambda function, [<samp>aws-lambda/aws_tag_sched_ops_perform.py.zip</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/aws-lambda/aws_tag_sched_ops_perform.py.zip)
 
    _Security Tip:_ Remove public read and write access from the S3 bucket. Carefully limit write access.
 
-   _Security Tip:_ Download the file from S3 and verify it. (In some cases, you can simply compare the ETag reported by S3.)<br/><kbd>md5sum aws-lambda/aws_tag_sched_ops_perform.py.zip</kbd> should match [<samp>aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt</samp>](aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt)
+   _Security Tip:_ Download the file from S3 and verify it, or compare the <samp>Etag</samp> reported by S3. <kbd>md5sum aws-lambda/aws_tag_sched_ops_perform.py.zip</kbd> should match [<samp>aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt</samp>](aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt)
 
-4. Go to the [CloudFormation Console](https://console.aws.amazon.com/cloudformation/home). Click Create Stack. Click Choose File, immediately below <samp>Upload a template to Amazon S3</samp>, and navigate to your locally downloaded copy of [<samp>cloudformation/aws_tag_sched_ops.yaml</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
+4. Go to the [CloudFormation Console](https://console.aws.amazon.com/cloudformation/home). Click <samp>Create Stack</samp>. Click <samp>Choose File</samp>, immediately below <samp>Upload a template to Amazon S3</samp>, and navigate to your local copy of [<samp>cloudformation/aws_tag_sched_ops.yaml</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
 
    |Section|Item|Value|
    |--|--|--|
@@ -49,15 +49,15 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
    |Basics|Main region|Current region|
    |Basics|Lambda code S3 bucket|Name of your S3 bucket|
 
-   For all other paramters, keep the default values.
+   For all other parameters, keep the default values.
 
-5. After 20 minutes, check [Images](https://console.aws.amazon.com/ec2/v2/home#Images:sort=desc:creationDate) in the EC2 Console.
+5. After 20 minutes, check the [list of images](https://console.aws.amazon.com/ec2/v2/home#Images:sort=desc:creationDate).
 
-6. Before deregistering (deleting) the sample image, note its ID, so that you can delete the associated [Snapshots](https://console.aws.amazon.com/ec2/v2/home#Snapshots:sort=desc:startTime). Also untag the instance.
+6. Before deregistering (deleting) the sample image, note its ID, so that you can delete the associated [EBS snapshots](https://console.aws.amazon.com/ec2/v2/home#Snapshots:sort=desc:startTime). Also untag the instance.
 
-7. Go to [Users](https://console.aws.amazon.com/iam/home#/users) in the IAM Console. Click your regular (uprivileged) username. Click Add Permissions, then click <samp>Attach existing policies directly</samp>. In the Search box, type <kbd>TagSchedOpsAdminister</kbd>. Add the two matching policies.
+7. Go to the [list of IAM users](https://console.aws.amazon.com/iam/home#/users). Click your regular, uprivileged username. Click <samp>Add permissions</samp> and then <samp>Attach existing policies directly</samp>. In the Search box, type <kbd>TagSchedOpsAdminister</kbd>. Add the two matching policies.
 
-   _Security Tip_: Review everyone's EC2 and RDS tagging privileges!
+   _Security Tip_: Review all users' EC2 and RDS tagging privileges!
 
 8. Log out of the AWS Console. You can now manage relevant tags, view logs, and decode errors, without logging in as a privileged user.
 
@@ -348,9 +348,9 @@ If you intend to install TagSchedOps in multiple regions,
 
    |Section|Parameter|Value|
    |--|--|--|
-   |Basics|MainRegion|_Always use the same value, to prevent the creation of duplicate sets of user policies_|
-   |Basics|LambdaCodeS3Bucket|_Use the shared prefix; for example, if you created_ <samp>my-bucket-us-east-1</samp> _and_ <samp>my-bucket-us-west-2</samp> _, use_ <kbd>my-bucket</kbd>|
-   |Basics|StackSetsOrMultiRegion|Yes|
+   |Basics|Main region|_Always use the same value, to prevent the creation of duplicate sets of user policies_|
+   |Basics|Multi-region or StackSets?|Yes|
+   |Basics|Lambda code S3 bucket|_Use the shared prefix; for example, if you created_ <samp>my-bucket-us-east-1</samp> _and_ <samp>my-bucket-us-west-2</samp> _, use_ <kbd>my-bucket</kbd>|
    |TagSchedOpsAge|S3 version ID|_Leave blank, because the value would differ in every region; only the latest version of the AWS Lambda function source code file in each region's S3 bucket can be used_|
    |TagSchedOpsPerform|S3 version ID|_Leave blank, as above_|
 
@@ -455,9 +455,9 @@ New versions of the AWS Lambda function source code and the CloudFormation templ
 3. Open the Overview tab. Upload the latest version of
 [<samp>aws-lambda/aws_tag_sched_ops_perform.py.zip</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/aws-lambda/aws_tag_sched_ops_perform.py.zip) to S3.
 
-4. Click the checkbox to the left of the newly-uploaded file. In the window that pops up, look below the Download button and reselect <samp>Latest version</samp>. In the Overview section of the pop-up window, find the Link and copy the text _after_ <samp>versionId=</samp>. (The Version ID will not appear unless you expressly select <samp>Latest version</samp>.)
+4. Click the name of the newly-uploaded object. Near the top of the page, click to open the <samp>Latest version</samp> pop-up menu and then click to select the <samp>Latest version</samp>. Copy the <samp>Version ID</samp>. (It will not appear unless you actually select <samp>Latest version</samp> from the pop-up.)
 
-   _Security Tip:_ Download the file from S3 and verify it. (In some cases, you can simply compare the ETag reported by S3.) <br/><kbd>md5sum aws-lambda/aws_tag_sched_ops_perform.py.zip</kbd> should match [<samp>aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt</samp>](aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt)
+   _Security Tip:_ Download the file from S3 and verify it, or compare the Etag reported by S3. <br/><kbd>md5sum aws-lambda/aws_tag_sched_ops_perform.py.zip</kbd> should match [<samp>aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt</samp>](aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt)
 
 5. Go to [Stacks](https://console.aws.amazon.com/cloudformation/home#/stacks) in the CloudFormation Console. Click the checkbox to the left of <samp>TagSchedOps</samp> (you might have given the stack a different name). From the Actions pop-up menu next to the blue Create Stack button, select Create Change Set For Current Stack.
 
