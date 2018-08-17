@@ -43,11 +43,11 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
 4. Go to the [CloudFormation Console](https://console.aws.amazon.com/cloudformation/home). Click Create Stack. Click Choose File, immediately below <samp>Upload a template to Amazon S3</samp>, and navigate to your locally downloaded copy of [<samp>cloudformation/aws_tag_sched_ops.yaml</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
 
-   |Item|Value|
-   |--|--|
-   |Stack name|<kbd>TagSchedOps</kbd>|
-   |LambdaCodeS3Bucket|Name of your S3 bucket|
-   |MainRegion|Current region, if other than <kbd>us-east-1</kbd>|
+   |Section|Item|Value|
+   |--|--|--|
+   ||Stack name|<kbd>TagSchedOps</kbd>|
+   |Basics|Main region|Current region|
+   |Basics|Lambda code S3 bucket|Name of your S3 bucket|
 
    For all other paramters, keep the default values.
 
@@ -346,12 +346,13 @@ If you intend to install TagSchedOps in multiple regions,
 
 3. Keep the following rules in mind when setting parameters, later:
 
-   |Parameter|Value|
-   |--|--|
-   |LambdaCodeS3Bucket|_Use the shared prefix; for example, if you created_ <samp>my-bucket-us-east-1</samp> _and_ <samp>my-bucket-us-west-2</samp> _, use_ <kbd>my-bucket</kbd>|
-   |MainRegion|_Always use the same value, to prevent the creation of duplicate sets of user policies_|
-   |StackSetsOrMultiRegion|Yes|
-   |TagSchedOpsPerformCodeS3VersionID|_Leave blank, because the value would differ in every region; only the latest version of the AWS Lambda function source code file in each region's S3 bucket can be used_|
+   |Section|Parameter|Value|
+   |--|--|--|
+   |Basics|MainRegion|_Always use the same value, to prevent the creation of duplicate sets of user policies_|
+   |Basics|LambdaCodeS3Bucket|_Use the shared prefix; for example, if you created_ <samp>my-bucket-us-east-1</samp> _and_ <samp>my-bucket-us-west-2</samp> _, use_ <kbd>my-bucket</kbd>|
+   |Basics|StackSetsOrMultiRegion|Yes|
+   |TagSchedOpsAge|S3 version ID|_Leave blank, because the value would differ in every region; only the latest version of the AWS Lambda function source code file in each region's S3 bucket can be used_|
+   |TagSchedOpsPerform|S3 version ID|_Leave blank, as above_|
 
 ### Multi-Account Configuration
 
@@ -406,13 +407,14 @@ If you intend to install TagSchedOps in multiple AWS accounts,
 
 5. Click Create StackSet, then select <samp>Upload a template to Amazon S3</samp>, then click Browse and select your locally downloaded copy of [<samp>cloudformation/aws_tag_sched_ops.yaml</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
 
-   |Item|Value|
-   |--|--|
-   |StackSet name|<kbd>TagSchedOps</kbd>|
-   |LambdaCodeS3Bucket|_Use the shared prefix; for example, if you created_ <samp>my-bucket-us-east-1</samp> _, use use_ <kbd>my-bucket</kbd>|
-   |MainRegion|_Must be a StackSet target region_|
-   |StackSetsOrMultiRegion|Yes|
-   |TagSchedOpsPerformCodeS3VersionID|_In a multi-region scenario, leave blank_|
+   |Section|Item|Value|
+   |--|--|--|
+   ||StackSet name|<kbd>TagSchedOps</kbd>|
+   |Basics|Lambda code S3 bucket|_Use the shared prefix; for example, if you created_ <samp>my-bucket-us-east-1</samp> _, use use_ <kbd>my-bucket</kbd>|
+   |Basics|Main region|_Must be a StackSet target region_|
+   |Basics|Multi-region or StackSets?|Yes|
+   |TagSchedOpsAge|S3 version ID|_In a multi-region scenario, leave blank_|
+   |TagSchedOpsPerform|S3 version ID|_In a multi-region scenario, leave blank_|
 
 6. On the next page, specify the target AWS accounts, typically by entering account numbers below <samp>Deploy stacks in accounts</samp>. Then, move the target region(s) from <samp>Available regions</samp> to <samp>Deployment order</samp>. It is a good idea to put the main region first.
 
@@ -461,10 +463,11 @@ New versions of the AWS Lambda function source code and the CloudFormation templ
 
 6. Click Choose File, immediately below <samp>Upload a template to Amazon S3</samp>, and navigate to your locally downloaded copy of the latest version of [<samp>cloudformation/aws_tag_sched_ops.yaml</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
 
-   |Item|Value|
-   |--|--|
-   |<samp>Change set name</samp>|_Type a name of your choice_|
-   |<samp>TagSchedOpsPerformCodeS3VersionID</samp>|_Paste the Version ID, from S3_|
+   |Section|Item|Value|
+   |--|--|--|
+   ||<samp>Change set name</samp>|_Type a name of your choice_|
+   |TagSchedOpsAdd|<samp>S3 version ID</samp>|_Paste the Version ID, from S3_|
+   |TagSchedOpsPerform|<samp>S3 version ID</samp>|_Paste the Version ID, from S3_|
 
    _A different S3 Version ID makes CloudFormation recognize new AWS Lambda function source code. Once you are familiar with the full update procedure, you may skip Steps 2-5 and leave TagSchedOpsPerformCodeS3VersionID as it was, when you are certain that only the CloudFormation template, not the function source code, is changing._
 
