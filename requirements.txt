@@ -13,7 +13,7 @@
 
 # https://github.com/sqlxpert/aws-tag-sched-ops/
 #
-# Copyright 2017, Paul Marcelin
+# Copyright 2022, Paul Marcelin
 #
 # This file is part of TagSchedOps.
 #
@@ -37,9 +37,6 @@ botocore
 pytz
 python-dateutil
 aniso8601
-
-# Useful for AWS administration:
-awscli
 
 # Necessary for development:
 pylint

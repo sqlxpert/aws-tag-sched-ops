@@ -1,7 +1,7 @@
 ---
 AWSTemplateFormatVersion: "2010-09-09"
 
-Description: "Prerequisite for installing TagSchedOps using CloudFormation with an assumed role, or CloudFormation StackSets. Copyright 2017, Paul Marcelin. https://github.com/sqlxpert/aws-tag-sched-ops/"
+Description: "Prerequisite for installing TagSchedOps using CloudFormation with an assumed role, or CloudFormation StackSets. Copyright 2022, Paul Marcelin. https://github.com/sqlxpert/aws-tag-sched-ops/"
 
 
 # To check YAML syntax, first complete the setup steps
@@ -11,7 +11,7 @@ Description: "Prerequisite for installing TagSchedOps using CloudFormation with 
 
 # https://github.com/sqlxpert/aws-tag-sched-ops/
 #
-# Copyright 2017, Paul Marcelin
+# Copyright 2022, Paul Marcelin
 #
 # This file is part of TagSchedOps.
 #

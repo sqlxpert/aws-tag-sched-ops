@@ -1,0 +1,220 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: >-
+  SQS queue pair. Copyright 2022, Paul Marcelin.
+  https://github.com/sqlxpert/aws-tag-sched-ops/
+
+
+# https://github.com/sqlxpert/aws-tag-sched-ops/
+#
+# Copyright 2022, Paul Marcelin
+#
+# This file is part of TagSchedOps.
+#
+# TagSchedOps is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# TagSchedOps is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with TagSchedOps. If not, see http://www.gnu.org/licenses/
+
+
+Parameters:
+
+  MainVisibilityDelaySeconds:
+    Type: Number
+    Description: >-
+      Time (seconds) before a message is exposed for the first receive attempt
+    MinValue: 0
+    Default: 0
+  MainVisibilityTimeoutSeconds:
+    Type: Number
+    Description: >-
+      Time (seconds) before a message is exposed for another receive attempt
+    MinValue: 0
+    MaxValue: 43200  # 12 hours
+  MainMaxReceiveCount:
+    Type: Number
+    Description: >-
+      Maximum number of receive attempts before a message is moved to the dead
+      letter queue
+    MinValue: 1
+  MainReceiveMessageWaitTimeSeconds:
+    Type: Number
+    Description: >-
+      Time to wait (seconds) for main queue messages on each polling attempt
+      (0 disables long polling)
+    MinValue: 0
+    Default: 0  # Act immediately on new messages
+    MaxValue: 20
+  DeadReceiveMessageWaitTimeSeconds:
+    Type: Number
+    Description: >-
+      Time to wait (seconds) for dead queue messages on each polling attempt
+      (0 disables long polling)
+    MinValue: 0
+    Default: 20  # Shouldn't be many dead messages
+    MaxValue: 20
+  MainMessageRetentionPeriodSeconds:
+    Type: Number
+    Description: "Maximum time (seconds) to keep main queue messages"
+    MinValue: 60
+    MaxValue: 1209600  # 14 days
+  DeadMessageRetentionPeriodSeconds:
+    Type: Number
+    Description: "Maximum time (seconds) to keep dead letter queue messages"
+    MinValue: 60
+    MaxValue: 1209600  # 14 days
+  BothMaximumMessageSizeBytes:
+    Type: Number
+    Description: "Message size limit (bytes)"
+    MinValue: 1024
+    MaxValue: 262144  # 256 KiB
+  BothKmsMasterKeyId:
+    Type: String
+    Description: >-
+      Encryption key (KMS key ID, not alias) for both queues; using the
+      default service key is not recommended
+  BothKmsDataKeyReusePeriodSeconds:
+    Type: Number
+    Description: >-
+      Maximum time (seconds) that new messages will be encrypted with the same
+      data key; shorter is more secure, longer is cheaper
+    MinValue: 60
+    MaxValue: 86400  # 24 hours
+
+
+Resources:
+
+  KmsDecrypt:
+    Type: "AWS::IAM::ManagedPolicy"
+    DeletionPolicy: Delete
+    Properties:
+      Description: !Sub "KMS key ID ${BothKmsMasterKeyId}: use for decryption (SQS only)"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+             # https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-key-management.html#receive-from-encrypted-queue
+             - "kms:Decrypt"
+            Resource: !Sub "arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/${BothKmsMasterKeyId}"
+            Condition:
+               StringEquals: { "kms:ViaService": !Sub "sqs.${AWS::Region}.amazonaws.com" }
+
+  Dead:
+    Type: AWS::SQS::Queue
+    Properties:
+      DelaySeconds: 0
+      KmsMasterKeyId: !Ref BothKmsMasterKeyId
+      KmsDataKeyReusePeriodSeconds: !Ref BothKmsDataKeyReusePeriodSeconds
+      MaximumMessageSize: !Ref BothMaximumMessageSizeBytes
+      MessageRetentionPeriod: !Ref DeadMessageRetentionPeriodSeconds
+      ReceiveMessageWaitTimeSeconds: !Ref DeadReceiveMessageWaitTimeSeconds
+      VisibilityTimeout: 0  # seconds; dead message retries don't make sense
+      Tags:
+        - { Key: "queue-type", Value: "dead" }
+
+  DeadReceive:
+    Type: "AWS::IAM::ManagedPolicy"
+    DeletionPolicy: Delete
+    Properties:
+      Description: !Sub "SQS queue ${Dead.QueueName}: retrieve messages, change visibility time, delete"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "sqs:ReceiveMessage"
+              - "sqs:ChangeMessageVisibility*"
+              - "sqs:DeleteMessage*"
+              - "sqs:GetQueueAttributes"  # https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html#events-sqs-permissions
+            Resource: !GetAtt Dead.Arn
+
+  Main:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsMasterKeyId: !Ref BothKmsMasterKeyId
+      KmsDataKeyReusePeriodSeconds: !Ref BothKmsDataKeyReusePeriodSeconds
+      MessageRetentionPeriod: !Ref MainMessageRetentionPeriodSeconds
+      ReceiveMessageWaitTimeSeconds: !Ref MainReceiveMessageWaitTimeSeconds
+      DelaySeconds: !Ref MainVisibilityDelaySeconds
+      VisibilityTimeout: !Ref MainVisibilityTimeoutSeconds
+      RedrivePolicy:
+        maxReceiveCount: !Ref MainMaxReceiveCount
+        deadLetterTargetArn: !GetAtt Dead.Arn
+      Tags:
+        - { Key: "queue-type", Value: "main" }
+
+  MainSend:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: !Sub "SQS queue ${Main.QueueName}: send encrypted messages"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+             - "sqs:SendMessage*"
+            Resource: !GetAtt Main.Arn
+          - Effect: Allow
+            Action:  # https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-key-management.html#send-to-encrypted-queue
+             - "kms:GenerateDataKey"
+             - "kms:Decrypt"
+            Resource: !Sub "arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/${BothKmsMasterKeyId}"
+
+  MainReceive:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: !Sub "Retrieve, change visibility time, delete from SQS queue ${Main.QueueName}"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "sqs:ReceiveMessage"
+              - "sqs:ChangeMessageVisibility*"
+              - "sqs:DeleteMessage*"
+              - "sqs:GetQueueAttributes"  # https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html#events-sqs-permissions
+            Resource: !GetAtt Main.Arn
+
+Outputs:
+
+  MainUrl:
+    Description: "Main SQS queue (URL)"
+    Value: !Ref Main
+  MainArn:
+    Description: "Main SQS queue (ARN)"
+    Value: !GetAtt Main.Arn
+  MainSend:
+    Description: "Send encrypted messages to main queue (IAM policy ARN)"
+    Value: !Ref MainSend
+  MainReceive:
+    Description: "Receive messages from main queue (IAM policy ARN)"
+    Value: !Ref MainReceive
+
+  DeadUrl:
+    Description: "Dead letter SQS queue (URL)"
+    Value: !Ref Dead
+  DeadArn:
+    Description: "Dead letter SQS queue (ARN)"
+    Value: !GetAtt Dead.Arn
+  DeadReceive:
+    Description: "Receive messages from main queue (IAM policy ARN)"
+    Value: !Ref DeadReceive
+
+  KmsDecrypt:
+    Description: >-
+      Decrypt SQS queue messages; attach together with MainReceive,
+      DeadReceive (IAM policy ARN)
+    Value: !Ref KmsDecrypt
+

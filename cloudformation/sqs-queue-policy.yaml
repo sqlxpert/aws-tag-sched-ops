@@ -1,0 +1,97 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: >-
+  SQS queue policies (attached directly, no output) for queue pair. Copyright
+  2022, Paul Marcelin. https://github.com/sqlxpert/aws-tag-sched-ops/
+
+
+# https://github.com/sqlxpert/aws-tag-sched-ops/
+#
+# Copyright 2022, Paul Marcelin
+#
+# This file is part of TagSchedOps.
+#
+# TagSchedOps is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# TagSchedOps is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with TagSchedOps. If not, see http://www.gnu.org/licenses/
+
+
+Parameters:
+
+  MainUrl:
+    Type: String
+    Description: "Main SQS queue (URL)"
+  MainArn:
+    Type: String
+    Description: "Main SQS queue (ARN)"
+  MainSendExclusiveRole:
+    Type: String
+    Description: >-
+      IAM role (ARN) with exclusive permission to send messages to main queue
+  MainReceiveExclusiveRole:
+    Type: String
+    Description: >-
+      IAM role (ARN) with exclusive permission to receive messages, change
+      visibility time, and delete from main queue
+  DeadUrl:
+    Type: String
+    Description: "Dead letter SQS queue (URL)"
+  DeadArn:
+    Type: String
+    Description: "Dead letter SQS queue (ARN)"
+
+
+Resources:
+
+  # No separate Batch actions in SQS queue policy language
+  # aws:SourceArn for service, aws:PrincipalArn for identity (e.g., role)
+  # https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-api-permissions-reference.html
+
+  DeadPolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues: [ !Ref DeadUrl ]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: "*"
+            Action:
+              - "sqs:SendMessage"
+            Resource: !Ref DeadArn
+            Condition:
+              "StringEquals": { "aws:SourceArn": !Ref MainArn }
+
+  MainPolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues: [ !Ref MainUrl ]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Deny
+            Principal: "*"
+            Action:
+             - "sqs:SendMessage"
+            Resource: !Ref MainArn
+            Condition:
+              "StringNotEquals": { "aws:PrincipalArn": !Ref MainSendExclusiveRole }
+          - Effect: Deny
+            Principal: "*"
+            Action:
+              - "sqs:ChangeMessageVisibility"
+              - "sqs:ReceiveMessage"
+              - "sqs:DeleteMessage"
+            Resource: !Ref MainArn
+            Condition:
+              "StringNotEquals": { "aws:PrincipalArn": !Ref MainReceiveExclusiveRole }

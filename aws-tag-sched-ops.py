@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 """Perform scheduled operations on AWS resources, based on tags
 
-Intended as an AWS Lambda function. DIRECT EXECUTION NOT RECOMMENDED.
-Developers: see instructions below license notice.
+Running outside AWS Lambda NOT RECOMMENDED!
 
 https://github.com/sqlxpert/aws-tag-sched-ops/
 
-Copyright 2018, Paul Marcelin
+Copyright 2022, Paul Marcelin
 
 This file is part of TagSchedOps.
 
@@ -25,54 +24,95 @@ along with TagSchedOps. If not, see http://www.gnu.org/licenses/
 
 # pylint: disable=line-too-long
 
-To execute directly, for development purposes ONLY:
+Developers: to run outside AWS Lambda:
 
-0. Have a separate AWS account number, with no production resources.
-   If running on a local system, also have a dedicated IAM user with an AWS
-   API key ("Programmatic access") but no password (no "AWS Management Console
-   access") and no attached IAM policies (certainly not AdministratorAccess).
+ 1. Have a separate AWS account number, with no production resources.
 
-1. Complete the Python 3 environment setup steps in requirements.txt
+ 2. Complete the Python 3 environment setup steps in requirements.txt
 
-2a. If running on an EC2 instance:
-    http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html
-    Add an IAM role to the instance. No AWS API key is needed.
--OR-
-2b. If running on a local system:
-    http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html#cli-quick-configuration
-    Follow the AWS command-line interface (CLI) configuration prompts to save
-    the IAM user's AWS API Key ID and Secret Key locally, and set a region:
-      aws configure  # Consider --profile (see Named Profiles in linked doc.)
+ 3. Install the AWS Command-Line Interface
+    https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html
 
-3. Attach the Ec2TagSchedOpsPerform and RdsTagSchedOpsPerform IAM policies
-   to the IAM role (if running on an EC2 instance) or to the IAM user (if
-   running on a local system). Attach no other policies to the role or user.
+4a. If working on an EC2 instance, create a dedicated IAM role with no
+    inline or managed policies (no AdministratorAccess, etc.) and assign
+    the role to the instance. When logged in to the instance, set the region:
 
-4. At the start of each session, activate your Python 3 virtual environment.
+    aws configure set region         us-east-1 --profile default
 
-5. If running on an EC2 instance, also set a region each time:
-     export AWS_DEFAULT_REGION='us-east-1'
-   Optionally, EC2 users too can set this once and for all, using the AWS CLI:
-     aws configure set region 'us-east-1'
+4b. If working locally rather than on an EC2 instance, create a dedicated
+    IAM user with an AWS API key ("Programmatic access") but no password
+    (no "AWS Management Console access") and no inline or managed policies
+    (no AdministratorAccess, etc.). Save the key locally, and set the region:
 
-6. Run the code:
-     python3 aws_tag_sched_ops_perform.py
+    aws configure
 
-7. Check Python syntax and style (must use Python 3 PyLint and PyCodeStyle!):
-     cd aws-tag-sched-ops  # Home of pylintrc and PyCodeStyle setup.cfg
-     pylint      aws_tag_sched_ops_perform.py
-     pycodestyle aws_tag_sched_ops_perform.py
+ 5. Repeat the following for Find, Do, BackupFind and BackupDelete:
 
-8. Package for upload to S3, for use with AWS Lambda:
-     rm --force aws-lambda/aws_tag_sched_ops_perform.py.zip
-     zip -8     aws-lambda/aws_tag_sched_ops_perform.py.zip aws_tag_sched_ops_perform.py
-     md5sum     aws-lambda/aws_tag_sched_ops_perform.py.zip > aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt
+    aws configure set region         us-east-1 --profile TagSchedOpsFind
+    aws configure set source_profile default   --profile TagSchedOpsFind
+    aws configure set role_arn \
+      'arn:aws:iam::AWS_ACCOUNT:role/STACK_NAME-TagSchedOpsZLambdaFnFind-RANDOM' \
+                                               --profile TagSchedOpsFind
+
+ 6. Create a CloudFormation Change Set and add one of the following Principals
+    to the AssumeRolePolicyDocument, for ALL of the TagSchedOpsZLambdaFn roles:
+
+    AWS: [ !Sub "arn:aws:iam::${AWS::AccountId}:user/IAM_USER" ]
+    or
+    AWS: [ !Sub "arn:aws:iam::${AWS::AccountId}:role/EC2_INSTANCE_ROLE" ]
+
+ 7. Using the AWS Console (or your regular infrastructure-as-code system),
+    add an inline policy to your IAM user or EC2 instance role:
+
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Action": "sts:AssumeRole",
+          "Resource": [
+            "arn:aws:iam::AWS_ACCOUNT:role/STACK_NAME-TagSchedOpsZLambdaFnFind-RANDOM",
+            "arn:aws:iam::AWS_ACCOUNT:role/STACK_NAME-TagSchedOpsZLambdaFnDo-RANDOM",
+            "arn:aws:iam::AWS_ACCOUNT:role/STACK_NAME-TagSchedOpsZLambdaFnBackupFind-RANDOM",
+            "arn:aws:iam::AWS_ACCOUNT:role/STACK_NAME-TagSchedOpsZLambdaFnBackupDelete-RANDOM"
+          ]
+        }
+      ]
+    }
+
+ 8. At the start of each session, activate your Python 3 virtual environment,
+    select a default role to assume, and set required environment variables.
+
+    export AWS_PROFILE=TagSchedOpsFind
+    export AWS_TAG_SCHED_OPS_QUEUE_URL='https://sqs.REGION.amazonaws.com/AWS_ACCOUNT/STACK_NAME-TagSchedOpsSqsQueueDo-RANDOM-Main-RANDOM'
+    export AWS_TAG_SCHED_OPS_QUEUE_MESSAGESIZE=1024  # bytes
+
+ 9. Run the program, choosing whichever handler you wish:
+
+    python3 -m aws-tag-sched-ops.py lambda_hanlder_find
+
+10. Check Python syntax and style (must use PyLint and PyCodeStyle for Python 3!):
+
+    cd aws-tag-sched-ops  # Home of pylintrc and PyCodeStyle setup.cfg
+    pylint      aws-tag-sched-ops.py
+    pycodestyle aws-tag-sched-ops.py
+
+11. Package for upload to S3, for use with AWS Lambda:
+    zip -9 aws-lambda/aws-tag-sched-ops.py.zip   aws-tag-sched-ops.py
+    md5sum aws-lambda/aws-tag-sched-ops.py.zip > aws-lambda/aws-tag-sched-ops.py.zip.md5.txt
+
+12. To return to the privileges of the original IAM user or EC2 instance role
+    for a moment, without changing AWS_PROFILE, reference the default profile:
+
+    aws s3 cp aws-tag-sched-ops.py.zip S3_BUCKET --profile default
 """
 
 
 import os
 import datetime
+import math
 import re
+import json
 import pprint
 import random
 import collections
@@ -80,8 +120,10 @@ import boto3
 import botocore
 
 
-DEBUG = ("DEBUG" in os.environ)  # Print params internal reference dict if set
-
+AWS_TAG_SCHED_OPS_DEBUG = ("AWS_TAG_SCHED_OPS_DEBUG" in os.environ)
+QUEUE_URL = os.environ["AWS_TAG_SCHED_OPS_QUEUE_URL"]
+QUEUE_MESSAGESIZE = int(os.environ.get("AWS_TAG_SCHED_OPS_QUEUE_MESSAGESIZE", 0))
+QUEUE_FORMAT = "01"
 
 # Rules for Schedule Tags
 #
@@ -91,26 +133,27 @@ DEBUG = ("DEBUG" in os.environ)  # Print params internal reference dict if set
 # markers, which pass through strftime unchanged, to divide the strftime
 # output into regular expressions, which can be matched against tag values.
 #
-#  &  And: delineates rules, ALL OF WHICH must be satisfied
+#  &  And: delineates rules, ALL of which must be satisfied
 #     (implemented as the split character; separates string
 #      into three regexps, one each for day, hour and minute)
 #
-#  |  Or: delineates a rule's tag values, ANY ONE OF WHICH must be satisfied
+#  |  Or: delineates a rule's tag values, ANY ONE of which must be present
 #     (implemented as the alternation operator within a regexp;
 #      allows day, hour, or minute to be specified in various ways)
 #
 # \*  Wildcard: stands for any day of the month or any hour of the day
-#     (appears as a literal character in tag values, so it must be escaped)
+#     (appears as a literal character in tag values, so it must be escaped);
+#     _ is also accepted, because RDS does not allow * in tag values
 #
 #  ~  10-minute normalization marker: causes the preceding
 #     digit to be replaced with a 1-digit wildcard (for example,
-#     "M=%M~" --> "M=40~" --> r"M=4\d", which matches "M=40" through "M=49")
+#     "M=%M~" --> "M=40~" --> r"M=4\\d", which matches "M=40" through "M=49")
 #
 MINUTE_NORM_REGEXP = re.compile(r"0~")
 SCHED_TAG_STRFTIME_FMTS = {
   "once": r"%Y-%m-%dT%H:%M~",
-  "periodic": r"dTH:M=%dT%H:%M~|uTH:M=%uT%H:%M~|d=%d|d=\*|u=%u&"
-              r"dTH:M=%dT%H:%M~|uTH:M=%uT%H:%M~|H:M=%H:%M~|H=%H|H=\*&"
+  "periodic": r"dTH:M=%dT%H:%M~|uTH:M=%uT%H:%M~|d=%d|d=\*|d=_|u=%u&"
+              r"dTH:M=%dT%H:%M~|uTH:M=%uT%H:%M~|H:M=%H:%M~|H=%H|H=\*|H=_&"
               r"dTH:M=%dT%H:%M~|uTH:M=%uT%H:%M~|H:M=%H:%M~|M=%M~",
 }
 # Delimiter between schedule parts (no commas allowed in RDS tag values!):
@@ -123,13 +166,13 @@ DATE_CHARS_UNSAFE_REGEXP = re.compile(r"[-:]")
 
 
 def date_time_process(date_time):
-  """Take a datetime and return a dict of compiled regexps, plus a string.
+  """Take a datetime and return a dict of compiled regexps, plus strings.
 
   The dictionary maps frequency values to lists of compiled
   regexps, to be matched against date/time schedule tags.
 
-  The date/time string is normalized to the start of a 10-minute cycle,
-  because this code is designed to be executed every 10 minutes.
+  The strings are normalized to the start and end of a 10-minute cycle,
+  because this program is designed to be executed every 10 minutes.
   """
 
   sched_regexp_lists = {
@@ -137,7 +180,7 @@ def date_time_process(date_time):
       re.compile(fr"(^|{SCHED_DELIMS})({tag_val_part})({SCHED_DELIMS}|$)")
       # Harmlessly permissive (mix/match/repeat delimiters)
       for tag_val_part in MINUTE_NORM_REGEXP.sub(
-        r"\d",
+        r"\\d",
         date_time.strftime(strftime_fmt)
       ).split("&")
     ]
@@ -145,8 +188,11 @@ def date_time_process(date_time):
   }
 
   date_time_norm_str = date_time.strftime(TRACK_TAG_STRFTIME_FMT)
+  end_epoch_str = str(
+    ( int(math.trunc(date_time.timestamp())) + int(10 * 60) ) * int(1000)
+  )
 
-  return (sched_regexp_lists, date_time_norm_str)
+  return (sched_regexp_lists, date_time_norm_str, end_epoch_str)
 
 
 def tag_key_join(*args, tag_prefix="managed", tag_delim="-"):
@@ -154,13 +200,6 @@ def tag_key_join(*args, tag_prefix="managed", tag_delim="-"):
   """
 
   return tag_delim.join([tag_prefix] + list(args))
-
-
-def tag_encode(tag_key, tag_val):
-  """Return a tag dictionary, to be passed to a boto3 method
-  """
-
-  return {"Key": tag_key, "Value": tag_val}
 
 
 def tag_decode(tag_pair):
@@ -220,7 +259,7 @@ def kwargs_describe(filter_pairs):
   """Take filter pairs and return kwargs for a boto3 describe_ method.
 
   Only supports Filters, so far the only describe_ parameter
-  that this code uses (and used only for EC2, at that).
+  that this program uses (and used only for EC2, at that).
   """
 
   return (
@@ -250,38 +289,16 @@ def op_tags_filters(params_rsrc_type):
   ]
 
 
-def child_id_get_rds_snapshot(resp, child_name):
-  """Take a boto3 rds.stop_db_instance response and return the snapshot ID.
-
-  Use ONLY when rds.stop_db_instance was called with DBSnapshotIdentifier.
-
-  Whereas calling rds.create_db_snapshot creates and tags a snapshot in one
-  step, calling rds.stop_db_instance with DBSnapshotIdentifier does not tag the
-  resulting snapshot. Construct the snapshot ID (actually an ARN) for step two,
-  rds.add_tags_to_resource.
-  """
-
-  child_id = ""
-  if child_name:
-    parent_arn = resp.get("DBInstance", {}).get("DBInstanceArn", "")
-    if parent_arn:
-      arn_parts = parent_arn.split(":")
-      arn_parts[-2] = "snapshot"
-      arn_parts[-1] = child_name
-      child_id = ":".join(arn_parts)
-  return child_id
-
-
 # params defines, for each supported AWS service:
 #  - search conditions for parent resources (instances and volumes)
 #  - operations that can be performed on matching parent resources
 #  - rules for naming and tagging child resources (images and snapshots)
 #
-# Lambda functions cover up boto3 (and AWS REST API) inconsistencies:
-#  - how many levels from response to resource list
-#  - whether tags must be requested separately
-#  - whether child creation and tagging are separate
-#  - how equivalent call parameters (and response keys) are named
+# Python lambda functions cover up AWS API inconsistencies:
+#  - how many levels from response object to individual resource
+#  - whether resource tags must be requested separately
+#  - whether resource creation and tagging are separate actions
+#  - how equivalent arguments (and response keys) are named
 #  - how resources are identified, in calls and in AWS at large
 
 PARAMS_CHILD = {
@@ -299,7 +316,7 @@ PARAMS_CHILD = {
       ),
       "name_char_fill": "X",  # Replace unsafe characters with this
       "name_len_max": 128,
-      "child_id_get": lambda resp, child_name: resp.get("ImageId", ""),
+      "child_id_key": "ImageId",
       "child_tag_default": True,
     },
 
@@ -310,7 +327,7 @@ PARAMS_CHILD = {
       # http://boto3.readthedocs.io/en/latest/reference/services/ec2.html#EC2.Client.create_snapshot
       # No unsafe characters documented for snapshot description
       "name_len_max": 255,
-      "child_id_get": lambda resp, child_name: resp.get("SnapshotId", ""),
+      "child_id_key": "SnapshotId",
       "child_tag_default": True,
     },
 
@@ -329,7 +346,6 @@ PARAMS_CHILD = {
       "name_chars_unsafe_regexp": re.compile(r"[^\w.:/=+\-]"),
       "name_char_fill": "X",
       "name_len_max": 255,
-      "child_id_get": child_id_get_rds_snapshot,
       "child_tag_default": False,
     },
   },
@@ -485,6 +501,30 @@ PARAMS = {
   },
 }
 
+CAPABS_FIND = {
+  "ec2": {
+    "Instance": (
+      "start",
+      "reboot",
+      "stop",
+      "image",
+      "reboot-image",
+    ),
+    "Volume": (
+      "snapshot",
+    ),
+  },
+  "rds": {
+    "DBInstance": (
+      "start",
+      "reboot",
+      "reboot-failover",
+      "stop",
+      "snapshot",
+      "snapshot-stop",
+    ),
+  },
+}
 
 LOG_LINE_FMT = "\t".join([
   "{initiated}",  # See boto3_success
@@ -553,17 +593,34 @@ def child_name_get(
 def boto3_success(resp):
   """Return True if a boto3 response reflects HTTP status code 200.
 
-  Success, throughout this code, means that an AWS operation
+  Success, throughout this program, means that an AWS operation
   has been initiated, not necessarily that it has completed.
 
-  It may take hours for an image or snapshot to become available, and checking
-  for completion is an audit function, to be performed by other code or tools.
+  It may take hours for an image or snapshot to become available.
+  Checking completion is an audit function, left to other programs.
   """
 
   return (
     isinstance(resp, dict)
     and (resp.get("ResponseMetadata", {}).get("HTTPStatusCode", 0) == 200)
   )
+
+
+def queue_message_prepare(msg_in):
+  """Convert to JSON and check length
+  """
+
+  msg_out = json.dumps(msg_in)
+  msg_out_len = len(bytes(msg_out, "utf-8"))
+  if msg_out_len > QUEUE_MESSAGESIZE:
+    raise RuntimeError(
+      "After conversion to JSON this message is {} bytes long,\n"
+      "but QUEUE_MESSAGESIZE is only {} bytes:\n{}".format(
+        msg_out_len,
+        QUEUE_MESSAGESIZE,
+        pprint.pformat(msg_in),
+    ))
+  return msg_out
 
 
 def rsrc_process(rsrc, params_tags, tags_get_fn):
@@ -577,7 +634,7 @@ def rsrc_process(rsrc, params_tags, tags_get_fn):
   result = {
     "ops_tentative": set(),
     "name_from_tag": "",
-    "child_tags": [],
+    "child_tags": {},
   }
 
   for tag_pair in tags_get_fn(rsrc):
@@ -593,7 +650,7 @@ def rsrc_process(rsrc, params_tags, tags_get_fn):
           or TAG_VALS_UNSAFE_REGEXP.match(tag_val)
         ):
           # Pass miscellaneous tag, but only if user-created
-          result["child_tags"].append(tag_pair)
+          result["child_tags"][tag_key] = tag_val
       else:
         # Schedule tag: check whether value matches current date/time.
         # Operation-enabling tag: ignore value. Empty list accomplishes
@@ -611,31 +668,39 @@ def rsrc_process(rsrc, params_tags, tags_get_fn):
     frozenset(result["ops_tentative"]),
     None
   )
+  # TODO: Track whether an operation is periodic or one-time. Move operation
+  # combination logic here. If a periodic and a one-time operation conflict
+  # (or merely coincide, if that's simpler), discard the one-time operation.
 
   return result
 
+
+sqs_client = boto3.client("sqs")
 
 def rsrcs_get(
   sched_regexp_lists,
   params_rsrc_type,
   pager,
-  tags_get_fn
+  tags_get_fn,
+  svc,
+  rsrc_type,
+  date_time_norm_str,
+  end_epoch_str
 ):
-  """Return a hierarchical dict: operation --> resource ID --> details.
-
-  Innermost dictionaries contain parent resource details,
-  including tags to pass to child resources.
-
-  Error handling: Does not make sense to continue execution
-  if any error occurs while building the resource list.
+  """Find parent resources to operate on, and send details to queue.
   """
+
+  date_time_norm_str_safe = DATE_CHARS_UNSAFE_REGEXP.sub(
+    "",
+    date_time_norm_str
+  )
 
   params_tags = {
     "tag_regexps": {},
     "tag_set_to_op": {},
     "op_set_to_op": dict(params_rsrc_type.get("op_set_to_op", {})),  # Copy!
   }
-  for op in params_rsrc_type["ops"]:
+  for op in CAPABS_FIND[svc][rsrc_type]:
     tag_op = tag_key_join(op)
     # Operation-enabling tag: ignore value (see rsrc_process):
     params_tags["tag_regexps"][tag_op] = []
@@ -648,13 +713,12 @@ def rsrcs_get(
     # Single-operation identity:
     params_tags["op_set_to_op"][frozenset([op])] = op
 
-  if DEBUG:
+  if AWS_TAG_SCHED_OPS_DEBUG:
     print()
     pprint.pprint(params_tags)
     print()
 
   id_key = params_rsrc_type["id_key"]
-  rsrcs = collections.defaultdict(dict)
   for resp in pager.paginate(**kwargs_describe(
     params_rsrc_type["filter_pairs"]
     + params_rsrc_type["extra_filter_pairs"](params_rsrc_type)
@@ -663,7 +727,79 @@ def rsrcs_get(
       rsrc_processed = rsrc_process(rsrc, params_tags, tags_get_fn)
       op = rsrc_processed.pop("op")
       if op:
-        rsrcs[op][rsrc[id_key]] = rsrc_processed
+        msg = {}
+        msg.update(rsrc_processed)
+        del(msg["ops_tentative"])
+
+        rsrc_id = rsrc[id_key]
+        params_svc = PARAMS[svc]
+        params_op = params_rsrc_type["ops"][op]
+        two_step_tag = False
+
+        child_rsrc_type = params_op.get("child_rsrc_type", "")
+        if child_rsrc_type:
+          params_child_rsrc_type = params_op["params_child_rsrc_type"]
+          two_step_tag = params_op.get(
+            "child_tag_default_override",
+            params_child_rsrc_type["child_tag_default"]
+          )
+          if two_step_tag:
+            child_tag_kwargs = params_svc["tags_set_kwargs"]
+            if "child_id_key" in params_child_rsrc_type:
+              msg["child_id_key"] = params_child_rsrc_type["child_id_key"]
+            msg["child_tag_method_name"] = params_svc["tags_set_method_name"]
+
+        kwargs = params_op["op_kwargs"](rsrc_id)
+        if child_rsrc_type:
+          child_name = child_name_get(
+            rsrc_id,
+            rsrc_processed["name_from_tag"],
+            date_time_norm_str_safe,
+            params_child_rsrc_type
+          )
+          kwargs.update(params_child_rsrc_type["child_name_kwargs"](child_name))
+          msg["child_tags"].update({
+            tag_key_join("parent-name"): rsrc_processed["name_from_tag"],
+            tag_key_join("parent-id"): rsrc_id,
+            tag_key_join("origin"): op,
+            tag_key_join("date-time"): date_time_norm_str,
+            "Name": child_name,
+          })
+          if not two_step_tag:
+            kwargs["Tags"] = msg["child_tags"]
+
+        msg["method_name"] = params_op["op_method_name"]
+        msg["kwargs"] = kwargs
+        pprint.pprint(msg)
+        sqs_resp = sqs_client.send_message(
+          QueueUrl=QUEUE_URL,
+          MessageBody=queue_message_prepare(msg),
+          MessageAttributes={
+            "version": {
+              "StringValue": QUEUE_FORMAT,
+              "DataType": "String",
+            },
+            "capab": {
+              "StringValue": "{}.{}.{}".format(svc, rsrc_type, op),
+              "DataType": "String",
+            },
+            "before": {
+              "StringValue": end_epoch_str,
+              "DataType": "String",
+            },
+          },
+          # TODO: Support AWS X-Ray traceability
+          # MessageSystemAttributes={
+          #   "AWSTraceHeader": {
+          #     "StringValue": "value-string",
+          #     "DataType": "String",
+          #   }
+          # },
+        )
+        if not boto3_success(sqs_resp):
+          raise RuntimeError(
+            "Sending message:\n{}\nto queue {}\nfailed with response\n{}".format()
+          )
       elif rsrc_processed["ops_tentative"]:
         print(LOG_LINE_FMT.format(
           initiated=0,
@@ -675,102 +811,7 @@ def rsrcs_get(
           note="OPS_UNSUPPORTED",
         ))
 
-  return rsrcs
-
-
-def ops_perform(
-  ops_rsrcs,
-  date_time_norm_str,
-  params_svc,
-  params_rsrc_type,
-  aws_client,
-  tags_set_method
-):  # pylint: disable=too-many-arguments
-  """Perform operations on resources of a given type.
-  """
-
-  date_time_norm_str_safe = DATE_CHARS_UNSAFE_REGEXP.sub(
-    "",
-    date_time_norm_str
-  )
-
-  for (op, rsrcs) in ops_rsrcs.items():
-
-    params_op = params_rsrc_type["ops"][op]
-    op_method = getattr(aws_client, params_op["op_method_name"])
-    two_step_tag = False
-
-    child_rsrc_type = params_op.get("child_rsrc_type", "")
-    if child_rsrc_type:
-      params_child_rsrc_type = params_op["params_child_rsrc_type"]
-      two_step_tag = params_op.get(
-        "child_tag_default_override",
-        params_child_rsrc_type["child_tag_default"]
-      )
-      if two_step_tag:
-        child_tag_kwargs = params_svc["tags_set_kwargs"]
-        child_id_get = params_child_rsrc_type["child_id_get"]
-
-    for (rsrc_id, rsrc) in rsrcs.items():
-      kwargs = params_op["op_kwargs"](rsrc_id)
-      if child_rsrc_type:
-        child_name = child_name_get(
-          rsrc_id,
-          rsrc["name_from_tag"],
-          date_time_norm_str_safe,
-          params_child_rsrc_type
-        )
-        kwargs.update(params_child_rsrc_type["child_name_kwargs"](child_name))
-        rsrc["child_tags"].extend([
-          tag_encode(tag_key_join("parent-name"), rsrc["name_from_tag"]),
-          tag_encode(tag_key_join("parent-id"), rsrc_id),
-          tag_encode(tag_key_join("origin"), op),
-          tag_encode(tag_key_join("date-time"), date_time_norm_str),
-          tag_encode("Name", child_name),
-        ])
-        if not two_step_tag:
-          kwargs["Tags"] = rsrc["child_tags"]
-
-      # Either an exception or the absence of HTTP status code 200
-      # is a failure.
-      resp = {}
-      err_print = ""
-      try:
-        resp = op_method(**kwargs)
-      except botocore.exceptions.ClientError as err:
-        err_print = str(err)
-      success = boto3_success(resp)
-      print(LOG_LINE_FMT.format(
-        initiated=int(success),  # 0 is shorter than "False", etc.
-        rsrc_id=rsrc_id,
-        op=op,
-        child_rsrc_type=child_rsrc_type,
-        child=child_name if child_rsrc_type else "",
-        child_op="",
-        note="" if success else (resp if resp else err_print),
-      ))
-
-      if two_step_tag and success:
-        child_id = child_id_get(resp, child_name)
-        resp = {}
-        err_print = ""
-        if child_id:
-          try:
-            resp = tags_set_method(
-              **child_tag_kwargs(child_id, rsrc["child_tags"])
-            )
-          except botocore.exceptions.ClientError as err:
-            err_print = str(err)
-        success = boto3_success(resp)
-        print(LOG_LINE_FMT.format(
-          initiated=int(success),
-          rsrc_id=rsrc_id,
-          op=op,
-          child_rsrc_type=child_rsrc_type,
-          child=child_id if child_id else "UNKNOWN",
-          child_op="tag",
-          note="" if success else (resp if resp else err_print),
-        ))
+  return
 
 
 def tags_get_two_step(
@@ -784,7 +825,7 @@ def tags_get_two_step(
   Take a resource description and a tag retrieval method, and return the tags.
 
   Error handling: Trap and log, noting that inability to obtain tags
-  means that reasources with scheduled operations might be missed.
+  means that resources with scheduled operations might be missed.
   """
 
   rsrc_id = rsrc[rsrc_tags_get_id_key]
@@ -832,20 +873,37 @@ def tags_get_get(params_svc, params_rsrc_type, aws_client):
   )
 
 
-def lambda_handler(event, context):  # pylint: disable=unused-argument
-  """Perform scheduled operations on AWS resources, based on tags
+def lambda_handler_find(event, context):  # pylint: disable=unused-argument
+  """Find and queue AWS resources for scheduled operations, based on tags
   """
 
-  if DEBUG:
+  if AWS_TAG_SCHED_OPS_DEBUG:
     pprint.pprint(PARAMS)
     print()
 
-  now = datetime.datetime.utcnow()
-  (sched_regexp_lists, date_time_norm_str) = date_time_process(now.replace(
-    minute=now.minute // 10 * 10,  # DOWN to :00, :10, :20, :30, :40 or :50
-    second=0,
-    microsecond=0,
-  ))
+  period_minutes = 10
+  td = datetime.timedelta(minutes=period_minutes)
+  datetime_now = datetime.datetime.now(datetime.timezone.utc)
+  datetime0 = datetime.datetime.now(datetime.timezone.utc).replace(
+    minute=(datetime_now.minute // period_minutes) * period_minutes,
+    seconds=0,
+    microseconds=0,
+  )
+  datetime1 = datetime0 + td
+  print(datetime0, datetime_now, datetime1)
+  exit(0)
+
+      minute=int(math.trunc(now.minute / 10)) * int(10),
+
+  now = datetime.datetime.now(datetime.timezone.utc)
+  (sched_regexp_lists, date_time_norm_str, end_epoch_str) = date_time_process(
+    now.replace(
+      # Go down to preceding :00, :10, :20, :30, :40 or :50
+      minute=int(math.trunc(now.minute / 10)) * int(10),
+      second=0,
+      microsecond=0,
+    )
+  )
   print(re.sub(r"[{}]", "", LOG_LINE_FMT))  # Simple log header
   print(LOG_LINE_FMT.format(  # Log normalized time
     initiated=9,  # Code, to distinguish this from failure (0) or success (1)
@@ -857,11 +915,8 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
     note=date_time_norm_str,
   ))
 
-  # Iterate over supported AWS services and resource types.
-  # Find resources based on tags.
-  # Perform each operation on the intended resources.
-
-  for (svc, params_svc) in PARAMS.items():
+  for svc in CAPABS_FIND:
+    params_svc = PARAMS[svc]
     aws_client = boto3.client(svc)
 
     # boto3 method references can only be resolved at run-time,
@@ -870,7 +925,8 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
 
     tags_set_method = getattr(aws_client, params_svc["tags_set_method_name"])
 
-    for params_rsrc_type in params_svc["rsrc_types"].values():
+    for rsrc_type in CAPABS_FIND[svc]:
+      params_rsrc_type = params_svc["rsrc_types"][rsrc_type]
 
       tags_get_fn = tags_get_get(params_svc, params_rsrc_type, aws_client)
 
@@ -878,17 +934,32 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
         sched_regexp_lists,
         params_rsrc_type,
         aws_client.get_paginator(params_rsrc_type["pager_name"]),
-        tags_get_fn
-      )
-      ops_perform(
-        ops_rsrcs,
+        tags_get_fn,
+        svc,
+        rsrc_type,
         date_time_norm_str,
-        params_svc,
-        params_rsrc_type,
-        aws_client,
-        tags_set_method
+        end_epoch_str
       )
 
+  return
+
+def lambda_handler_do(event, context):  # pylint: disable=unused-argument
+  """Perform queued scheduled operations on AWS resources
+  """
+
+  print(json.dumps(event))
+
+  if (int(event["Records"][0]["attributes"]["SentTimestamp"])
+    < int(event["Records"][0]["messageAttributes"]["before"]["stringValue"])):
+    print("Timing good (within 10-minute interval)")
+
+  # TODO: error-handling
+  sqs_client.delete_message(
+    QueueUrl=QUEUE_URL,
+    ReceiptHandle=event["Records"][0]["receiptHandle"],
+  )
+
+  return
 
 if __name__ == "__main__":
-  lambda_handler(None, None)
+  lambda_handler_do(None, None)

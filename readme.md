@@ -3,53 +3,47 @@
 ## Benefits
 
 * **Save money** by stopping EC2 instances and RDS databases during off-hours
-* **Take backups** more frequently
-* **Use tags** to schedule operations
-* Secure tags and backups using Identity and Access Management (IAM) policies
-* Install and update easily, with CloudFormation (and optionally, StackSets)
+* Take back ups **more often**
+* Schedule everything with **tags**
+* Easily install in multiple regions and accounts
 
 Jump to: [Installation](#quick-start) &bull; [Operation Tags](#enabling-operations) &bull; [Schedule Tags](#scheduling-operations) &bull; [Logging](#output) &bull; [Security](#security-model) &bull; [Multi-region/multi-account](#advanced-installation)
 
 ## Comparison with Lifecycle Manager
 
-In July, 2018, Amazon [introduced Data Lifecycle Manager](https://aws.amazon.com/blogs/aws/new-lifecycle-management-for-amazon-ebs-snapshots/). It's a start, but...
+Since 2017, when this project started, Amazon has introduced [Data Lifecycle Manager](https://aws.amazon.com/blogs/aws/new-lifecycle-management-for-amazon-ebs-snapshots/) and [AWS Backup](https://aws.amazon.com/about-aws/whats-new/2019/01/introducing-aws-backup/). TagSchedOps has a few advantages of its own:
 
- * Tags determine _which_ volumes will be backed up, not _when_. Scheduling is done with a new, single-purpose interface.
- * Snapshots are taken only every 12 or 24 hours.
- * "Last _x_" is not a flexible backup retention policy.
- * You cannot create images covering all of an EC2 instance's volumes. Also missing is an option to reboot first.
- * [One IAM role](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/snapshot-lifecycle.html#dlm-permissions) confers authority to create _and_ delete snapshots. [Anyone who can update a lifecycle policy](https://docs.aws.amazon.com/IAM/latest/UserGuide/list_amazondatalifecyclemanager.html#amazondatalifecyclemanager-UpdateLifecyclePolicy) can shorten the retention period to delete snapshots. These are risks, especially in light of the data loss prevention provisions in the European Union General Data Protection Regulation.
-
-By all means, set up Data Lifecycle Manager if you have no automation in place, but consider TagSchedOps for more flexibility!
+ * Cron-style tags on each EC2 instance, EBS volume or RDS database show when it will be backed up. You don't have to look up a backup schedule in a different AWS service.
+ * You can take backups as many times a day as you like.
+ * You can schedule EC2 instance and RDS database stops, starts, reboots and backups with the same tool.
+ * You can also schedule one-time operations, and you can do it without changing your regular schedules.
 
 ## Quick Start
 
-1. Log in to the [AWS Web Console](https://signin.aws.amazon.com/console) as a privileged user.
+1. Log in to the [AWS Web Console](https://signin.aws.amazon.com/console).
 
-   _Security Tip:_ To see what you'll be installing, look in the [CloudFormation template](/cloudformation/aws_tag_sched_ops.yaml). <br/><kbd>grep 'Type: "AWS::' cloudformation/aws_tag_sched_ops.yaml | sort | uniq</kbd> works well.
+2. Go to the [list of EC2 instances](https://console.aws.amazon.com/ec2/v2/home#Instances). Add the following tags to an instance:
 
-2. Go to the [list of EC2 instances](https://console.aws.amazon.com/ec2/v2/home#Instances). Right-click the Name or ID of an instance, select Instance Settings, and then select Add/Edit Tags. Add:
+  |Key|Value|Note|
+  |--|--|--|
+  |<kbd>managed-image</kbd>||Leave blank|
+  |<kbd>managed-image-periodic</kbd>|<kbd>d=\*&nbsp;H:M=11:30</kbd>|Replace 11:30 with [current UTC time](https://www.timeanddate.com/worldclock/timezone/utc) + 20 minutes|
 
-   |Key|Value|Note|
-   |--|--|--|
-   |<kbd>managed-image</kbd>||Leave value blank|
-   |<kbd>managed-image-periodic</kbd>|<kbd>d=\*&nbsp;H:M=11:30</kbd>|Replace 11:30 with [current UTC time](https://www.timeanddate.com/worldclock/timezone/utc) + 20 minutes|
+3. Go to the [S3 Console](https://console.aws.amazon.com/s3/home). Create a bucket for CloudFormation templates and Lambda ZIP files. It must be in the region where you want to install TagSchedOps and you must put a hyphen and the region at the end of the bucket name (for example, <kbd>my-bucket-us-east-1</kbd>). Upload the Lambda ZIP file, [<samp>aws-lambda/aws_tag_sched_ops.py.zip</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/aws-lambda/aws_tag_sched_ops.py.zip) and the all of the CloudFormation templates in [<samp>cloudformation/</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/master/cloudformation)
 
-3. Go to the [S3 Console](https://console.aws.amazon.com/s3/home). Click the name of the bucket where you keep AWS Lambda function source code. It may be the same bucket where you keep CloudFormation templates. If you are creating the bucket now, create it in the region where you want to install TagSchedOps, and put the region at the end of the bucket name (for example, <kbd>my-lambda-bucket-us-east-1</kbd>). Upload the compressed source code of the AWS Lambda function, [<samp>aws-lambda/aws_tag_sched_ops_perform.py.zip</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/aws-lambda/aws_tag_sched_ops_perform.py.zip)
+  _Security Tip:_ [Block public access](https://docs.aws.amazon.com/AmazonS3/latest/dev/access-control-block-public-access.html#console-block-public-access-options) to the bucket, and limit write access
 
-   _Security Tip:_ Remove public read and write access from the S3 bucket. Limit write access.
-
-   _Security Tip:_ Download the file from S3 and verify it, or compare the <samp>Etag</samp> reported by S3. <kbd>md5sum aws-lambda/aws_tag_sched_ops_perform.py.zip</kbd> should match [<samp>aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt</samp>](aws-lambda/aws_tag_sched_ops_perform.py.zip.md5.txt)
+  _Security Tip:_ For the Lambda ZIP file, compare the <samp>Etag</samp> reported by S3 with the checksum in [<samp>aws-lambda/aws_tag_sched_ops.py.zip.md5.txt</samp>](aws-lambda/aws_tag_sched_ops.py.zip.md5.txt)
 
 4. Go to the [CloudFormation Console](https://console.aws.amazon.com/cloudformation/home). Click <samp>Create Stack</samp>. Click <samp>Choose File</samp>, immediately below <samp>Upload a template to Amazon S3</samp>, and navigate to your local copy of [<samp>cloudformation/aws_tag_sched_ops.yaml</samp>](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/cloudformation/aws_tag_sched_ops.yaml). On the next page, set:
 
-   |Section|Item|Value|
-   |--|--|--|
-   ||Stack name|<kbd>TagSchedOps</kbd>|
-   |Basics|Main region|Current region|
-   |Basics|Lambda code S3 bucket|Name of your S3 bucket|
+  |Section|Item|Value|
+  |--|--|--|
+  ||Stack name|<kbd>TagSchedOps</kbd>|
+  |Basics|Main region|Current region|
+  |Basics|Lambda code S3 bucket|Name of your S3 bucket|
 
-   For all other parameters, keep the default values.
+  For all other parameters, keep the default values.
 
 5. After 20 minutes, check the [list of images](https://console.aws.amazon.com/ec2/v2/home#Images:sort=desc:creationDate).
 
@@ -57,21 +51,21 @@ By all means, set up Data Lifecycle Manager if you have no automation in place, 
 
 7. Go to the [list of IAM users](https://console.aws.amazon.com/iam/home#/users). Click your regular, uprivileged username. Click <samp>Add permissions</samp> and then <samp>Attach existing policies directly</samp>. In the <samp>Search</samp> box, type <kbd>TagSchedOpsAdminister</kbd>. Add the two matching policies.
 
-   _Security Tip_: Review all users' EC2 and RDS tagging privileges!
+  _Security Tip_: Review all users' EC2 and RDS tagging privileges!
 
 8. Log out of the AWS Console. You can now manage relevant tags, view logs, and decode errors, without logging in as a privileged user.
 
 ## Warnings
 
- * Test your backups! Can they be restored successfully?
+* Test your backups! Can they be restored successfully?
 
- * Check that your backups have completed successfully -- or broaden your retention policy to select replacements for missing backups.
+* Check that your backups have completed successfully -- or broaden your retention policy to select replacements for missing backups.
 
- * Weigh the benefits of rebooting against the risks. Rebooting is sometimes necessary for a coherent backup, but a system may stop working afterward.
+* Weigh the benefits of rebooting against the risks. Rebooting is sometimes necessary for a coherent backup, but a system may stop working afterward.
 
- * Be aware of AWS charges, including but not limited to: the costs of running the AWS Lambda function, storing CloudWatch logs, and storing images and snapshots; the whole-hour cost when you stop an RDS, EC2 Windows, or EC2 commercial Linux instance (but [other EC2 instances have a 1-minute minimum charge](https://aws.amazon.com/blogs/aws/new-per-second-billing-for-ec2-instances-and-ebs-volumes/)); the ongoing cost of storage for stopped instances; and costs that resume when AWS automatically starts an RDS instance that has been stopped for too many days.
+* Be aware of AWS charges, including but not limited to: the costs of running the AWS Lambda function, storing CloudWatch logs, and storing images and snapshots; the whole-hour cost when you stop an RDS, EC2 Windows, or EC2 commercial Linux instance (but [other EC2 instances have a 1-minute minimum charge](https://aws.amazon.com/blogs/aws/new-per-second-billing-for-ec2-instances-and-ebs-volumes/)); the ongoing cost of storage for stopped instances; and costs that resume when AWS automatically starts an RDS instance that has been stopped for too many days.
 
- * Test the provided AWS Lambda functions and IAM policies in your own AWS environment. To help improve TagSchedOps, please submit [bug reports and feature requests](https://github.com/sqlxpert/aws-tag-sched-ops/issues), as well as [proposed changes](https://github.com/sqlxpert/aws-tag-sched-ops/pulls).
+* Test the provided AWS Lambda functions and IAM policies in your own AWS environment. To help improve TagSchedOps, please submit [bug reports and feature requests](https://github.com/sqlxpert/aws-tag-sched-ops/issues), as well as [proposed changes](https://github.com/sqlxpert/aws-tag-sched-ops/pulls).
 
 ## Enabling Operations
 
@@ -308,8 +302,6 @@ Resources tagged for unsupported combinations of operations are logged (with mes
 
      1. <a name="policy-footnote-1"></a>Enabling tag required. For example, a user could add <kbd>managed-image-once</kbd> to an EC2 instance only if the <samp>managed-image</samp> tag were already present.
 
-   These policies cover all regions. For different behavior in different regions, modify copies of the provided policies.
-
    Because <code>Deny</code> always takes precendence in IAM, some policy combinations conflict.
 
    In some cases, you must add, change or delete one tag at a time.
@@ -520,6 +512,6 @@ This work is dedicated to [Ernie Salazar](https://github.com/ehsalazar), R&eacut
 |Source code within documentation files|[GNU General Public License (GPL) 3.0](http://www.gnu.org/licenses/gpl-3.0.html)|[zlicense-code.txt](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/zlicense-code.txt)|
 |Documentation files (including this readme file)|[GNU Free Documentation License (FDL) 1.3](http://www.gnu.org/licenses/fdl-1.3.html)|[zlicense-doc.txt](https://github.com/sqlxpert/aws-tag-sched-ops/raw/master/zlicense-doc.txt)|
 
-Copyright 2018, Paul Marcelin
+Copyright 2022, Paul Marcelin
 
 Contact: <kbd>marcelin</kbd> at <kbd>cmu.edu</kbd> (replace at with <kbd>@</kbd>)

@@ -1,0 +1,794 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: >-
+  Start, reboot, stop and back up AWS resources using tag-based schedules.
+  Copyright 2022, Paul Marcelin.
+  https://github.com/sqlxpert/aws-tag-sched-ops/
+
+
+# To check YAML syntax, first complete the setup steps
+# in aws-tag-sched-ops/requirements.txt and then:
+#   cd aws-tag-sched-ops  # Home of .yamllint
+#   yamllint cloudformation/aws_tag_sched_ops.yaml
+
+
+# https://github.com/sqlxpert/aws-tag-sched-ops/
+#
+# Copyright 2022, Paul Marcelin
+#
+# This file is part of TagSchedOps.
+#
+# TagSchedOps is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# TagSchedOps is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with TagSchedOps. If not, see http://www.gnu.org/licenses/
+
+
+Parameters:
+
+  S3BucketCloudFormationAndLambda:
+    Type: String
+    Description: >-
+      S3 bucket (bucket name prefix only) where AWS Lambda function source code
+      and CloudFormation templates are stored. A bucket with this name PLUS a
+      region suffix, e.g., my-bucket-us-east-1, must exist in EACH target
+      region, and must contain the SAME objects, readable by EVERY target AWS
+      account.)
+  TagSchedOpsLambdaFnFileName:
+    Type: String
+    Description: >-
+      TagSchedOps AWS Lamba function source code (Python file name WITHOUT
+      suffixes)
+    Default: "aws-tag-sched-ops"
+  TagSchedOpsLambdaFnFindHandler:
+    Type: String
+    Description: "Handler for finding AWS resources (Python function name)"
+    Default: "lambda_handler_find"
+  TagSchedOpsLambdaFnDoHandler:
+    Type: String
+    Description: >-
+      Handler for performing scheduled operations on resources (Python
+      function name)
+    Default: "lambda_handler_do"
+  TagSchedOpsLambdaFnBackupFindHandler:  # TODO: rename Age to BackupFind
+    Type: String
+    Description: "Handler for finding old backups (Python function name)"
+    Default: "lambda_handler_backup_find"
+  TagSchedOpsLambdaFnBackpuDeleteHandler:
+    Type: String
+    Description: "Handler for deleting old backups (Python function name)"
+    Default: "lambda_handler_backup_delete"
+  TagSchedOpsAgeCodeName:  # TODO: fold into same source file and rename handler to lambda_handler_backup_find
+    Type: String
+    Description: >-
+      Name (without the .py.zip suffix) of the file (S3 object) containing
+      compressed source code for the TagSchedOpsAge AWS Lamba function
+    Default: "age_backups"
+
+  # Do not validate at CloudFormation level,
+  # in case values accepted by underlying APIs change:
+
+  TagSchedOpsLogsRetainDays:
+    Type: Number
+    Description: >-
+      How many days to keep logs from the TagSchedOps
+      TagSchedOpsLambdaFnFindTimeoutSecs functions. See
+      http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutRetentionPolicy.html
+    Default: 30
+  TagSchedOpsLambdaFnFindMemoryMB:
+    Type: Number
+    Description: >-
+      How many megabytes of memory to allocate to the TagSchedOps Find Lambda
+      function. Increase only in case of out-of-memory errors
+    Default: 128
+  TagSchedOpsLambdaFnFindTimeoutSecs:
+    Type: Number
+    Description: >-
+      How many seconds before execution of the TagSchedOps Find Lambda
+      function is canceled. Increase only in case of time-out errors
+    Default: 60
+  TagSchedOpsLambdaFnDoMemoryMB:
+    Type: Number
+    Description: >-
+      How many megabytes of memory to allocate to the TagSchedOps Do Lambda
+      function. Increase only in case of out-of-memory errors
+    Default: 128
+  TagSchedOpsLambdaFnDoTimeoutSecs:
+    Type: Number
+    Description: >-
+      How many seconds before execution of the TagSchedOps Do Lambda function
+      is canceled. Increase only in case of time-out errors
+    Default: 60
+  TagSchedOpsAgeMemoryMB:
+    Type: Number
+    Description: >-
+      How many megabytes of memory to allocate to the TagSchedOps Age Lambda
+      function. Increase only in case of out-of-memory errors
+    Default: 128
+  TagSchedOpsAgeTimeoutSecs:
+    Type: Number
+    Description: >-
+      How many seconds before execution of the TagSchedOps Age Lambda function
+      is canceled. Increase only in case of time-out errors
+    Default: 120
+
+  TagSchedOpsCloudFormationTemplNameSqsQueue:
+    Type: String
+    Description: >-
+      CloudFormation template for SQS queue (S3 object key, last part)
+    Default: "sqs-queue.yaml"
+  SqsKmsKeyId:
+    Type: String
+    Description: >-
+      KMS key (key ID, not alias) for SQS queues; using the default service
+      key is not recommended
+  TagSchedOpsCloudFormationTemplNameSqsQueuePolicy:
+    Type: String
+    Description: >-
+      CloudFormation template for SQS queue policy (S3 object key, last part)
+    Default: "sqs-queue-policy.yaml"
+  TagSchedOpsQueueMaximumMessageSizeBytes:
+    Type: Number
+    Description: "Queue message size limit (bytes)"
+    MinValue: 1024
+    Default: 1024
+    MaxValue: 262144  # 256 KiB
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "Basics"
+        Parameters:
+          - MainRegion
+          - S3BucketCloudFormationAndLambda
+          - TagSchedOpsCloudFormationTemplNameSqsQueue
+          - SqsKmsKeyId
+          - TagSchedOpsCloudFormationTemplNameSqsQueuePolicy
+          - TagSchedOpsQueueMaximumMessageSizeBytes
+      - Label:
+          default: >-
+            TagSchedOpsAge Lambda function (tags images and snapshots for deletion)
+        Parameters:
+          - TagSchedOpsAgeCodeName
+          - TagSchedOpsAgeMemoryMB
+          - TagSchedOpsAgeTimeoutSecs
+      - Label:
+          default: "Lambda function"
+        Parameters:
+          - TagSchedOpsLambdaFnFileName
+          - TagSchedOpsLogsRetainDays
+      - Label:
+          default: "1. Find and queue AWS resources for scheduled operations"
+        Parameters:
+          - TagSchedOpsLambdaFnFindHandler
+          - TagSchedOpsLambdaFnFindMemoryMB
+          - TagSchedOpsLambdaFnFindTimeoutSecs
+      - Label:
+          default: "2. Perform scheduled operations"
+        Parameters:
+          - TagSchedOpsLambdaFnDoHandler
+          - TagSchedOpsLambdaFnDoMemoryMB
+          - TagSchedOpsLambdaFnDoTimeoutSecs
+      - Label:
+          default: "3. Find outdated backups"
+        Parameters:
+          - TagSchedOpsLambdaFnBackupFindHandler
+      - Label:
+          default: "4. Delete outdated backups"
+        Parameters:
+          - TagSchedOpsLambdaFnBackpuDeleteHandler
+    ParameterLabels:
+      S3BucketCloudFormationAndLambda:
+        default: "Lambda code S3 bucket"
+      TagSchedOpsCloudFormationTemplNameSqsQueue:
+        default: "SQS queue CloudFormation template"
+      SqsKmsKeyId:
+        default: "KMS key ID for SQS"
+      TagSchedOpsCloudFormationTemplNameSqsQueuePolicy:
+        default: "SQS queue policy CloudFormation template"
+      TagSchedOpsQueueMaximumMessageSizeBytes:
+        default: "Queue message size limit (bytes)"
+      TagSchedOpsLambdaFnFileName:
+        default: "S3 object name"
+      TagSchedOpsLogsRetainDays:
+        default: "Log retention (days)"
+      TagSchedOpsLambdaFnFindMemoryMB:
+        default: "Memory (MB)"
+      TagSchedOpsLambdaFnFindTimeoutSecs:
+        default: "Timeout (seconds)"
+      TagSchedOpsAgeCodeName:
+        default: "S3 object name"
+      TagSchedOpsAgeMemoryMB:
+        default: "Memory (MB)"
+      TagSchedOpsAgeTimeoutSecs:
+        default: "Timeout (seconds)"
+      TagSchedOpsLambdaFnFindHandler:
+        default: "Find handler function"
+      TagSchedOpsLambdaFnDoHandler:
+        default: "Do handler function"
+      TagSchedOpsLambdaFnBackupFindHandler:
+        default: "BackupFind handler function"
+      TagSchedOpsLambdaFnBackpuDeleteHandler:
+        default: "BackupDelete handler function"
+
+
+Resources:
+
+  TagSchedOpsZLambdaFnLogGrpCreateFallback:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: >-
+        Log group: create; run-time fallback in case a Lambda function's
+        original log stream has been deleted; see AWSLambdaBasicExecutionRole
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "logs:CreateLogGroup"
+            Resource: "*"
+
+  TagSchedOpsZLambdaFnFindEc2Read:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: "EC2 instances, EBS volumes: describe"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "ec2:DescribeInstances"
+              - "ec2:DescribeVolumes"
+            Resource: "*"
+
+  TagSchedOpsZLambdaFnFindRdsRead:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: "RDS instances: describe, get tags"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: "rds:DescribeDBInstances"
+            Resource: "*"
+          - Effect: Allow
+            Action: "rds:ListTagsForResource"
+            Resource: !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:db:*"
+
+  TagSchedOpsSqsQueueDo:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "https://s3.amazonaws.com/${S3BucketCloudFormationAndLambda}-${AWS::Region}/${TagSchedOpsCloudFormationTemplNameSqsQueue}"
+      TimeoutInMinutes: 5
+      Parameters:
+        BothKmsMasterKeyId: !Ref SqsKmsKeyId
+        BothKmsDataKeyReusePeriodSeconds: 86400  # 24 hours
+
+        BothMaximumMessageSizeBytes: !Ref TagSchedOpsQueueMaximumMessageSizeBytes
+
+        MainVisibilityTimeoutSeconds: !Ref TagSchedOpsLambdaFnDoTimeoutSecs
+        MainMaxReceiveCount: 2
+        MainMessageRetentionPeriodSeconds: 1800  # 30 minutes
+
+        DeadReceiveMessageWaitTimeSeconds: 20
+        DeadMessageRetentionPeriodSeconds: 604800  # 7 days
+
+  TagSchedOpsZLambdaFnFind:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Delete
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { "Service": "lambda.amazonaws.com" }  # TODO: condition for specific Lambda fn
+            Action: "sts:AssumeRole"
+          - Effect: Allow
+            Principal: { "AWS": !Sub "arn:aws:iam::${AWS::AccountId}:user/test" }  # TODO: remove, or replace with dev role
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Ref TagSchedOpsZLambdaFnFindEc2Read
+        - !Ref TagSchedOpsZLambdaFnFindRdsRead
+        - !Ref TagSchedOpsZLambdaFnLogGrpCreateFallback
+        - !GetAtt TagSchedOpsSqsQueueDo.Outputs.MainSend
+
+  TagSchedOpsZLambdaFnDoEc2:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: >-
+        Tagged EC2 instances: start, reboot, stop. All EC2 instances: create
+        image (allows reboot!). All EC2 EBS volumes: create snapshot. All EC2
+        images and EBS snapshots: tag, but cannot tag for deletion, or delete.
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: "ec2:StartInstances"
+            Resource: !Sub "arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/*"
+            Condition:
+              StringLike: { "aws:ResourceTag/managed-start": "*" }
+          - Effect: Allow
+            Action: "ec2:RebootInstances"
+            Resource: !Sub "arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/*"
+            Condition:
+              StringLike: { "aws:ResourceTag/managed-reboot": "*" }
+          - Effect: Allow
+            Action: "ec2:StopInstances"
+            Resource: !Sub "arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/*"
+            Condition:
+              StringLike: { "aws:ResourceTag/managed-stop": "*" }
+
+          - Sid: "DangerAnyEc2InstanceRegardlessOfTagsAndCanForceReboot"
+            Effect: Allow
+            Action: "ec2:CreateImage"
+            Resource: "*"
+          - Effect: Allow
+            Action: "ec2:CreateSnapshot"
+            Resource:
+              - !Sub "arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:volume/*"
+              - !Sub "arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:snapshot/*"
+            Condition:
+              StringLike: { "aws:ResourceTag/managed-snapshot": "*" }
+          - Effect: Allow
+            Action: "ec2:CreateTags"
+            Resource:
+              - !Sub "arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:image/*"
+              - !Sub "arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:snapshot/*"
+
+          - Sid: "NoOpSecurityReminderBackupCreatorNotAllowedToTagForDeletion"
+            Effect: Deny
+            Action: "ec2:CreateTags"
+            Resource:
+              - "arn:*:ec2:*:*:image/*"
+              - "arn:*:ec2:*:*:snapshot/*"
+            Condition:
+              ForAnyValue:StringEquals: { "aws:TagKeys": "managed--delete" }
+          - Sid: "NoOpSecurityReminderBackupCreatorNotAllowedToDelete"
+            Effect: Deny
+            Action:
+              - "ec2:DeregisterImage"
+              - "ec2:DeleteSnapshot"
+            Resource: "*"
+
+  TagSchedOpsZLambdaFnDoRds:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: >-
+        Tagged RDS instances: start, reboot (includes failover), stop
+        (includes create snapshot), create snapshot. All RDS snapshots: tag,
+        but cannot tag for deletion, or delete).
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: "rds:StartDBInstance"
+            Resource: !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:db:*"
+            Condition:
+              StringLike: { "aws:ResourceTag/managed-start": "*" }
+          - Effect: Allow
+            Action: "rds:RebootDBInstance"
+            Resource: !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:db:*"
+            Condition:
+              StringLike: { "aws:ResourceTag/managed-reboot": "*" }
+          - Effect: Allow
+            Action: "rds:RebootDBInstance"
+            Resource: !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:db:*"
+            Condition:
+              StringLike: { "aws:ResourceTag/managed-reboot-failover": "*" }
+          - Effect: Allow
+            Action: "rds:StopDBInstance"
+            Resource: !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:db:*"
+            Condition:
+              StringLike: { "aws:ResourceTag/managed-stop": "*" }
+          - Effect: Allow
+            Action: "rds:StopDBInstance"
+            Resource:
+              - !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:db:*"
+              - !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:snapshot:*"
+            Condition:
+              StringLike: { "aws:ResourceTag/managed-snapshot-stop": "*" }
+          - Sid: "NeededOnlyForSnapshotsCreatedByStopDBInstance"
+            Effect: Allow
+            Action: "rds:AddTagsToResource"
+            Resource: !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:snapshot:*"
+          - Effect: Allow
+            Action: "rds:CreateDBSnapshot"
+            Resource:
+              - !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:db:*"
+              - !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:snapshot:*"
+            Condition:
+              StringLike: { "aws:ResourceTag/managed-snapshot": "*" }
+
+          - Sid: "NoOpSecurityReminderBackupCreatorNotAllowedToTagForDeletion"
+            Effect: Deny
+            Action: "rds:AddTagsToResource"
+            Resource: !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:snapshot:*"
+            Condition:
+              ForAnyValue:StringLike: { "aws:RequestTag/managed-delete": "*" }
+          - Sid: "NoOpSecurityReminderBackupCreatorNotAllowedToDelete"
+            Effect: Deny
+            Action: "rds:DeleteDBSnapshot"
+            Resource: !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:snapshot:*"
+
+  TagSchedOpsZLambdaFnDo:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Delete
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { "Service": "lambda.amazonaws.com" }  # TODO: condition for specific Lambda fn
+            Action: "sts:AssumeRole"
+          - Effect: Allow
+            Principal: { "AWS": !Sub "arn:aws:iam::${AWS::AccountId}:user/test" }  # TODO: remove, or replace with dev role
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Ref TagSchedOpsZLambdaFnDoEc2
+        - !Ref TagSchedOpsZLambdaFnDoRds
+        - !GetAtt TagSchedOpsSqsQueueDo.Outputs.MainReceive
+        - !GetAtt TagSchedOpsSqsQueueDo.Outputs.KmsDecrypt
+        - !Ref TagSchedOpsZLambdaFnLogGrpCreateFallback
+
+  TagSchedOpsZLambdaFnBackupFindEc2Read:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: "EC2 images, EBS snapshots: describe"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "ec2:DescribeImages"
+              - "ec2:DescribeSnapshots"
+            Resource: "*"
+
+  TagSchedOpsZLambdaFnBackupFindRdsRead:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: "RDS snapshots: describe, get tags"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: "rds:DescribeDBSnapshots"
+            Resource: "*"
+          - Effect: Allow
+            Action: "rds:ListTagsForResource"
+            Resource: !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:snapshot:*"
+
+  TagSchedOpsZLambdaFnBackupFind:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Delete
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { "Service": "lambda.amazonaws.com" }  # TODO: condition for specific Lambda fn
+            Action: "sts:AssumeRole"
+          - Effect: Allow
+            Principal: { "AWS": !Sub "arn:aws:iam::${AWS::AccountId}:user/test" }  # TODO: remove, or replace with dev role
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Ref TagSchedOpsZLambdaFnBackupFindEc2Read
+        - !Ref TagSchedOpsZLambdaFnBackupFindRdsRead
+        # - !Ref TagSchedOpsBackupTagForDeletionQueueSend (TODO)
+        - !Ref TagSchedOpsZLambdaFnLogGrpCreateFallback
+
+  TagSchedOpsZLambdaFnBackupTagForDeletionEc2:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: "EC2 images, EBS snapshots: tag for deletion (or untag)"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: [ "ec2:CreateTags", "ec2:DeleteTags" ]
+            Resource: [ "arn:*:ec2:*:*:image/*", "arn:*:ec2:*:*:snapshot/*" ]
+            Condition:
+              ForAllValues:StringEquals: { "aws:TagKeys": "managed--delete" }
+
+  TagSchedOpsZLambdaFnBackupTagForDeletionRds:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: "RDS snapshots: tag for deletion (or untag)"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: [ "rds:AddTagsToResource", "rds:RemoveTagsFromResource" ]
+            Resource: "arn:*:rds:*:*:snapshot:*"
+            Condition:
+              ForAllValues:StringEquals: { "aws:TagKeys": "managed--delete" }
+
+  # TagSchedOpsLambdaFnBackupTagForDeletion (TODO)
+  TagSchedOpsZLambdaFnAge:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Delete
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { "Service": "lambda.amazonaws.com" }  # TODO: condition for specific Lambda fn
+            Action: "sts:AssumeRole"
+          - Effect: Allow
+            Principal: { "AWS": !Sub "arn:aws:iam::${AWS::AccountId}:user/test" } # TODO: remove, or replace with dev role
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Ref TagSchedOpsZLambdaFnBackupFindEc2Read  # TODO: remove (BackupFind instead)
+        - !Ref TagSchedOpsZLambdaFnBackupFindRdsRead  # TODO: remove (BackupFind instead)
+        - !Ref TagSchedOpsZLambdaFnBackupTagForDeletionEc2
+        - !Ref TagSchedOpsZLambdaFnBackupTagForDeletionRds
+        # - !Ref TagSchedOpsBackupTagForDeletionQueueReceive (TODO)
+        - !Ref TagSchedOpsZLambdaFnLogGrpCreateFallback
+
+  TagSchedOpsZLambdaFnBackupDeleteEc2:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: "EC2 images tagged for deletion: delete"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: "ec2:DeleteSnapshot"
+            Condition:
+              StringLike: { "aws:ResourceTag/managed-delete": "*" }
+            Resource: !Sub "arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:snapshot/*"
+          - Sid: "ToDoRestrictByArnAndResourceTagIfAwsAddsResourceLevelPermissions"
+            Effect: Allow
+            Action: "ec2:DeregisterImage"
+            Resource: "*"
+
+  TagSchedOpsZLambdaFnBackupDeleteRds:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: "RDS snapshots tagged for deletion: delete"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: "rds:DeleteDBSnapshot"
+            Resource: "arn:*:rds:*:*:snapshot:*"
+            Condition:
+              StringLike: { "aws:ResourceTag/managed-delete": "*" }
+
+  TagSchedOpsZLambdaFnBackupDelete:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Delete
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { "Service": "lambda.amazonaws.com" }  # TODO: condition for specific Lambda fn
+            Action: "sts:AssumeRole"
+          - Effect: Allow
+            Principal: { "AWS": !Sub "arn:aws:iam::${AWS::AccountId}:user/test" }  # TODO: remove, or replace with dev role
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Ref TagSchedOpsZLambdaFnBackupDeleteEc2
+        - !Ref TagSchedOpsZLambdaFnBackupDeleteRds
+        # - !Ref TagSchedOpsBackupDeleteQueueReceive (TODO)
+        - !Ref TagSchedOpsZLambdaFnLogGrpCreateFallback
+
+
+  TagSchedOpsAge:
+    Type: AWS::Lambda::Function
+    DeletionPolicy: Delete
+    Properties:
+      Role: !GetAtt TagSchedOpsZLambdaFnAge.Arn
+      Code:
+        S3Bucket: !Sub "${S3BucketCloudFormationAndLambda}-${AWS::Region}"
+        S3Key: !Sub "${TagSchedOpsAgeCodeName}.py.zip"
+      Runtime: "python3.8"
+      Handler: !Sub "${TagSchedOpsAgeCodeName}.lambda_handler"
+      ReservedConcurrentExecutions: 1  # TODO: Multiple simultaneous runs acceptable
+      Timeout: !Ref TagSchedOpsAgeTimeoutSecs
+      MemorySize: !Ref TagSchedOpsAgeMemoryMB
+
+  TagSchedOpsAgeLogGrp:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain  # Might want to review after Lambda function is deleted
+    Properties:
+      # Lambda names the log group after the function, so a CloudWatch-assigned
+      # name won't work. A custom name will, however, interfere with changes.
+      LogGroupName: !Sub "/aws/lambda/${TagSchedOpsAge}"
+      RetentionInDays: !Ref TagSchedOpsLogsRetainDays
+
+  TagSchedOpsZLambdaFnAgeLogWrite:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: "TagSchedOpsAge log streams: create, and put events"
+      Roles: [ !Ref TagSchedOpsZLambdaFnAge ]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "logs:CreateLogStream"
+              - "logs:PutLogEvents"
+            Resource: !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${TagSchedOpsAgeLogGrp}:log-stream:*"
+            # !GetAtt LogGroup.Arn ends with :* ,
+            # complicating conversion to log stream ARN
+
+
+  TagSchedOpsFind:
+    Type: AWS::Lambda::Function
+    DeletionPolicy: Delete
+    Properties:
+      Role: !GetAtt TagSchedOpsZLambdaFnFind.Arn
+      Code:
+        S3Bucket: !Sub "${S3BucketCloudFormationAndLambda}-${AWS::Region}"
+        S3Key: !Sub "${TagSchedOpsLambdaFnFileName}.py.zip"
+      Runtime: "python3.8"
+      Environment:
+        Variables:
+          "AWS_TAG_SCHED_OPS_QUEUE_URL": !GetAtt TagSchedOpsSqsQueueDo.Outputs.MainUrl
+          "AWS_TAG_SCHED_OPS_QUEUE_MESSAGESIZE": !Ref TagSchedOpsQueueMaximumMessageSizeBytes
+      Handler: !Sub "${TagSchedOpsLambdaFnFileName}.${TagSchedOpsLambdaFnFindHandler}"
+      ReservedConcurrentExecutions: 1  # Only one run at a time!
+      Timeout: !Ref TagSchedOpsLambdaFnFindTimeoutSecs
+      MemorySize: !Ref TagSchedOpsLambdaFnFindMemoryMB
+
+  TagSchedOpsLambdaFnFindLogGrp:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain  # Might want to review after Lambda function is deleted
+    Properties:
+      # Lambda names the log group after the function, so a CloudWatch-assigned
+      # name won't work. A custom name will, however, interfere with changes.
+      LogGroupName: !Sub "/aws/lambda/${TagSchedOpsFind}"
+      RetentionInDays: !Ref TagSchedOpsLogsRetainDays
+
+  TagSchedOpsZLambdaFnFindLogWrite:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: >-
+        TagSchedOps Find Lambda function log streams: create, and put events;
+        based on AWSLambdaBasicExecutionRole
+      Roles: [ !Ref TagSchedOpsZLambdaFnFind ]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "logs:CreateLogStream"
+              - "logs:PutLogEvents"
+            Resource: !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${TagSchedOpsLambdaFnFindLogGrp}:log-stream:*"
+            # !GetAtt LogGroup.Arn ends with :* ,
+            # complicating conversion to log stream ARN
+
+  TagSchedOpsLambdaFnFindSched:
+    Type: AWS::Events::Rule
+    DeletionPolicy: Delete
+    Properties:
+      Description: >-
+        Every 10 minutes (do not change!): run TagSchedOps Find Lambda function
+      ScheduleExpression: "cron(01,11,21,31,41,51 * * * ? *)"
+      State: "ENABLED"
+      Targets: [ { Arn: !GetAtt TagSchedOpsFind.Arn, Id: !Ref TagSchedOpsFind } ]
+
+  TagSchedOpsLambdaFnFindPerm:
+    Type: AWS::Lambda::Permission
+    DeletionPolicy: Delete
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName: !Ref TagSchedOpsFind
+      Principal: "events.amazonaws.com"
+      SourceArn: !GetAtt TagSchedOpsLambdaFnFindSched.Arn
+
+  ############################################################################
+
+  TagSchedOpsDo:
+    Type: AWS::Lambda::Function
+    DeletionPolicy: Delete
+    Properties:
+      Role: !GetAtt TagSchedOpsZLambdaFnDo.Arn
+      Code:
+        S3Bucket: !Sub "${S3BucketCloudFormationAndLambda}-${AWS::Region}"
+        S3Key: !Sub "${TagSchedOpsLambdaFnFileName}.py.zip"
+      Runtime: "python3.8"
+      Environment:
+        Variables:
+          "AWS_TAG_SCHED_OPS_QUEUE_URL": !GetAtt TagSchedOpsSqsQueueDo.Outputs.MainUrl
+      Handler: !Sub "${TagSchedOpsLambdaFnFileName}.${TagSchedOpsLambdaFnDoHandler}"
+      ReservedConcurrentExecutions: 5
+      Timeout: !Ref TagSchedOpsLambdaFnDoTimeoutSecs
+      MemorySize: !Ref TagSchedOpsLambdaFnDoMemoryMB
+
+  TagSchedOpsLambdaFnDoLogGrp:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain  # Might want to review after Lambda function is deleted
+    Properties:
+      # Lambda names the log group after the function, so a CloudWatch-assigned
+      # name won't work. A custom name will, however, interfere with changes.
+      LogGroupName: !Sub "/aws/lambda/${TagSchedOpsDo}"
+      RetentionInDays: !Ref TagSchedOpsLogsRetainDays
+
+  TagSchedOpsZLambdaFnDoLogWrite:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: >-
+        TagSchedOps Do Lambda function log streams: create, and put events;
+        based on AWSLambdaBasicExecutionRole
+      Roles: [ !Ref TagSchedOpsZLambdaFnDo ]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "logs:CreateLogStream"
+              - "logs:PutLogEvents"
+            Resource: !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${TagSchedOpsLambdaFnDoLogGrp}:log-stream:*"
+            # !GetAtt LogGroup.Arn ends with :* ,
+            # complicating conversion to log stream ARN
+
+  TagSchedOpsLambdaFnDoSqsMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      BatchSize: 1
+      # BisectBatchOnFunctionError: False
+      Enabled: True
+      EventSourceArn: !GetAtt TagSchedOpsSqsQueueDo.Outputs.MainArn
+      FunctionName: !GetAtt TagSchedOpsDo.Arn
+      # MaximumBatchingWindowInSeconds: 0
+      # MaximumRecordAgeInSeconds: 600
+      # MaximumRetryAttempts: 1
+      # ParallelizationFactor: 1
+
+  TagSchedOpsLambdaFnDoInvokeLambdaPerm:
+    Type: AWS::Lambda::Permission
+    DeletionPolicy: Delete
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName: !Ref TagSchedOpsDo
+      Principal: "sqs.amazonaws.com"
+      SourceArn: !GetAtt TagSchedOpsSqsQueueDo.Outputs.MainArn
+
+  ############################################################################
+
+  TagSchedOpsSqsQueueDoAttachPolicy:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "https://s3.amazonaws.com/${S3BucketCloudFormationAndLambda}-${AWS::Region}/${TagSchedOpsCloudFormationTemplNameSqsQueuePolicy}"
+      TimeoutInMinutes: 5
+      Parameters:
+        MainUrl: !GetAtt TagSchedOpsSqsQueueDo.Outputs.MainUrl
+        MainArn: !GetAtt TagSchedOpsSqsQueueDo.Outputs.MainArn
+        MainSendExclusiveRole: !GetAtt TagSchedOpsZLambdaFnFind.Arn
+        MainReceiveExclusiveRole: !GetAtt TagSchedOpsZLambdaFnDo.Arn
+        DeadUrl: !GetAtt TagSchedOpsSqsQueueDo.Outputs.DeadUrl
+        DeadArn: !GetAtt TagSchedOpsSqsQueueDo.Outputs.DeadArn
+
+Outputs:
+
+  TagSchedOpsAgeArn:
+    Value: !GetAtt TagSchedOpsAge.Arn
+    Description: "TagSchedOpsAge Lambda function ARN"
+    # Export:
+    #   Name: "LambdaFn-TagSchedOpsAge-Arn"

@@ -1,0 +1,947 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: >-
+  Tagging roles. Start, reboot, stop and back up AWS resources using tag-based
+  schedules. Copyright 2022, Paul Marcelin.
+  https://github.com/sqlxpert/aws-tag-sched-ops/
+
+
+# To check YAML syntax, first complete the setup steps
+# in aws-tag-sched-ops/requirements.txt and then:
+#   cd aws-tag-sched-ops  # Home of .yamllint
+#   yamllint cloudformation/aws-tag-sched-ops-tagging-roles.yaml
+
+
+# https://github.com/sqlxpert/aws-tag-sched-ops/
+#
+# Copyright 2022, Paul Marcelin
+#
+# This file is part of TagSchedOps.
+#
+# TagSchedOps is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# TagSchedOps is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with TagSchedOps. If not, see http://www.gnu.org/licenses/
+
+Parameters:
+
+  ExistingRoleArns:
+    Type: CommaDelimitedList
+    Description: >-
+      Existing IAM roles (users work, too!) that you POTENTIALLY want to
+      allow to assume TagSchedOps administration and tagging roles. (You
+      choose to ACTUALLY allow by attaching an sts:AssumeRole policy to each
+      existing role.) Provide at least one IAM role ARN, and use commas (,)
+      to separate more than one. For multi-factor authentication (MFA) or
+      cross-account access, edit the CloudFormation template to strengthen
+      the trust policies with conditions.
+  ProjectPrefix:
+    Type: String
+    Description: >-
+      Prefix for TagSchedOps AWS resource names (changing this will break
+      TagSchedOps)
+    Default: "TagSchedOps"
+
+Resources:
+
+  # INTERNAL ONLY: Do not attach "Z" policies yourself.
+
+  TagSchedOpsZEventsRuleLambdaFnsOnOff:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: >-
+        CloudWatch Events rules that trigger TagSchedOps Lambda functions:
+        enable/disable
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "events:EnableRule"
+              - "events:DisableRule"
+            Resource: "*"
+            # Resource: !Sub "arn:*:events:*:*:rule/*-${ProjectPrefix}*"
+            # TODO: test, rsrc vs cond
+            Condition:
+              ArnLike:
+                "events:TargetArn": !Sub "arn:*:lambda:*:*:function:*-${ProjectPrefix}LambdaFn*"
+
+  TagSchedOpsZEventsRuleRead:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: >-
+        CloudWatch Events rules: view ( also minimum Console access; see
+        CloudWatchEventsReadOnlyAccess )
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "events:DescribeRule"
+              - "events:ListRuleNamesByTarget"
+              - "events:ListRules"
+              - "events:ListTargetsByRule"
+              - "events:TestEventPattern"
+              - "events:DescribeEventBus"
+            Resource: "*"
+
+  TagSchedOpsZLogsLambdaFnsRead:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: >-
+        CloudWatch Logs events for TagSchedOps Lambda functions: view
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "logs:FilterLogEvents"
+              - "logs:GetLogGroupFields"
+            Resource: !Sub "arn:*:logs:*:*:log-group:/aws/lambda/*-${ProjectPrefix}LambdaFn*"
+          - Effect: Allow
+            Action:
+              - "logs:GetLogEvents"
+            Resource: !Sub "arn:*:logs:*:*:log-group:/aws/lambda/*-${ProjectPrefix}LambdaFn*:log-stream:*"
+
+  TagSchedOpsZLogsRead:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: >-
+        CloudWatch Logs: describe ( also minimum Console access; see
+        CloudWatchLogsReadOnlyAccess )
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "logs:DescribeLogGroups"
+              - "logs:DescribeLogStreams"
+            Resource: "*"
+
+  TagSchedOpsZEc2Tag:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: >-
+        EC2 instances, EBS volumes: tag for scheduled operations. EC2 images,
+        EBS snapshots: tag for deletion (cannot delete directly).
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: [ "ec2:CreateTags", "ec2:DeleteTags" ]
+            Resource:
+              - "arn:*:ec2:*:*:instance/*"
+            Condition:
+              ForAllValues:StringLike:
+                "aws:TagKeys":
+                  # Schedule
+                  - "managed-*-periodic"
+                  - "managed-*-once"
+                  # Enable
+                  - "managed-start"
+                  - "managed-reboot"
+                  - "managed-reboot-image"
+                  - "managed-image"
+                  - "managed-stop"
+          - Effect: Allow
+            Action: [ "ec2:CreateTags", "ec2:DeleteTags" ]
+            Resource:
+              - "arn:*:ec2:*:*:volume/*"
+            Condition:
+              ForAllValues:StringLike:
+                "aws:TagKeys":
+                  # Schedule
+                  - "managed-*-periodic"
+                  - "managed-*-once"
+                  # Enable
+                  - "managed-snapshot"
+
+  TagSchedOpsZRdsTag:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: >-
+        RDS instances tag for scheduled operations. RDS snapshots: tag for
+        deletion (cannot delete directly).
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: [ "rds:AddTagsToResource", "rds:RemoveTagsFromResource" ]
+            Resource:
+              - "arn:*:rds:*:*:db:*"
+            Condition:
+              ForAllValues:StringLike:
+                "aws:TagKeys":
+                  # Schedule
+                  - "managed-*-periodic"
+                  - "managed-*-once"
+                  # Enable
+                  - "managed-start"
+                  - "managed-reboot"
+                  - "managed-reboot-failover"
+                  - "managed-stop"
+                  - "managed-snapshot"
+                  - "managed-snapshot-stop"
+
+  TagSchedOpsZEc2TagScheduleOnce:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: >-
+        EC2 instances, EBS volumes already tagged to enable operations: tag to
+        schedule one-time operations
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: [ "ec2:CreateTags", "ec2:DeleteTags" ]
+            Resource:
+              - "arn:*:ec2:*:*:instance/*"
+            Condition:
+              StringLike: { "aws:ResourceTag/managed-start": "*" }
+              ForAllValues:StringEquals: { "aws:TagKeys": "managed-start-once" }
+          - Effect: Allow
+            Action: [ "ec2:CreateTags", "ec2:DeleteTags" ]
+            Resource:
+              - "arn:*:ec2:*:*:instance/*"
+            Condition:
+              StringLike: { "aws:ResourceTag/managed-reboot": "*" }
+              ForAllValues:StringEquals: { "aws:TagKeys": "managed-reboot-once" }
+          - Effect: Allow
+            Action: [ "ec2:CreateTags", "ec2:DeleteTags" ]
+            Resource:
+              - "arn:*:ec2:*:*:instance/*"
+            Condition:
+              StringLike: { "aws:ResourceTag/managed-reboot-image": "*" }
+              ForAllValues:StringEquals: { "aws:TagKeys": "managed-reboot-image-once" }
+          - Effect: Allow
+            Action: [ "ec2:CreateTags", "ec2:DeleteTags" ]
+            Resource:
+              - "arn:*:ec2:*:*:instance/*"
+            Condition:
+              StringLike: { "aws:ResourceTag/managed-image": "*" }
+              ForAllValues:StringEquals: { "aws:TagKeys": "managed-image-once" }
+          - Effect: Allow
+            Action: [ "ec2:CreateTags", "ec2:DeleteTags" ]
+            Resource:
+              - "arn:*:ec2:*:*:instance/*"
+            Condition:
+              StringLike: { "aws:ResourceTag/managed-stop": "*" }
+              ForAllValues:StringEquals: { "aws:TagKeys": "managed-stop-once" }
+          - Effect: Allow
+            Action: [ "ec2:CreateTags", "ec2:DeleteTags" ]
+            Resource:
+              - "arn:*:ec2:*:*:volume/*"
+            Condition:
+              StringLike: { "aws:ResourceTag/managed-snapshot": "*" }
+              ForAllValues:StringEquals: { "aws:TagKeys": "managed-snapshot-once" }
+
+  TagSchedOpsZRdsTagScheduleOnce:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: >-
+        RDS instances already tagged to enable operations: tag to schedule
+        one-time operations
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: [ "rds:AddTagsToResource", "rds:RemoveTagsFromResource" ]
+            Resource:
+              - "arn:*:rds:*:*:db:*"
+            Condition:
+              StringLike: { "aws:ResourceTag/managed-start": "*" }
+              ForAllValues:StringEquals: { "aws:TagKeys": "managed-start-once" }
+          - Effect: Allow
+            Action: [ "rds:AddTagsToResource", "rds:RemoveTagsFromResource" ]
+            Resource:
+              - "arn:*:rds:*:*:db:*"
+            Condition:
+              StringLike: { "aws:ResourceTag/managed-reboot": "*" }
+              ForAllValues:StringEquals: { "aws:TagKeys": "managed-reboot-once" }
+          - Effect: Allow
+            Action: [ "rds:AddTagsToResource", "rds:RemoveTagsFromResource" ]
+            Resource:
+              - "arn:*:rds:*:*:db:*"
+            Condition:
+              StringLike: { "aws:ResourceTag/managed-reboot-failover": "*" }
+              ForAllValues:StringEquals: { "aws:TagKeys": "managed-reboot-failover-once" }
+          - Effect: Allow
+            Action: [ "rds:AddTagsToResource", "rds:RemoveTagsFromResource" ]
+            Resource:
+              - "arn:*:rds:*:*:db:*"
+            Condition:
+              StringLike: { "aws:ResourceTag/managed-stop": "*" }
+              ForAllValues:StringEquals: { "aws:TagKeys": "managed-stop-once" }
+          - Effect: Allow
+            Action: [ "rds:AddTagsToResource", "rds:RemoveTagsFromResource" ]
+            Resource:
+              - "arn:*:rds:*:*:db:*"
+            Condition:
+              StringLike: { "aws:ResourceTag/managed-snapshot": "*" }
+              ForAllValues:StringEquals: { "aws:TagKeys": "managed-snapshot-once" }
+          - Effect: Allow
+            Action: [ "rds:AddTagsToResource", "rds:RemoveTagsFromResource" ]
+            Resource:
+              - "arn:*:rds:*:*:db:*"
+            Condition:
+              StringLike: { "aws:ResourceTag/managed-snapshot-stop": "*" }
+              ForAllValues:StringEquals: { "aws:TagKeys": "managed-snapshot-stop-once" }
+
+  TagSchedOpsZEc2BackupTagForDeletion:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: "EC2 images, EBS snapshots: tag for deletion (or untag)"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: [ "ec2:CreateTags", "ec2:DeleteTags" ]
+            Resource: [ "arn:*:ec2:*:*:image/*", "arn:*:ec2:*:*:snapshot/*" ]
+            Condition:
+              ForAllValues:StringEquals: { "aws:TagKeys": "managed-delete" }
+
+  TagSchedOpsZRdsBackupTagForDeletion:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: "RDS snapshots: tag for deletion (or untag)"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: [ "rds:AddTagsToResource", "rds:RemoveTagsFromResource" ]
+            Resource: "arn:*:rds:*:*:snapshot:*"
+            Condition:
+              ForAllValues:StringEquals: { "aws:TagKeys": "managed-delete" }
+
+  TagSchedOpsZEc2Read:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: >-
+        Most EC2 resources: describe ( also minimum Console access; see
+        AmazonEC2ReadOnlyAccess )
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: "ec2:Describe*"
+            Resource: "*"
+
+  TagSchedOpsZRdsRead:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: >-
+        Most RDS resources: describe ( also minimum Console access; see
+        AmazonRDSReadOnlyAccess )
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "rds:Describe*"
+              - "rds:ListTagsForResource"
+              - "ec2:DescribeAccountAttributes"
+              - "ec2:DescribeAvailabilityZones"
+              - "ec2:DescribeInternetGateways"
+              - "ec2:DescribeSecurityGroups"
+              - "ec2:DescribeSubnets"
+              - "ec2:DescribeVpcAttribute"
+              - "ec2:DescribeVpcs"
+            Resource: "*"
+
+  TagSchedOpsZPermsErrDecode:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: >-
+        STS authorization messages: decode (for diagnosing IAM permission
+        errors)
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: "sts:DecodeAuthorizationMessage"
+            Resource: "*"
+
+  # RECOMMENDED SECURITY: Do not allow your existing IAM identities (roles,
+  # users, and groups) to tag or untag at all. Instead, allow them to assume
+  # roles for appropriate tagging and untagging operations. If the identity
+  # has an existing policy with a statement allowing sts:AssumeRole , add
+  # appropriate TagSchedOps roles to the statement's Resource list. Otherwise,
+  # attach one or more appropriate TagSchedOps role assumption policies to
+  # the identity, or write and attach your own.
+  #
+  # WARNING ABOUT SEPARATION OF CONCERNS:
+  # 1. Identities allowed...
+  #    (a) to create backups, should not be allowed to tag
+  #        backups for deletion, let alone delete them
+  #    (b) to tag backups, for deletion should not be allowed to delete them
+  #    (c) to delete backups, should not be allowed to tag them for deletion
+  # 2. Allowing sts:AssumeRole * or iam:PassRole * undermines the
+  #    security of your AWS environment by allowing use of ANY role
+
+  TagSchedOpsAdmin:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Delete
+    Properties:
+      Description: >-
+        Enable, schedule and disable TagSchedOps operations on EC2 and RDS
+        resources, and turn TagSchedOps on (or off; any scheduled operations
+        will be skipped)
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { "AWS" : !Ref ExistingRoleArns }
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Ref TagSchedOpsZEventsRuleLambdaFnsOnOff
+        - !Ref TagSchedOpsZEventsRuleRead
+        - !Ref TagSchedOpsZLogsLambdaFnsRead
+        - !Ref TagSchedOpsZLogsRead
+        - !Ref TagSchedOpsZEc2Tag
+        - !Ref TagSchedOpsZEc2Read
+        - !Ref TagSchedOpsZRdsTag
+        - !Ref TagSchedOpsZRdsRead
+        - !Ref TagSchedOpsZPermsErrDecode
+
+  TagSchedOpsAssumeRoleAdmin:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: "sts:AssumeRole"
+            Resource: !GetAtt TagSchedOpsAdmin.Arn
+
+  TagSchedOpsOnOff:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Delete
+    Properties:
+      Description: >-
+        Turn TagSchedOps on (or off; any scheduled operatons will be skipped)
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { "AWS" : !Ref ExistingRoleArns }
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Ref TagSchedOpsZEventsRuleLambdaFnsOnOff
+        - !Ref TagSchedOpsZEventsRuleRead
+        - !Ref TagSchedOpsZLogsLambdaFnsRead
+        - !Ref TagSchedOpsZLogsRead
+        - !Ref TagSchedOpsZEc2Read
+        - !Ref TagSchedOpsZRdsRead
+        - !Ref TagSchedOpsZPermsErrDecode
+
+  TagSchedOpsAssumeRoleOnOff:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: "sts:AssumeRole"
+            Resource: !GetAtt TagSchedOpsOnOff.Arn
+
+  TagSchedOpsEc2Tag:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Delete
+    Properties:
+      Description: >-
+        Enable, schedule and disable TagSchedOps operations on EC2 resources
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { "AWS" : !Ref ExistingRoleArns }
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Ref TagSchedOpsZEc2Tag
+        - !Ref TagSchedOpsZEc2Read
+        - !Ref TagSchedOpsZLogsLambdaFnsRead
+        - !Ref TagSchedOpsZLogsRead
+        - !Ref TagSchedOpsZPermsErrDecode
+
+  TagSchedOpsAssumeRoleEc2Tag:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: "sts:AssumeRole"
+            Resource: !GetAtt TagSchedOpsEc2Tag.Arn
+
+  TagSchedOpsRdsTag:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Delete
+    Properties:
+      Description: >-
+        Enable, schedule and disable TagSchedOps operations on RDS resources
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { "AWS" : !Ref ExistingRoleArns }
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Ref TagSchedOpsZRdsTag
+        - !Ref TagSchedOpsZRdsRead
+        - !Ref TagSchedOpsZLogsLambdaFnsRead
+        - !Ref TagSchedOpsZLogsRead
+        - !Ref TagSchedOpsZPermsErrDecode
+
+  TagSchedOpsAssumeRoleRdsTag:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: "sts:AssumeRole"
+            Resource: !GetAtt TagSchedOpsRdsTag.Arn
+
+  TagSchedOpsEc2TagScheduleOnce:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Delete
+    Properties:
+      Description: >-
+        Schedule one-time TagSchedOps operations on EC2 resources, for
+        operations already enabled
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { "AWS" : !Ref ExistingRoleArns }
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Ref TagSchedOpsZEc2TagScheduleOnce
+        - !Ref TagSchedOpsZEc2Read
+        - !Ref TagSchedOpsZLogsLambdaFnsRead
+        - !Ref TagSchedOpsZLogsRead
+        - !Ref TagSchedOpsZPermsErrDecode
+
+  TagSchedOpsAssumeRoleEc2TagScheduleOnce:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: "sts:AssumeRole"
+            Resource: !GetAtt TagSchedOpsEc2TagScheduleOnce.Arn
+
+  TagSchedOpsRdsTagScheduleOnce:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Delete
+    Properties:
+      Description: >-
+        Schedule one-time TagSchedOps operations on RDS resources, for
+        operations already enabled
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { "AWS" : !Ref ExistingRoleArns }
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Ref TagSchedOpsZRdsTagScheduleOnce
+        - !Ref TagSchedOpsZRdsRead
+        - !Ref TagSchedOpsZLogsLambdaFnsRead
+        - !Ref TagSchedOpsZLogsRead
+        - !Ref TagSchedOpsZPermsErrDecode
+
+  TagSchedOpsAssumeRoleRdsTagScheduleOnce:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: "sts:AssumeRole"
+            Resource: !GetAtt TagSchedOpsRdsTagScheduleOnce.Arn
+
+  TagSchedOpsEc2BackupTagForDeletion:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Delete
+    Properties:
+      Description: "Queue EC2 backups for deletion"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { "AWS" : !Ref ExistingRoleArns }
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Ref TagSchedOpsZEc2BackupTagForDeletion
+        - !Ref TagSchedOpsZEc2Read
+        - !Ref TagSchedOpsZLogsLambdaFnsRead
+        - !Ref TagSchedOpsZLogsRead
+        - !Ref TagSchedOpsZPermsErrDecode
+
+  TagSchedOpsAssumeRoleEc2BackupTagForDeletion:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: "sts:AssumeRole"
+            Resource: !GetAtt TagSchedOpsEc2BackupTagForDeletion.Arn
+
+  TagSchedOpsRdsBackupTagForDeletion:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Delete
+    Properties:
+      Description: "Queue RDS backups for deletion"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { "AWS" : !Ref ExistingRoleArns }
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Ref TagSchedOpsZRdsBackupTagForDeletion
+        - !Ref TagSchedOpsZRdsRead
+        - !Ref TagSchedOpsZLogsLambdaFnsRead
+        - !Ref TagSchedOpsZLogsRead
+        - !Ref TagSchedOpsZPermsErrDecode
+
+  TagSchedOpsAssumeRoleRdsBackupTagForDeletion:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: "sts:AssumeRole"
+            Resource: !GetAtt TagSchedOpsRdsBackupTagForDeletion.Arn
+
+  # LESS SECURE ALTERNATIVES: Try to prevent access to TagSchedOps roles
+  # and/or tags by attaching Deny policies to your existing IAM identities
+  # (roles, users and groups). Read the WARNING above.
+
+  TagSchedOpsNoAssumeOrPassRole:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: "Roles for TagSchedOps: cannot assume (or pass)"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Deny
+            Action:
+              - "sts:AssumeRole"
+              - "iam:PassRole"
+            Resource: !Sub "arn:*:lambda:*:*:function:*-${ProjectPrefix}*"
+
+  TagSchedOpsEc2NoTagExceptScheduleOnce:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: >-
+        EC2 instances, EBS volumes: cannot tag (or untag) with
+        operation-enabling or periodic schedule tags
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Deny
+            Action: [ "ec2:CreateTags", "ec2:DeleteTags" ]
+            Resource:
+              - "arn:*:ec2:*:*:instance/*"
+            Condition:
+              ForAnyValue:StringLike:
+                "aws:TagKeys":
+                  # Schedule
+                  - "managed-*-periodic"
+                  # Enable
+                  - "managed-start"
+                  - "managed-reboot"
+                  - "managed-reboot-image"
+                  - "managed-image"
+                  - "managed-stop"
+          - Effect: Deny
+            Action: [ "ec2:CreateTags", "ec2:DeleteTags" ]
+            Resource:
+              - "arn:*:ec2:*:*:volume/*"
+            Condition:
+              ForAnyValue:StringLike:
+                "aws:TagKeys":
+                  # Enable
+                  - "managed-snapshot"
+                  # Schedule
+                  - "managed-*-periodic"
+
+  TagSchedOpsRdsNoTagExceptScheduleOnce:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: >-
+        RDS instances: cannot tag (or untag) with operation-enabling or
+        periodic schedule tags
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Deny
+            Action: [ "ec2:CreateTags", "ec2:DeleteTags" ]
+            Resource:
+              - "arn:*:rds:*:*:db:*"
+            Condition:
+              ForAnyValue:StringLike:
+                "aws:TagKeys":
+                  # Schedule
+                  - "managed-*-periodic"
+                  # Enable
+                  - "managed-start"
+                  - "managed-reboot"
+                  - "managed-reboot-failover"
+                  - "managed-stop"
+                  - "managed-snapshot"
+                  - "managed-snapshot-stop"
+
+  TagSchedOpsEc2BackupNoTagForDeletion:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: "EC2 images, EBS snapshots: cannot tag for deletion"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Deny
+            Action: [ "ec2:CreateTags", "ec2:DeleteTags" ]
+            Resource: [ "arn:*:ec2:*:*:image/*", "arn:*:ec2:*:*:snapshot/*" ]
+            Condition:
+              ForAnyValue:StringEquals: { "aws:TagKeys": "managed-delete" }
+
+  TagSchedOpsRdsBackupNoTagForDeletion:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: "RDS snapshots: cannot tag for deletion"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Deny
+            Action: "rds:AddTagsToResource"
+            Resource: "arn:*:rds:*:*:snapshot:*"
+            Condition:
+              ForAnyValue:StringEquals: { "aws:TagKeys": "managed-delete" }
+
+  TagSchedOpsEc2BackupNoDelete:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: "EC2 images, EBS snapshots: cannot delete"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Deny
+            Action:
+              - "ec2:DeregisterImage"
+              - "ec2:DeleteSnapshot"
+              - "ec2:CreateImage"
+              - "ec2:CreateSnapshot"
+            Resource: "*"
+
+  TagSchedOpsRdsBackupNoDelete:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: "RDS snapshots: cannot delete"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Deny
+            Action:
+              - "rds:DeleteDBSnapshot"
+            Resource: "arn:*:rds:*:*:snapshot:*"
+
+  TagSchedOpsEc2NoTag:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: >-
+        EC2 instances, EBS volumes: cannot tag (or untag) with any managed
+        operation tag. EC2 images, EBS snapshots: cannot tag for deletion.
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Deny
+            Action: [ "ec2:CreateTags", "ec2:DeleteTags" ]
+            Resource:
+              - "arn:*:ec2:*:*:instance/*"
+              - "arn:*:ec2:*:*:volume/*"
+            Condition:
+              ForAnyValue:StringLike: { "aws:TagKeys": "managed-*" }
+          - Effect: Deny
+            Action: "ec2:CreateTags"
+            Resource: [ "arn:*:ec2:*:*:image/*", "arn:*:ec2:*:*:snapshot/*" ]
+            Condition:
+              ForAnyValue:StringEquals: { "aws:TagKeys": "managed-delete" }
+
+  TagSchedOpsRdsNoTag:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: >-
+        RDS instances: cannot tag (or untag) with any managed operation tag.
+        RDS snapshots: cannot tag for deletion.
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Deny
+            Action: [ "rds:AddTagsToResource", "rds:RemoveTagsFromResource" ]
+            Resource:
+              - "arn:*:rds:*:*:db:*"
+            Condition:
+              ForAnyValue:StringLike: { "aws:TagKeys": "managed-*" }
+          - Effect: Deny
+            Action: "rds:AddTagsToResource"
+            Resource:
+              - "arn:*:rds:*:*:snapshot:*"
+            Condition:
+              ForAnyValue:StringEquals: { "aws:TagKeys": "managed-delete" }
+
+  TagSchedOpsProtect:
+    Type: AWS::IAM::ManagedPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Description: "TagSchedOps resources: cannot modify or delete"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Deny
+            Action:
+              - "lambda:DeleteFunction"
+              - "lambda:UpdateFunctionCode"
+              - "lambda:PublishVersion"
+              - "lambda:UpdateFunctionConfiguration"
+              - "lambda:AddPermission"
+              - "lambda:RemovePermission"
+              - "lambda:CreateAlias"
+              - "lambda:UpdateAlias"
+              - "lambda:DeleteAlias"
+              - "lambda:PutFunctionEventInvokeConfig"
+              - "lambda:UpdateFunctionEventInvokeConfig"
+              - "lambda:DeleteFunctionEventInvokeConfig"
+              - "lambda:InvokeFunction"
+              - "lambda:PutFunctionConcurrency"
+              - "lambda:DeleteFunctionConcurrency"
+              - "lambda:PutProvisionedConcurrencyConfig"
+              - "lambda:DeleteProvisionedConcurrencyConfig"
+              - "lambda:TagResource"
+              - "lambda:UntageResource"
+            Resource: !Sub "arn:*:lambda:*:*:function:*-${ProjectPrefix}*"
+          - Effect: Deny
+            Action:
+              - "lambda:DeleteEventSourceMapping"
+              - "lambda:CreateEventSourceMapping"
+            Resource: "*"
+            Condition:
+              ForAnyValue:ArnLike:
+                "lambda:FunctionArn": !Sub "arn:*:lambda:*:*:function:*-${ProjectPrefix}*"
+          - Effect: Deny
+            Action:
+              - "logs:DeleteLogGroup"
+              - "logs:DisassociateKmsKey"
+              - "logs:DeleteRetentionPolicy"
+              - "logs:PutRetentionPolicy"
+              - "logs:TagLogGroup"
+              - "logs:UntagLogGroup"
+            Resource: !Sub "arn:*:logs:*:*:log-group:/aws/lambda/*-${ProjectPrefix}*"
+          - Effect: Deny
+            Action:
+              - "logs:DeleteLogStream"
+              - "logs:CreateLogStream"
+              - "logs:PutLogEvents"
+            Resource: !Sub "arn:*:logs:*:*:log-group:/aws/lambda/*-${ProjectPrefix}*:log-stream:*"
+          - Sid: "KnownEventsRules"
+            Effect: Deny
+            Action:
+              - "events:DisableRule"
+              - "events:EnableRule"
+              - "events:RemoveTargets"
+              - "events:PutTargets"
+              - "events:DeleteRule"
+              - "events:TagResource"
+              - "events:UntageResource"
+            Resource: !Sub "arn:*:events:*:*:rule/*-${ProjectPrefix}*"
+          - Sid: "UnknownEventsRules"
+            Effect: Deny
+            Action:
+              - "events:PutTargets"
+            Resource: "*"
+            Condition:
+              ForAnyValue:ArnLike:
+                "events:TargetArn": !Sub "arn:*:lambda:*:*:function:*-${ProjectPrefix}*"
+          - Effect: Deny
+            Action:
+              - "iam:DeleteRole"
+              - "iam:AttachRolePolicy"
+              - "iam:DetachRolePolicy"
+              - "iam:PutRolePolicy"
+              - "iam:DeleteRolePolicy"
+              - "iam:UpdateAssumeRolePolicy"
+              - "iam:TagRole"
+              - "iam:UntagRole"
+              - "sts:AssumeRole"
+              - "iam:PassRole"
+            Resource: !Sub "arn:*:iam::*:role/*-${ProjectPrefix}*"
+          - Effect: Deny
+            Action:
+              - "sqs:DeleteQueue"
+              - "sqs:AddPermission"
+              - "sqs:RemovePermission"
+              - "sqs:SetQueueAttributes"
+              - "sqs:TagQueue"
+              - "sqs:UntagQueue"
+              - "sqs:SendMessage*"
+              - "sqs:ChangeMessageVisibility*"
+              - "sqs:ReceiveMessage*"
+              - "sqs:DeleteMessage*"
+              - "sqs:PurgeQueue*"
+            Resource: !Sub "arn:*:sqs:*:*:*-${ProjectPrefix}*"
+          - Effect: Deny
+            Action:
+              - "iam:DeletePolicy"
+              - "iam:CreatePolicyVersion"
+              - "iam:SetDefaultPolicyVersion"
+              - "iam:DeletePolicyVersion"
+            Resource: !Sub "arn:*:iam::*:policy/*-${ProjectPrefix}*"
+
+
+# Alibi: Values and lists are not inlined if more
+# resources or actions are exepected in the future.
+# Alibi: IAM role, policy and statement descriptions are provided only
+# if the purpose is not immediately clear from the name or the contents.
