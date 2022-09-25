@@ -2,28 +2,27 @@
 
 ## RETIREMENT NOTICE
 
-Thank you for your interest and support since 2017! This project was retired on September 24, 2022.
+Thank you for your interest and support since 2017! The TagSchedOps project was retired on
+September 24, 2022.
 
-Please enjoy the successor,
+Please enjoy the successor, Lights Off AWS,
 [https://github.com/sqlxpert/lights-off-aws](https://github.com/sqlxpert/lights-off-aws)&nbsp;,
 which features:
 
-* New scheduled operations:
+* More scheduled operations to help you cut AWS costs:
   * Hibernate EC2 instances
   * Start, stop, reboot and back up RDS database _clusters_ (Aurora)
-  * Change a CloudFormation stack parameter to true or false, to create or delete expensive resources
+  * Change a CloudFormation stack parameter, to create or delete expensive resources
  
 * Parallelism and scalability, thanks to an SQS queue and a separate AWS Lambda function
   to "do" scheduled operations
 
-* Much easier multi-region, multi-account deployment, with _service-managed_ CloudFormation
-  StackSet deployment, now that there is an alternative to self-managed permissions
+* Easier multi-region, multi-account deployment, with "service-managed" CloudFormation
+  StackSet permissions
 
-* Shorter and simpler Python code, IAM policies and CloudFormation templates
+* Shorter Python code, IAM policies, CloudFormation templates, and documentation
 
-* Easier extensibility
-
-* An object-oriented Python design
+* An object-oriented Python 3 design
 
 ## Licensing
 
